@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLINCO - Générateur de Rapports Professionnels</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #10458c 0%, #1b5bb5 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #10458c 0%, #1b5bb5 100%);
+            color: white;
+            padding: 30px 40px;
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+        .header-logo {
+            width: 70px;
+            height: 70px;
+            background: white;
+            border-radius: 10px;
+            padding: 8px;
+        }
+        .header-text h1 { font-size: 32px; margin-bottom: 5px; }
+        .header-text p { opacity: 0.95; font-size: 15px; }
+        
+        .main-content { padding: 40px; }
+        
+        .upload-zone {
+            border: 3px dashed #10458c;
+            background: #f0f4ff;
+            border-radius: 15px;
+            padding: 60px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 30px;
+        }
+        .upload-zone:hover {
+            background: #e6efff;
+            border-color: #0d3a73;
+        }
+        .upload-zone h2 {
+            color: #10458c;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .upload-zone p {
+            color: #6c757d;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .upload-btn {
+            background: #10458c;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .upload-btn:hover { background: #0d3a73; }
+        
+        input[type="file"] { display: none; }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        .form-section h3 {
+            color: #10458c;
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #10458c;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .form-group label {
+            display: block;
+            color: #495057;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #10458c;
+        }
+        textarea { resize: vertical; min-height: 80px; }
+        
+        .rooms-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .room-section {
+            background: white;
+            border: 3px solid #10458c;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .room-header {
+            background: linear-gradient(135deg, #10458c 0%, #1b5bb5 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: -25px -25px 20px -25px;
+        }
+        
+        .room-header h4 {
+            font-size: 20px;
+            margin: 0;
+        }
+        
+        .task-item {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        
+        .task-item:hover {
+            border-color: #10458c;
+            box-shadow: 0 3px 10px rgba(16, 69, 140, 0.1);
+        }
+        
+        .task-name {
+            color: #495057;
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .task-name:before {
+            content: "✓";
+            color: #28a745;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .photo-pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .photo-box {
+            text-align: center;
+        }
+        
+        .photo-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        
+        .photo-upload {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 50px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            display: block;
+        }
+        
+        .photo-upload:hover {
+            border-color: #10458c;
+            background: #f0f4ff;
+        }
+        
+        .photo-upload.has-photo {
+            padding: 0;
+            border: 2px solid #28a745;
+        }
+        
+        .photo-upload img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 6px;
+            display: block;
+        }
+        
+        .add-room-btn {
+            background: white;
+            border: 2px dashed #10458c;
+            color: #10458c;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+        .add-room-btn:hover {
+            background: #f0f4ff;
+            border-color: #0d3a73;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #10458c 0%, #1b5bb5 100%);
+            color: white;
+            padding: 16px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16, 69, 140, 0.4);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .success-msg {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 1px solid #c3e6cb;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .success-msg.show { display: block; }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        .loading.active { display: block; }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #10458c;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="Flinco.png" alt="FLINCO" class="header-logo" onerror="this.style.display='none'">
+            <div class="header-text">
+                <h1>FLINCO</h1>
+                <p>Générateur de Rapports Professionnels - Service de nettoyage et remise en état</p>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Zone d'upload -->
+            <div class="upload-zone" onclick="document.getElementById('missionFile').click()">
+                <h2>📄 Importer votre Fiche Mission</h2>
+                <p>Excel (.xlsx), PDF ou Image (.png, .jpg) - Le document sera ajouté au rapport final</p>
+                <button class="upload-btn" type="button">Choisir le fichier</button>
+                <input type="file" id="missionFile" accept=".xlsx,.xls,.pdf,.png,.jpg,.jpeg" onchange="handleMissionUpload()">
+            </div>
+
+            <div id="successMessage" class="success-msg">
+                <strong>✅ Fiche mission chargée !</strong> <span id="roomCount"></span> pièces créées avec leurs tâches. Ajoutez maintenant les photos pour chaque tâche.
+            </div>
+
+            <!-- Informations client -->
+            <div class="form-section">
+                <h3>📋 Informations Client</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Adresse du bien *</label>
+                        <input type="text" id="address" placeholder="Ex: 123 Rue de la République, 75001 Paris">
+                    </div>
+                    <div class="form-group">
+                        <label>Agent *</label>
+                        <input type="text" id="agent" placeholder="Ex: Jean Dupont">
+                    </div>
+                    <div class="form-group">
+                        <label>Agence *</label>
+                        <input type="text" id="agency" placeholder="Ex: Century 21 Paris">
+                    </div>
+                    <div class="form-group">
+                        <label>N° Devis</label>
+                        <input type="text" id="quote" placeholder="Ex: DEV-2024-001">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Photos par tâche -->
+            <div class="form-section">
+                <h3>📸 Photos Avant / Après par Tâche</h3>
+                <div id="roomsContainer" class="rooms-container">
+                    <p style="text-align: center; color: #6c757d; padding: 40px;">
+                        Importez votre fiche mission pour générer automatiquement les pièces et tâches
+                    </p>
+                </div>
+                <button class="add-room-btn" onclick="addManualRoom()">+ Ajouter une pièce manuellement</button>
+            </div>
+
+            <!-- Génération PDF -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="font-size: 18px; font-weight: 600;">Génération du PDF en cours...</p>
+            </div>
+
+            <button class="btn-primary" id="generateBtn" onclick="generatePDF()">
+                📥 Générer le Rapport PDF
+            </button>
+        </div>
+    </div>
+
+    <script>
+        var jsPDF = window.jspdf.jsPDF;
+        var rooms = [];
+        var logoBase64 = null;
+        var importedDocument = null;
+        var importedDocumentType = null;
+
+        // Charger le logo
+        window.onload = function() {
+            // Méthode 1: Essayer avec fetch
+            fetch('Flinco.png')
+                .then(function(response) { return response.blob(); })
+                .then(function(blob) {
+                    var reader = new FileReader();
+                    reader.onloadend = function() {
+                        logoBase64 = reader.result;
+                        console.log('Logo chargé avec fetch');
+                    };
+                    reader.readAsDataURL(blob);
+                })
+                .catch(function() {
+                    // Méthode 2: Fallback avec Image
+                    var img = new Image();
+                    img.crossOrigin = 'Anonymous';
+                    img.onload = function() {
+                        var canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        var ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        logoBase64 = canvas.toDataURL('image/png');
+                        console.log('Logo chargé avec canvas');
+                    };
+                    img.onerror = function() {
+                        console.error('Impossible de charger le logo');
+                    };
+                    img.src = 'Flinco.png?' + new Date().getTime();
+                });
+        };
+
+        function handleMissionUpload() {
+            var input = document.getElementById('missionFile');
+            if (!input.files || !input.files[0]) return;
+
+            var file = input.files[0];
+            var fileName = file.name.toLowerCase();
+            
+            var reader = new FileReader();
+
+            reader.onload = function(e) {
+                importedDocument = e.target.result;
+                
+                if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                    importedDocumentType = 'excel';
+                    parseExcel(e.target.result);
+                } else if (fileName.endsWith('.pdf')) {
+                    importedDocumentType = 'pdf';
+                    createDefaultRooms();
+                } else if (fileName.match(/\.(png|jpg|jpeg)$/)) {
+                    importedDocumentType = 'image';
+                    createDefaultRooms();
+                }
+            };
+
+            if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                reader.readAsArrayBuffer(file);
+            } else {
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function parseExcel(data) {
+            try {
+                var workbook = XLSX.read(data, {type: 'array'});
+                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                var rows = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+                
+                rooms = [];
+                var currentRoom = null;
+                
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i];
+                    if (!row[0]) continue;
+                    
+                    var cell = String(row[0]).trim();
+                    
+                    // Détecter une PIÈCE
+                    if (cell.match(/^[A-ZÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ\s\/]+$/) && 
+                        cell.length > 2 && 
+                        !cell.match(/^(DESIGNATION|TOTAL|SOUS)/)) {
+                        
+                        if (currentRoom) {
+                            rooms.push(currentRoom);
+                        }
+                        currentRoom = {
+                            name: cell,
+                            tasks: [],
+                            generalPhotos: {avant: null, apres: null}
+                        };
+                    }
+                    // Détecter une TÂCHE
+                    else if (currentRoom && cell.match(/^[0-9]+\.[0-9]+\s/) && cell.length > 5) {
+                        var task = cell.replace(/^[0-9]+\.[0-9]+\s*/, '');
+                        currentRoom.tasks.push({
+                            name: task,
+                            avant: null,
+                            apres: null
+                        });
+                    }
+                }
+                
+                if (currentRoom && currentRoom.tasks.length > 0) {
+                    rooms.push(currentRoom);
+                }
+                
+                if (rooms.length > 0) {
+                    createRoomsUI();
+                } else {
+                    createDefaultRooms();
+                }
+                
+            } catch (error) {
+                console.error('Erreur parsing Excel:', error);
+                createDefaultRooms();
+            }
+        }
+
+        function createDefaultRooms() {
+            rooms = [
+                {
+                    name: 'ENTRÉE / SÉJOUR',
+                    tasks: [
+                        {name: 'Dépoussiérage complet (plinthes, interrupteurs, poignées)', avant: null, apres: null},
+                        {name: 'Nettoyage des vitres et miroirs', avant: null, apres: null},
+                        {name: 'Aspiration et lavage des sols', avant: null, apres: null}
+                    ],
+                    generalPhotos: {avant: null, apres: null}
+                },
+                {
+                    name: 'CUISINE',
+                    tasks: [
+                        {name: 'Nettoyage et détartrage évier + robinetterie', avant: null, apres: null},
+                        {name: 'Nettoyage façade meubles', avant: null, apres: null},
+                        {name: 'Nettoyage intérieur frigo + four', avant: null, apres: null},
+                        {name: 'Dégraissage hotte', avant: null, apres: null},
+                        {name: 'Lavage sol cuisine', avant: null, apres: null}
+                    ],
+                    generalPhotos: {avant: null, apres: null}
+                },
+                {
+                    name: 'SALLE DE BAIN / WC',
+                    tasks: [
+                        {name: 'Détartrage complet robinetterie (lavabo, douche, pommeau)', avant: null, apres: null},
+                        {name: 'Détartrage et désinfection bac de douche', avant: null, apres: null},
+                        {name: 'Nettoyage pare-douche (anti-calcaire + poignée)', avant: null, apres: null},
+                        {name: 'Détartrage et désinfection cuvette WC', avant: null, apres: null}
+                    ],
+                    generalPhotos: {avant: null, apres: null}
+                }
+            ];
+            
+            createRoomsUI();
+        }
+
+        function createRoomsUI() {
+            var container = document.getElementById('roomsContainer');
+            container.innerHTML = '';
+            
+            rooms.forEach(function(room, roomIndex) {
+                var roomDiv = document.createElement('div');
+                roomDiv.className = 'room-section';
+                
+                var headerHTML = '<div class="room-header"><h4>' + room.name + '</h4></div>';
+                
+                // PHOTOS GÉNÉRALES DE LA PIÈCE
+                var generalPhotosHTML = `
+                    <div style="background: #e6f2ff; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h5 style="color: #10458c; margin-bottom: 15px; font-size: 16px;">📸 Photos générales de la pièce</h5>
+                        <div class="photo-pair">
+                            <div class="photo-box">
+                                <div class="photo-label">Vue Avant</div>
+                                <label class="photo-upload" id="general_avant_${roomIndex}">
+                                    <span style="font-size: 13px; color: #6c757d;">📷 Ajouter</span>
+                                    <input type="file" accept="image/*" onchange="handleGeneralPhoto(${roomIndex}, 'avant', this)">
+                                </label>
+                            </div>
+                            <div class="photo-box">
+                                <div class="photo-label">Vue Après</div>
+                                <label class="photo-upload" id="general_apres_${roomIndex}">
+                                    <span style="font-size: 13px; color: #6c757d;">📷 Ajouter</span>
+                                    <input type="file" accept="image/*" onchange="handleGeneralPhoto(${roomIndex}, 'apres', this)">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Initialiser les photos générales si elles n'existent pas
+                if (!room.generalPhotos) {
+                    room.generalPhotos = {avant: null, apres: null};
+                }
+                
+                var tasksHTML = '';
+                
+                room.tasks.forEach(function(task, taskIndex) {
+                    var taskId = 'r' + roomIndex + 't' + taskIndex;
+                    tasksHTML += `
+                        <div class="task-item">
+                            <div class="task-name">${task.name}</div>
+                            <div class="photo-pair">
+                                <div class="photo-box">
+                                    <div class="photo-label">Avant</div>
+                                    <label class="photo-upload" id="avant_${taskId}">
+                                        <span style="font-size: 13px; color: #6c757d;">📷 Ajouter</span>
+                                        <input type="file" accept="image/*" onchange="handleTaskPhoto(${roomIndex}, ${taskIndex}, 'avant', this)">
+                                    </label>
+                                </div>
+                                <div class="photo-box">
+                                    <div class="photo-label">Après</div>
+                                    <label class="photo-upload" id="apres_${taskId}">
+                                        <span style="font-size: 13px; color: #6c757d;">📷 Ajouter</span>
+                                        <input type="file" accept="image/*" onchange="handleTaskPhoto(${roomIndex}, ${taskIndex}, 'apres', this)">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                // Bouton pour ajouter une tâche dans cette pièce
+                tasksHTML += `
+                    <button class="add-room-btn" style="margin-top: 15px; background: white; border: 2px dashed #6c757d; color: #6c757d;" onclick="addTaskToRoom(${roomIndex})">
+                        + Ajouter une tâche à cette pièce
+                    </button>
+                `;
+                
+                roomDiv.innerHTML = headerHTML + generalPhotosHTML + tasksHTML;
+                container.appendChild(roomDiv);
+            });
+            
+            document.getElementById('successMessage').classList.add('show');
+            document.getElementById('roomCount').textContent = rooms.length;
+            document.getElementById('generateBtn').disabled = false;
+        }
+
+        function handleGeneralPhoto(roomIndex, type, input) {
+            if (!input.files || !input.files[0]) return;
+            
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                compressImage(e.target.result, function(compressed) {
+                    rooms[roomIndex].generalPhotos[type] = compressed;
+                    var label = document.getElementById('general_' + type + '_' + roomIndex);
+                    label.innerHTML = '<img src="' + compressed + '">';
+                    label.classList.add('has-photo');
+                });
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
+        function handleTaskPhoto(roomIndex, taskIndex, type, input) {
+            if (!input.files || !input.files[0]) return;
+            
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                compressImage(e.target.result, function(compressed) {
+                    rooms[roomIndex].tasks[taskIndex][type] = compressed;
+                    var taskId = 'r' + roomIndex + 't' + taskIndex;
+                    var label = document.getElementById(type + '_' + taskId);
+                    label.innerHTML = '<img src="' + compressed + '">';
+                    label.classList.add('has-photo');
+                });
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
+        function compressImage(dataUrl, callback) {
+            var img = new Image();
+            img.onload = function() {
+                var canvas = document.createElement('canvas');
+                var maxW = 1200, maxH = 900;
+                var w = img.width, h = img.height;
+                
+                if (w > h) {
+                    if (w > maxW) { h = h * (maxW / w); w = maxW; }
+                } else {
+                    if (h > maxH) { w = w * (maxH / h); h = maxH; }
+                }
+                
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                callback(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            img.src = dataUrl;
+        }
+
+        function addManualRoom() {
+            var name = prompt('Nom de la pièce:', 'NOUVELLE PIÈCE');
+            if (!name) return;
+            
+            var taskName = prompt('Nom de la première tâche:', 'Nettoyage complet');
+            if (!taskName) taskName = 'Tâche 1';
+            
+            rooms.push({
+                name: name.toUpperCase(),
+                tasks: [{name: taskName, avant: null, apres: null}],
+                generalPhotos: {avant: null, apres: null}
+            });
+            
+            createRoomsUI();
+        }
+
+        function addTaskToRoom(roomIndex) {
+            var taskName = prompt('Nom de la nouvelle tâche:', 'Nettoyage...');
+            if (!taskName) return;
+            
+            rooms[roomIndex].tasks.push({
+                name: taskName,
+                avant: null,
+                apres: null
+            });
+            
+            createRoomsUI();
+        }
+
+        function generatePDF() {
+            var loading = document.getElementById('loading');
+            var btn = document.getElementById('generateBtn');
+            
+            loading.classList.add('active');
+            btn.disabled = true;
+
+            setTimeout(function() {
+                try {
+                    var pdf = new jsPDF('p', 'mm', 'a4');
+                    var address = document.getElementById('address').value;
+                    var agent = document.getElementById('agent').value;
+                    var agency = document.getElementById('agency').value;
+                    var quote = document.getElementById('quote').value || 'XXX';
+                    var date = new Date().toLocaleDateString('fr-FR');
+                    
+                    // EN-TÊTE
+                    pdf.setFillColor(16, 69, 140);
+                    pdf.rect(0, 0, 210, 50, 'F');
+                    
+                    // Ajouter le logo
+                    if (logoBase64) {
+                        try {
+                            console.log('Ajout du logo dans le PDF...');
+                            // Déterminer le format
+                            var format = 'PNG';
+                            if (logoBase64.indexOf('data:image/jpeg') === 0 || logoBase64.indexOf('data:image/jpg') === 0) {
+                                format = 'JPEG';
+                            } else if (logoBase64.indexOf('data:image/webp') === 0) {
+                                format = 'WEBP';
+                            }
+                            pdf.addImage(logoBase64, format, 15, 8, 30, 30);
+                            console.log('Logo ajouté avec succès');
+                        } catch(e) {
+                            console.error('Erreur ajout logo dans PDF:', e);
+                        }
+                    } else {
+                        console.warn('Logo non chargé - logoBase64 est null');
+                    }
+                    
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFontSize(32);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('FLINCO', 50, 25);
+                    pdf.setFontSize(11);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.text('Service de nettoyage et remise en état', 50, 33);
+                    
+                    pdf.setFontSize(11);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Rapport N° ' + quote, 195, 18, {align: 'right'});
+                    pdf.setFont(undefined, 'normal');
+                    pdf.setFontSize(10);
+                    pdf.text('Date: ' + date, 195, 25, {align: 'right'});
+                    
+                    var yPos = 60;
+                    
+                    // INFOS CLIENT
+                    pdf.setFillColor(248, 249, 250);
+                    pdf.rect(15, yPos, 180, 35, 'F');
+                    pdf.setDrawColor(222, 226, 230);
+                    pdf.setLineWidth(0.5);
+                    pdf.rect(15, yPos, 180, 35, 'S');
+                    
+                    pdf.setTextColor(16, 69, 140);
+                    pdf.setFontSize(12);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('INFORMATIONS CLIENT', 20, yPos + 8);
+                    
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.setFontSize(10);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.text('Adresse: ' + address, 20, yPos + 16);
+                    pdf.text('Agent: ' + agent, 20, yPos + 22);
+                    pdf.text('Agence: ' + agency, 20, yPos + 28);
+                    
+                    yPos = 105;
+                    
+                    // PHOTOS PAR TÂCHE
+                    var imgW = 80, imgH = 60;
+                    
+                    for (var i = 0; i < rooms.length; i++) {
+                        var room = rooms[i];
+                        
+                        // PHOTOS GÉNÉRALES DE LA PIÈCE (si elles existent)
+                        if (room.generalPhotos && (room.generalPhotos.avant || room.generalPhotos.apres)) {
+                            if (yPos > 200) {
+                                pdf.addPage();
+                                yPos = 20;
+                            }
+                            
+                            // Titre pièce
+                            pdf.setFontSize(13);
+                            pdf.setFont(undefined, 'bold');
+                            pdf.setTextColor(16, 69, 140);
+                            pdf.text(room.name + ' - VUE GÉNÉRALE', 15, yPos);
+                            yPos += 8;
+                            
+                            // Labels
+                            pdf.setFontSize(9);
+                            pdf.setFont(undefined, 'bold');
+                            pdf.setTextColor(108, 117, 125);
+                            pdf.text('Vue Avant', 20, yPos);
+                            pdf.text('Vue Après', 115, yPos);
+                            yPos += 3;
+                            
+                            // Photos
+                            pdf.setDrawColor(222, 226, 230);
+                            pdf.setLineWidth(1);
+                            
+                            pdf.rect(15, yPos, imgW, imgH, 'S');
+                            if (room.generalPhotos.avant) {
+                                pdf.addImage(room.generalPhotos.avant, 'JPEG', 15, yPos, imgW, imgH);
+                            } else {
+                                pdf.setFillColor(248, 249, 250);
+                                pdf.rect(15, yPos, imgW, imgH, 'F');
+                            }
+                            
+                            pdf.rect(110, yPos, imgW, imgH, 'S');
+                            if (room.generalPhotos.apres) {
+                                pdf.addImage(room.generalPhotos.apres, 'JPEG', 110, yPos, imgW, imgH);
+                            } else {
+                                pdf.setFillColor(248, 249, 250);
+                                pdf.rect(110, yPos, imgW, imgH, 'F');
+                            }
+                            
+                            yPos += imgH + 15;
+                        }
+                        
+                        for (var t = 0; t < room.tasks.length; t++) {
+                            var task = room.tasks[t];
+                            
+                            // Vérifier si on a de la place
+                            if (yPos > 200) {
+                                pdf.addPage();
+                                yPos = 20;
+                            }
+                            
+                            // NOM PIÈCE + TÂCHE
+                            pdf.setFontSize(11);
+                            pdf.setFont(undefined, 'bold');
+                            pdf.setTextColor(16, 69, 140);
+                            pdf.text(room.name, 15, yPos);
+                            yPos += 6;
+                            
+                            pdf.setFontSize(9);
+                            pdf.setFont(undefined, 'normal');
+                            pdf.setTextColor(60, 60, 60);
+                            var lines = pdf.splitTextToSize(task.name, 180);
+                            pdf.text(lines, 15, yPos);
+                            yPos += 5 * lines.length + 3;
+                            
+                            // LABELS
+                            pdf.setFontSize(9);
+                            pdf.setFont(undefined, 'bold');
+                            pdf.setTextColor(108, 117, 125);
+                            pdf.text('Avant', 20, yPos);
+                            pdf.text('Après', 115, yPos);
+                            yPos += 3;
+                            
+                            // BORDURES ET PHOTOS
+                            pdf.setDrawColor(222, 226, 230);
+                            pdf.setLineWidth(1);
+                            
+                            pdf.rect(15, yPos, imgW, imgH, 'S');
+                            if (task.avant) {
+                                pdf.addImage(task.avant, 'JPEG', 15, yPos, imgW, imgH);
+                            } else {
+                                pdf.setFillColor(248, 249, 250);
+                                pdf.rect(15, yPos, imgW, imgH, 'F');
+                            }
+                            
+                            pdf.rect(110, yPos, imgW, imgH, 'S');
+                            if (task.apres) {
+                                pdf.addImage(task.apres, 'JPEG', 110, yPos, imgW, imgH);
+                            } else {
+                                pdf.setFillColor(248, 249, 250);
+                                pdf.rect(110, yPos, imgW, imgH, 'F');
+                            }
+                            
+                            yPos += imgH + 12;
+                        }
+                    }
+                    
+                    // AJOUTER LE DOCUMENT IMPORTÉ
+                    if (importedDocument) {
+                        pdf.addPage();
+                        yPos = 20;
+                        
+                        pdf.setFontSize(14);
+                        pdf.setFont(undefined, 'bold');
+                        pdf.setTextColor(16, 69, 140);
+                        pdf.text('FICHE MISSION / DEVIS', 105, yPos, {align: 'center'});
+                        yPos += 15;
+                        
+                        if (importedDocumentType === 'image' || importedDocumentType === 'pdf') {
+                            try {
+                                var maxW = 180;
+                                var maxH = 240;
+                                pdf.addImage(importedDocument, 'JPEG', 15, yPos, maxW, maxH);
+                            } catch(e) {
+                                console.error('Erreur ajout document:', e);
+                            }
+                        }
+                    }
+                    
+                    // FOOTER
+                    var pageCount = pdf.internal.getNumberOfPages();
+                    for (var p = 1; p <= pageCount; p++) {
+                        pdf.setPage(p);
+                        pdf.setFontSize(8);
+                        pdf.setTextColor(100, 100, 100);
+                        pdf.text('FLINCO - Nettoyage Professionnel | Page ' + p + '/' + pageCount, 105, 287, {align: 'center'});
+                    }
+                    
+                    pdf.save('FLINCO_Rapport_' + quote + '_' + date.replace(/\//g, '-') + '.pdf');
+                    
+                    loading.classList.remove('active');
+                    btn.disabled = false;
+                    alert('✅ PDF généré avec succès !');
+                    
+                } catch (error) {
+                    alert('Erreur: ' + error.message);
+                    console.error(error);
+                    loading.classList.remove('active');
+                    btn.disabled = false;
+                }
+            }, 500);
+        }
+    </script>
+</body>
+</html>
