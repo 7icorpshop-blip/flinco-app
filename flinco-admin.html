@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLINCO Admin - Créer un Pré-rapport</title>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #0f3460;
+            --accent: #82acff;
+            --accent-light: #b8d4ff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #0a0f1c;
+            --card: #111827;
+            --card-hover: #1a2332;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #1e293b;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 40px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .logo {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+            color: white;
+            box-shadow: 0 8px 32px rgba(130, 172, 255, 0.3);
+        }
+        
+        .header-text h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .header-text p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        
+        .badge {
+            background: var(--accent);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: auto;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 32px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 14px 20px;
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .tab:hover {
+            background: var(--card-hover);
+            border-color: var(--accent);
+        }
+        
+        .tab.active {
+            background: var(--primary);
+            border-color: var(--accent);
+            color: white;
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Section */
+        .section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+        
+        /* Form */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .form-row.single {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group input, .form-group textarea {
+            padding: 14px 16px;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(130, 172, 255, 0.15);
+        }
+        
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        /* Room Input */
+        .room-input-wrapper {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .room-input-wrapper input {
+            flex: 1;
+            padding: 14px 16px;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .room-input-wrapper input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .btn {
+            padding: 14px 24px;
+            background: var(--accent);
+            color: var(--primary);
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        
+        .btn:hover {
+            background: var(--accent-light);
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            padding: 8px 14px;
+            font-size: 12px;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-large {
+            width: 100%;
+            padding: 18px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        /* Room Cards */
+        .rooms-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .room-card {
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .room-header {
+            background: var(--primary);
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .room-header h4 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .room-content {
+            padding: 16px;
+        }
+        
+        .task-input-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        .task-input-wrapper input {
+            flex: 1;
+            padding: 12px 14px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+        }
+        
+        .task-input-wrapper input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .task-input-wrapper button {
+            padding: 12px 18px;
+            font-size: 13px;
+        }
+        
+        .tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            background: var(--card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        
+        .task-item span {
+            font-size: 13px;
+        }
+        
+        .task-item button {
+            background: transparent;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+        }
+        
+        .task-item button:hover {
+            color: #dc2626;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+        
+        /* Link Result */
+        .link-result {
+            display: none;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(130, 172, 255, 0.1) 100%);
+            border: 2px solid var(--success);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .link-result.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .link-result h3 {
+            color: var(--success);
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+        
+        .link-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .link-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+        
+        .link-box input:focus {
+            outline: none;
+        }
+        
+        .link-box button {
+            padding: 10px 16px;
+            font-size: 12px;
+        }
+        
+        /* Reports List */
+        .reports-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .report-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        
+        .report-card:hover {
+            border-color: var(--accent);
+        }
+        
+        .report-info h4 {
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+        
+        .report-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .report-status {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .report-status.pending {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+        
+        .report-status.completed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        
+        .report-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .report-actions button {
+            padding: 10px 14px;
+            font-size: 12px;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 15, 28, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .loading.active {
+            display: flex;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .header {
+                flex-wrap: wrap;
+            }
+            
+            .badge {
+                margin-left: 0;
+                margin-top: 10px;
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">F</div>
+            <div class="header-text">
+                <h1>FLINCO Admin</h1>
+                <p>Gestion des pré-rapports</p>
+            </div>
+            <span class="badge">Admin</span>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('create')">➕ Créer un pré-rapport</button>
+            <button class="tab" onclick="showTab('list')">📋 Mes rapports</button>
+        </div>
+        
+        <!-- TAB: Créer -->
+        <div id="tab-create" class="tab-content active">
+            <div class="section">
+                <div class="section-title">Informations de la mission</div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>N° Devis</label>
+                        <input type="text" id="quote" placeholder="Ex: DEV-2024-001">
+                    </div>
+                    <div class="form-group">
+                        <label>Date d'intervention</label>
+                        <input type="date" id="date">
+                    </div>
+                </div>
+                
+                <div class="form-row single">
+                    <div class="form-group">
+                        <label>Adresse du bien *</label>
+                        <textarea id="address" placeholder="Ex: 15 rue de la Paix, 75001 Paris"></textarea>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nom de l'agent</label>
+                        <input type="text" id="agent" placeholder="Ex: Jean Dupont">
+                    </div>
+                    <div class="form-group">
+                        <label>Agence</label>
+                        <input type="text" id="agency" placeholder="Ex: Century 21">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Pièces et tâches</div>
+                
+                <div class="room-input-wrapper">
+                    <input type="text" id="roomName" placeholder="Nom de la pièce (ex: Cuisine, Salon...)">
+                    <button class="btn" onclick="addRoom()">+ Ajouter</button>
+                </div>
+                
+                <div id="roomsList" class="rooms-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🏠</div>
+                        <p>Ajoutez des pièces pour commencer</p>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-success btn-large" onclick="generateLink()">
+                🔗 Générer le lien pour l'agent
+            </button>
+            
+            <div id="linkResult" class="link-result">
+                <h3>✅ Pré-rapport créé avec succès !</h3>
+                <p style="color: var(--text-muted); margin-bottom: 16px;">Envoyez ce lien à votre agent pour qu'il complète les photos avant/après :</p>
+                <div class="link-box">
+                    <input type="text" id="generatedLink" readonly>
+                    <button class="btn" onclick="copyLink()">📋 Copier</button>
+                </div>
+                <button class="btn" onclick="shareWhatsApp()">📱 Partager via WhatsApp</button>
+            </div>
+        </div>
+        
+        <!-- TAB: Liste -->
+        <div id="tab-list" class="tab-content">
+            <div class="section">
+                <div class="section-title">Rapports en cours</div>
+                <div id="reportsList" class="reports-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📄</div>
+                        <p>Aucun rapport pour le moment</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Création en cours...</p>
+    </div>
+    
+    <script>
+        // ==================== FIREBASE CONFIG ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyB3zo_KkWFi0TPDnx8FgYVB5ca3fR_Y3xY",
+            authDomain: "flinco-8789b.firebaseapp.com",
+            projectId: "flinco-8789b",
+            storageBucket: "flinco-8789b.firebasestorage.app",
+            messagingSenderId: "446019558198",
+            appId: "1:446019558198:web:bef018390ff56a05a73197"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+        
+        // ==================== STATE ====================
+        let rooms = {};
+        
+        // ==================== TABS ====================
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            if (tabName === 'list') {
+                loadReports();
+            }
+        }
+        
+        // ==================== ROOMS ====================
+        function addRoom() {
+            const input = document.getElementById('roomName');
+            const name = input.value.trim();
+            
+            if (!name) {
+                alert('Veuillez entrer un nom de pièce');
+                return;
+            }
+            
+            if (rooms[name]) {
+                alert('Cette pièce existe déjà');
+                return;
+            }
+            
+            rooms[name] = { tasks: [] };
+            input.value = '';
+            renderRooms();
+        }
+        
+        function removeRoom(name) {
+            if (confirm(`Supprimer la pièce "${name}" ?`)) {
+                delete rooms[name];
+                renderRooms();
+            }
+        }
+        
+        function addTask(roomName) {
+            const input = document.getElementById(`task-input-${roomName}`);
+            const taskName = input.value.trim();
+            
+            if (!taskName) return;
+            
+            rooms[roomName].tasks.push(taskName);
+            input.value = '';
+            renderRooms();
+        }
+        
+        function removeTask(roomName, taskIndex) {
+            rooms[roomName].tasks.splice(taskIndex, 1);
+            renderRooms();
+        }
+        
+        function renderRooms() {
+            const container = document.getElementById('roomsList');
+            const roomNames = Object.keys(rooms);
+            
+            if (roomNames.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🏠</div>
+                        <p>Ajoutez des pièces pour commencer</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = roomNames.map(name => `
+                <div class="room-card">
+                    <div class="room-header">
+                        <h4>${name}</h4>
+                        <button class="btn btn-danger" onclick="removeRoom('${name}')">Supprimer</button>
+                    </div>
+                    <div class="room-content">
+                        <div class="task-input-wrapper">
+                            <input type="text" id="task-input-${name}" placeholder="Ajouter une tâche..." onkeypress="if(event.key==='Enter')addTask('${name}')">
+                            <button class="btn" onclick="addTask('${name}')">+ Tâche</button>
+                        </div>
+                        <div class="tasks-list">
+                            ${rooms[name].tasks.length === 0 ? 
+                                '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 10px;">Aucune tâche ajoutée</p>' :
+                                rooms[name].tasks.map((task, i) => `
+                                    <div class="task-item">
+                                        <span>• ${task}</span>
+                                        <button onclick="removeTask('${name}', ${i})">×</button>
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // ==================== GENERATE LINK ====================
+        async function generateLink() {
+            const address = document.getElementById('address').value.trim();
+            
+            if (!address) {
+                alert('Veuillez remplir l\'adresse du bien');
+                return;
+            }
+            
+            if (Object.keys(rooms).length === 0) {
+                alert('Veuillez ajouter au moins une pièce');
+                return;
+            }
+            
+            document.getElementById('loading').classList.add('active');
+            
+            try {
+                // Préparer les données
+                const reportData = {
+                    quote: document.getElementById('quote').value || 'N/A',
+                    date: document.getElementById('date').value || new Date().toISOString().split('T')[0],
+                    address: address,
+                    agent: document.getElementById('agent').value || '',
+                    agency: document.getElementById('agency').value || '',
+                    rooms: rooms,
+                    status: 'pending',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    completedAt: null,
+                    pdfUrl: null
+                };
+                
+                // Sauvegarder dans Firestore
+                const docRef = await db.collection('reports').add(reportData);
+                const reportId = docRef.id;
+                
+                // Générer le lien
+                // IMPORTANT: Remplacez cette URL par votre URL Vercel
+                const baseUrl = window.location.origin;
+                const agentUrl = `${baseUrl}/flinco-agent.html?id=${reportId}`;
+                
+                document.getElementById('generatedLink').value = agentUrl;
+                document.getElementById('linkResult').classList.add('show');
+                
+                // Reset form
+                // document.getElementById('address').value = '';
+                // rooms = {};
+                // renderRooms();
+                
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la création: ' + error.message);
+            }
+            
+            document.getElementById('loading').classList.remove('active');
+        }
+        
+        function copyLink() {
+            const input = document.getElementById('generatedLink');
+            input.select();
+            document.execCommand('copy');
+            
+            const btn = event.target;
+            btn.textContent = '✓ Copié !';
+            setTimeout(() => btn.textContent = '📋 Copier', 2000);
+        }
+        
+        function shareWhatsApp() {
+            const link = document.getElementById('generatedLink').value;
+            const address = document.getElementById('address').value;
+            const message = `Bonjour, voici le lien pour le rapport de nettoyage :\n📍 ${address}\n\n${link}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+        }
+        
+        // ==================== LOAD REPORTS ====================
+        async function loadReports() {
+            const container = document.getElementById('reportsList');
+            
+            try {
+                const snapshot = await db.collection('reports')
+                    .orderBy('createdAt', 'desc')
+                    .limit(50)
+                    .get();
+                
+                if (snapshot.empty) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📄</div>
+                            <p>Aucun rapport pour le moment</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    const createdDate = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString('fr-FR') : 'N/A';
+                    const statusClass = data.status === 'completed' ? 'completed' : 'pending';
+                    const statusText = data.status === 'completed' ? '✓ Terminé' : '⏳ En attente';
+                    
+                    return `
+                        <div class="report-card">
+                            <div class="report-info">
+                                <h4>${data.address}</h4>
+                                <div class="report-meta">
+                                    <span>📅 ${createdDate}</span>
+                                    <span>📝 ${data.quote}</span>
+                                    <span class="report-status ${statusClass}">${statusText}</span>
+                                </div>
+                            </div>
+                            <div class="report-actions">
+                                <button class="btn" onclick="copyReportLink('${doc.id}')">🔗 Lien</button>
+                                ${data.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${data.pdfUrl}', '_blank')">📥 PDF</button>` : ''}
+                                <button class="btn btn-danger" onclick="deleteReport('${doc.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Erreur:', error);
+                container.innerHTML = `<p style="color: var(--danger);">Erreur de chargement</p>`;
+            }
+        }
+        
+        function copyReportLink(reportId) {
+            const baseUrl = window.location.origin;
+            const link = `${baseUrl}/flinco-agent.html?id=${reportId}`;
+            
+            navigator.clipboard.writeText(link).then(() => {
+                alert('Lien copié !');
+            });
+        }
+        
+        async function deleteReport(reportId) {
+            if (!confirm('Supprimer ce rapport ?')) return;
+            
+            try {
+                await db.collection('reports').doc(reportId).delete();
+                loadReports();
+            } catch (error) {
+                alert('Erreur: ' + error.message);
+            }
+        }
+        
+        // ==================== INIT ====================
+        document.getElementById('date').valueAsDate = new Date();
+        renderRooms();
+    </script>
+</body>
+</html>
