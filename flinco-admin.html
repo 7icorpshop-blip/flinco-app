@@ -10,6 +10,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
+    <!-- PDF.js pour lire les devis -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
@@ -21,6 +24,7 @@
             --accent-light: #b8d4ff;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
             --bg: #0a0f1c;
             --card: #111827;
             --card-hover: #1a2332;
@@ -157,6 +161,84 @@
             background: var(--accent);
             border-radius: 2px;
         }
+        
+        /* Import Devis */
+        .import-zone {
+            border: 2px dashed var(--accent);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .import-zone:hover {
+            background: rgba(130, 172, 255, 0.1);
+            border-color: var(--accent-light);
+        }
+        
+        .import-zone input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .import-zone .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        
+        .import-zone h4 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .import-zone p {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        
+        .import-result {
+            display: none;
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 16px;
+        }
+        
+        .import-result.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid var(--success);
+        }
+        
+        .import-result.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid var(--danger);
+        }
+        
+        .import-result.loading {
+            display: block;
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid var(--warning);
+        }
+        
+        .import-result p {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .import-result.success p { color: var(--success); }
+        .import-result.error p { color: var(--danger); }
+        .import-result.loading p { color: var(--warning); }
         
         /* Form */
         .form-row {
@@ -531,6 +613,25 @@
             to { transform: rotate(360deg); }
         }
         
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 20px 0;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        
         /* Responsive */
         @media (max-width: 600px) {
             .form-row {
@@ -550,6 +651,20 @@
                 margin-top: 10px;
                 width: 100%;
                 text-align: center;
+            }
+            
+            .report-card {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+            
+            .report-actions {
+                width: 100%;
+            }
+            
+            .report-actions button {
+                flex: 1;
             }
         }
     </style>
@@ -572,6 +687,26 @@
         
         <!-- TAB: Créer -->
         <div id="tab-create" class="tab-content active">
+            
+            <!-- Section Import Devis -->
+            <div class="section">
+                <div class="section-title">Importer un devis (optionnel)</div>
+                
+                <div class="import-zone" id="importZone">
+                    <input type="file" accept=".pdf" id="devisInput">
+                    <div class="icon">📄</div>
+                    <h4>Importer un devis FLINCO</h4>
+                    <p>Glissez votre PDF ou cliquez pour parcourir</p>
+                </div>
+                
+                <div class="import-result" id="importResult">
+                    <p id="importResultText"></p>
+                </div>
+            </div>
+            
+            <div class="divider">ou remplir manuellement</div>
+            
+            <!-- Section Infos -->
             <div class="section">
                 <div class="section-title">Informations de la mission</div>
                 
@@ -605,6 +740,7 @@
                 </div>
             </div>
             
+            <!-- Section Pièces -->
             <div class="section">
                 <div class="section-title">Pièces et tâches</div>
                 
@@ -616,7 +752,7 @@
                 <div id="roomsList" class="rooms-list">
                     <div class="empty-state">
                         <div class="empty-state-icon">🏠</div>
-                        <p>Ajoutez des pièces pour commencer</p>
+                        <p>Ajoutez des pièces pour commencer<br><small>ou importez un devis ci-dessus</small></p>
                     </div>
                 </div>
             </div>
@@ -670,6 +806,9 @@
         const db = firebase.firestore();
         const storage = firebase.storage();
         
+        // PDF.js config
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
         // ==================== STATE ====================
         let rooms = {};
         
@@ -684,6 +823,161 @@
             if (tabName === 'list') {
                 loadReports();
             }
+        }
+        
+        // ==================== IMPORT DEVIS ====================
+        document.getElementById('devisInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const resultDiv = document.getElementById('importResult');
+            const resultText = document.getElementById('importResultText');
+            
+            // Show loading
+            resultDiv.className = 'import-result loading';
+            resultText.innerHTML = '⏳ Analyse du devis en cours...';
+            
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const typedArray = new Uint8Array(evt.target.result);
+                
+                pdfjsLib.getDocument(typedArray).promise.then(function(pdf) {
+                    let fullText = '';
+                    const numPages = pdf.numPages;
+                    let pagesProcessed = 0;
+                    
+                    for (let i = 1; i <= numPages; i++) {
+                        pdf.getPage(i).then(function(page) {
+                            page.getTextContent().then(function(textContent) {
+                                const pageText = textContent.items.map(item => item.str).join(' ');
+                                fullText += pageText + '\n';
+                                pagesProcessed++;
+                                
+                                if (pagesProcessed === numPages) {
+                                    // Parse le devis
+                                    const result = parseDevisFlinco(fullText);
+                                    
+                                    if (result.rooms.length > 0) {
+                                        // Remplir les champs
+                                        if (result.devisNum) {
+                                            document.getElementById('quote').value = result.devisNum;
+                                        }
+                                        if (result.address) {
+                                            document.getElementById('address').value = result.address;
+                                        }
+                                        
+                                        // Créer les pièces et tâches
+                                        result.rooms.forEach(function(room) {
+                                            createRoomWithTasks(room.name, room.tasks);
+                                        });
+                                        
+                                        // Afficher succès
+                                        const totalTasks = result.rooms.reduce((sum, r) => sum + r.tasks.length, 0);
+                                        resultDiv.className = 'import-result success';
+                                        resultText.innerHTML = `✅ ${result.rooms.length} pièce(s) et ${totalTasks} tâche(s) importées !`;
+                                        
+                                    } else {
+                                        resultDiv.className = 'import-result error';
+                                        resultText.innerHTML = '⚠️ Aucune pièce détectée. Ajoutez-les manuellement.';
+                                    }
+                                }
+                            });
+                        });
+                    }
+                }).catch(function(err) {
+                    console.error('Erreur PDF:', err);
+                    resultDiv.className = 'import-result error';
+                    resultText.innerHTML = '❌ Erreur lecture PDF: ' + err.message;
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+        
+        // ==================== PARSER DEVIS FLINCO ====================
+        function parseDevisFlinco(text) {
+            const result = {
+                devisNum: null,
+                address: null,
+                rooms: []
+            };
+            
+            // Extraire numéro de devis
+            const devisMatch = text.match(/Devis\s*N°?\s*(\d+)/i);
+            if (devisMatch) {
+                result.devisNum = devisMatch[1];
+            }
+            
+            // Extraire adresse
+            const addressMatch = text.match(/(\d+[^a-z]*(?:RUE|AVENUE|BOULEVARD|PLACE|IMPASSE|CHEMIN|ALLÉE)[^a-z]+)/i);
+            if (addressMatch) {
+                result.address = addressMatch[1].trim();
+            }
+            
+            // Chercher les tâches numérotées
+            const taskPattern = /(\d+\.?\d*)\s+([A-ZÀ-Ü][^€\d]+?)(?:\s+U\s+\d|\s+€)/gi;
+            const allTasks = [];
+            let match;
+            
+            while ((match = taskPattern.exec(text)) !== null) {
+                const taskNum = match[1];
+                let taskName = match[2].trim()
+                    .replace(/\s+/g, ' ')
+                    .replace(/\s*\+\s*/g, ' + ');
+                
+                // Ignorer les lignes de sous-total et services
+                if (taskName.match(/SOUS\s*TOTAL|SERVICES|Récupération|Photos avant|Fournitures/i)) {
+                    continue;
+                }
+                
+                if (taskName.length > 10 && taskName.length < 150) {
+                    allTasks.push({
+                        num: parseFloat(taskNum),
+                        name: taskName
+                    });
+                }
+            }
+            
+            console.log('Tâches trouvées:', allTasks);
+            
+            // Associer les tâches aux pièces selon la numérotation FLINCO
+            const entree = { name: 'ENTRÉE / PIÈCE DE VIE', tasks: [] };
+            const cuisine = { name: 'CUISINE', tasks: [] };
+            const sdb = { name: 'SALLE DE BAIN / WC', tasks: [] };
+            
+            allTasks.forEach(function(task) {
+                if (task.num >= 1 && task.num < 1.5) {
+                    entree.tasks.push(task.name);
+                } else if (task.num >= 1.5 && task.num < 1.10) {
+                    cuisine.tasks.push(task.name);
+                } else if (task.num >= 1.10 && task.num < 1.14) {
+                    sdb.tasks.push(task.name);
+                }
+            });
+            
+            // Ajouter les pièces qui ont des tâches
+            if (entree.tasks.length > 0) result.rooms.push(entree);
+            if (cuisine.tasks.length > 0) result.rooms.push(cuisine);
+            if (sdb.tasks.length > 0) result.rooms.push(sdb);
+            
+            console.log('Résultat parsing:', result);
+            return result;
+        }
+        
+        // ==================== CREATE ROOM WITH TASKS ====================
+        function createRoomWithTasks(roomName, tasks) {
+            if (rooms[roomName]) {
+                // Pièce existe déjà, ajouter les tâches
+                tasks.forEach(function(taskName) {
+                    if (!rooms[roomName].tasks.includes(taskName)) {
+                        rooms[roomName].tasks.push(taskName);
+                    }
+                });
+                renderRooms();
+                return;
+            }
+            
+            rooms[roomName] = { tasks: tasks };
+            renderRooms();
         }
         
         // ==================== ROOMS ====================
@@ -714,7 +1008,7 @@
         }
         
         function addTask(roomName) {
-            const input = document.getElementById(`task-input-${roomName}`);
+            const input = document.getElementById(`task-input-${roomName.replace(/[^a-zA-Z0-9]/g, '_')}`);
             const taskName = input.value.trim();
             
             if (!taskName) return;
@@ -737,37 +1031,42 @@
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">🏠</div>
-                        <p>Ajoutez des pièces pour commencer</p>
+                        <p>Ajoutez des pièces pour commencer<br><small>ou importez un devis ci-dessus</small></p>
                     </div>
                 `;
                 return;
             }
             
-            container.innerHTML = roomNames.map(name => `
-                <div class="room-card">
-                    <div class="room-header">
-                        <h4>${name}</h4>
-                        <button class="btn btn-danger" onclick="removeRoom('${name}')">Supprimer</button>
-                    </div>
-                    <div class="room-content">
-                        <div class="task-input-wrapper">
-                            <input type="text" id="task-input-${name}" placeholder="Ajouter une tâche..." onkeypress="if(event.key==='Enter')addTask('${name}')">
-                            <button class="btn" onclick="addTask('${name}')">+ Tâche</button>
+            container.innerHTML = roomNames.map(name => {
+                const safeId = name.replace(/[^a-zA-Z0-9]/g, '_');
+                const safeName = name.replace(/'/g, "\\'");
+                
+                return `
+                    <div class="room-card">
+                        <div class="room-header">
+                            <h4>🏠 ${name}</h4>
+                            <button class="btn btn-danger" onclick="removeRoom('${safeName}')">Supprimer</button>
                         </div>
-                        <div class="tasks-list">
-                            ${rooms[name].tasks.length === 0 ? 
-                                '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 10px;">Aucune tâche ajoutée</p>' :
-                                rooms[name].tasks.map((task, i) => `
-                                    <div class="task-item">
-                                        <span>• ${task}</span>
-                                        <button onclick="removeTask('${name}', ${i})">×</button>
-                                    </div>
-                                `).join('')
-                            }
+                        <div class="room-content">
+                            <div class="task-input-wrapper">
+                                <input type="text" id="task-input-${safeId}" placeholder="Ajouter une tâche..." onkeypress="if(event.key==='Enter')addTask('${safeName}')">
+                                <button class="btn" onclick="addTask('${safeName}')">+ Tâche</button>
+                            </div>
+                            <div class="tasks-list">
+                                ${rooms[name].tasks.length === 0 ? 
+                                    '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 10px;">Aucune tâche ajoutée</p>' :
+                                    rooms[name].tasks.map((task, i) => `
+                                        <div class="task-item">
+                                            <span>• ${task}</span>
+                                            <button onclick="removeTask('${safeName}', ${i})">×</button>
+                                        </div>
+                                    `).join('')
+                                }
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
         
         // ==================== GENERATE LINK ====================
@@ -806,17 +1105,11 @@
                 const reportId = docRef.id;
                 
                 // Générer le lien
-                // IMPORTANT: Remplacez cette URL par votre URL Vercel
                 const baseUrl = window.location.origin;
                 const agentUrl = `${baseUrl}/flinco-agent.html?id=${reportId}`;
                 
                 document.getElementById('generatedLink').value = agentUrl;
                 document.getElementById('linkResult').classList.add('show');
-                
-                // Reset form
-                // document.getElementById('address').value = '';
-                // rooms = {};
-                // renderRooms();
                 
             } catch (error) {
                 console.error('Erreur:', error);
