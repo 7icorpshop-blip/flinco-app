@@ -5,12 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FLINCO - Rapport de Nettoyage</title>
     
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-    
-    <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -41,12 +38,8 @@
             padding-bottom: 100px;
         }
         
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
+        .container { max-width: 600px; margin: 0 auto; }
         
-        /* Header */
         .header {
             background: linear-gradient(135deg, var(--primary) 0%, #1a4d7a 100%);
             color: white;
@@ -56,12 +49,7 @@
             box-shadow: 0 8px 32px rgba(15, 52, 96, 0.3);
         }
         
-        .header-top {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 16px;
-        }
+        .header-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
         
         .logo {
             width: 48px;
@@ -76,15 +64,8 @@
             color: var(--primary);
         }
         
-        .header h1 {
-            font-size: 20px;
-            font-weight: 700;
-        }
-        
-        .header p {
-            opacity: 0.85;
-            font-size: 12px;
-        }
+        .header h1 { font-size: 20px; font-weight: 700; }
+        .header p { opacity: 0.85; font-size: 12px; }
         
         .mission-info {
             background: rgba(255,255,255,0.1);
@@ -92,29 +73,10 @@
             padding: 14px;
         }
         
-        .mission-info h3 {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.7;
-            margin-bottom: 6px;
-        }
+        .mission-info h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 6px; }
+        .mission-info p { font-size: 14px; opacity: 1; line-height: 1.5; }
+        .mission-meta { display: flex; gap: 16px; margin-top: 10px; font-size: 12px; opacity: 0.85; }
         
-        .mission-info p {
-            font-size: 14px;
-            opacity: 1;
-            line-height: 1.5;
-        }
-        
-        .mission-meta {
-            display: flex;
-            gap: 16px;
-            margin-top: 10px;
-            font-size: 12px;
-            opacity: 0.85;
-        }
-        
-        /* Progress */
         .progress-bar {
             background: var(--card);
             border-radius: 12px;
@@ -123,38 +85,12 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
+        .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .progress-header span { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+        .progress-header strong { color: var(--primary); }
+        .progress-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%); border-radius: 4px; transition: width 0.3s ease; }
         
-        .progress-header span {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-        
-        .progress-header strong {
-            color: var(--primary);
-        }
-        
-        .progress-track {
-            height: 8px;
-            background: var(--border);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-        
-        /* Room Card */
         .room-card {
             background: var(--card);
             border-radius: 14px;
@@ -165,9 +101,7 @@
             transition: border-color 0.2s;
         }
         
-        .room-card.complete {
-            border-color: var(--success);
-        }
+        .room-card.complete { border-color: var(--success); }
         
         .room-header {
             background: var(--primary);
@@ -178,81 +112,20 @@
             align-items: center;
         }
         
-        .room-header h3 {
-            font-size: 15px;
-            font-weight: 600;
-        }
+        .room-header h3 { font-size: 15px; font-weight: 600; }
+        .room-status { font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+        .room-status.pending { background: rgba(245, 158, 11, 0.3); color: #fcd34d; }
+        .room-status.complete { background: rgba(16, 185, 129, 0.3); color: #6ee7b7; }
+        .room-content { padding: 16px; }
         
-        .room-status {
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-        
-        .room-status.pending {
-            background: rgba(245, 158, 11, 0.3);
-            color: #fcd34d;
-        }
-        
-        .room-status.complete {
-            background: rgba(16, 185, 129, 0.3);
-            color: #6ee7b7;
-        }
-        
-        .room-content {
-            padding: 16px;
-        }
-        
-        /* Photo Section */
-        .photo-section {
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 14px;
-        }
-        
-        .photo-section:last-child {
-            margin-bottom: 0;
-        }
-        
-        .photo-section h4 {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .photo-section h4 .check {
-            color: var(--success);
-            display: none;
-        }
-        
-        .photo-section.complete h4 .check {
-            display: inline;
-        }
-        
-        .photo-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        
-        .photo-box {
-            position: relative;
-        }
-        
-        .photo-box label {
-            display: block;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-            text-transform: uppercase;
-        }
+        .photo-section { background: #f8fafc; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+        .photo-section:last-child { margin-bottom: 0; }
+        .photo-section h4 { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .photo-section h4 .check { color: var(--success); display: none; }
+        .photo-section.complete h4 .check { display: inline; }
+        .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .photo-box { position: relative; }
+        .photo-box label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
         
         .photo-upload {
             position: relative;
@@ -269,40 +142,12 @@
             overflow: hidden;
         }
         
-        .photo-upload:hover {
-            border-color: var(--accent);
-            background: #f0f7ff;
-        }
-        
-        .photo-upload.has-photo {
-            border-style: solid;
-            border-color: var(--success);
-        }
-        
-        .photo-upload input {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-        
-        .photo-upload .icon {
-            font-size: 28px;
-            margin-bottom: 6px;
-        }
-        
-        .photo-upload .text {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-        
-        .photo-upload img {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        .photo-upload:hover { border-color: var(--accent); background: #f0f7ff; }
+        .photo-upload.has-photo { border-style: solid; border-color: var(--success); }
+        .photo-upload input { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .photo-upload .icon { font-size: 28px; margin-bottom: 6px; }
+        .photo-upload .text { font-size: 11px; color: var(--text-muted); }
+        .photo-upload img { position: absolute; width: 100%; height: 100%; object-fit: cover; }
         
         .photo-upload .remove-btn {
             position: absolute;
@@ -318,20 +163,13 @@
             cursor: pointer;
             display: none;
             z-index: 10;
-        }
-        
-        .photo-upload.has-photo .remove-btn {
-            display: flex;
             align-items: center;
             justify-content: center;
         }
         
-        .photo-upload.has-photo .icon,
-        .photo-upload.has-photo .text {
-            display: none;
-        }
+        .photo-upload.has-photo .remove-btn { display: flex; }
+        .photo-upload.has-photo .icon, .photo-upload.has-photo .text { display: none; }
         
-        /* Fixed Bottom Button */
         .bottom-bar {
             position: fixed;
             bottom: 0;
@@ -361,27 +199,13 @@
             transition: all 0.2s;
         }
         
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
-        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); }
+        .btn:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none; }
         
-        .btn:disabled {
-            background: var(--border);
-            color: var(--text-muted);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        /* Loading */
         .loading {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(255,255,255,0.95);
             z-index: 1000;
             align-items: center;
@@ -390,9 +214,7 @@
             gap: 20px;
         }
         
-        .loading.active {
-            display: flex;
-        }
+        .loading.active { display: flex; }
         
         .spinner {
             width: 50px;
@@ -403,43 +225,19 @@
             animation: spin 1s linear infinite;
         }
         
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
-        .loading p {
-            color: var(--text-muted);
-            font-size: 14px;
-        }
+        .loading p { color: var(--text-muted); font-size: 14px; }
         
-        /* Error State */
-        .error-state {
-            text-align: center;
-            padding: 60px 20px;
-        }
+        .error-state { text-align: center; padding: 60px 20px; }
+        .error-state .icon { font-size: 64px; margin-bottom: 20px; }
+        .error-state h2 { color: var(--danger); margin-bottom: 10px; }
+        .error-state p { color: var(--text-muted); }
         
-        .error-state .icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-        
-        .error-state h2 {
-            color: var(--danger);
-            margin-bottom: 10px;
-        }
-        
-        .error-state p {
-            color: var(--text-muted);
-        }
-        
-        /* Success State */
         .success-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: white;
             z-index: 1001;
             align-items: center;
@@ -449,9 +247,7 @@
             text-align: center;
         }
         
-        .success-overlay.active {
-            display: flex;
-        }
+        .success-overlay.active { display: flex; }
         
         .success-icon {
             width: 100px;
@@ -467,32 +263,13 @@
             animation: scaleIn 0.3s ease;
         }
         
-        @keyframes scaleIn {
-            from { transform: scale(0); }
-            to { transform: scale(1); }
-        }
+        @keyframes scaleIn { from { transform: scale(0); } to { transform: scale(1); } }
         
-        .success-overlay h2 {
-            color: var(--success);
-            font-size: 24px;
-            margin-bottom: 12px;
-        }
+        .success-overlay h2 { color: var(--success); font-size: 24px; margin-bottom: 12px; }
+        .success-overlay p { color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+        .success-overlay .btn { max-width: 300px; }
         
-        .success-overlay p {
-            color: var(--text-muted);
-            margin-bottom: 24px;
-            line-height: 1.6;
-        }
-        
-        .success-overlay .btn {
-            max-width: 300px;
-        }
-        
-        /* General Photo Section (Vue générale) */
-        .general-photo-section {
-            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
-            border: 2px solid var(--accent);
-        }
+        .general-photo-section { background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); border: 2px solid var(--accent); }
     </style>
 </head>
 <body>
@@ -525,9 +302,7 @@
             </div>
         </div>
         
-        <div id="roomsContainer">
-            <!-- Rooms will be loaded here -->
-        </div>
+        <div id="roomsContainer"></div>
     </div>
     
     <div class="bottom-bar">
@@ -549,28 +324,25 @@
     </div>
     
     <script>
-        // ==================== FIREBASE CONFIG ====================
+        // ==================== FIREBASE CONFIG V2 ====================
         const firebaseConfig = {
-            apiKey: "AIzaSyB3zo_KkWFi0TPDnx8FgYVB5ca3fR_Y3xY",
-            authDomain: "flinco-8789b.firebaseapp.com",
-            projectId: "flinco-8789b",
-            storageBucket: "flinco-8789b.firebasestorage.app",
-            messagingSenderId: "446019558198",
-            appId: "1:446019558198:web:bef018390ff56a05a73197"
+            apiKey: "AIzaSyAn4qRaIREAnzFmz-7Oj9UH5GHwSYxXuVY",
+            authDomain: "flinco-v2.firebaseapp.com",
+            projectId: "flinco-v2",
+            storageBucket: "flinco-v2.firebasestorage.app",
+            messagingSenderId: "152962665758",
+            appId: "1:152962665758:web:2d444f4334ed8b1eae4d0f"
         };
         
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const storage = firebase.storage();
         
-        // ==================== STATE ====================
         let reportId = null;
         let reportData = null;
-        let photos = {}; // { roomName: { general: {avant, apres}, tasks: { taskName: {avant, apres} } } }
+        let photos = {};
         
-        // ==================== INIT ====================
         async function init() {
-            // Get report ID from URL
             const params = new URLSearchParams(window.location.search);
             reportId = params.get('id');
             
@@ -591,28 +363,23 @@
                 
                 reportData = doc.data();
                 
-                // Check if already completed
                 if (reportData.status === 'completed') {
-                    showError('Rapport déjà terminé', 'Ce rapport a déjà été complété. Le PDF est disponible.');
+                    showError('Rapport déjà terminé', 'Ce rapport a déjà été complété.');
                     return;
                 }
                 
-                // Initialize photos structure
                 for (const roomName in reportData.rooms) {
-                    photos[roomName] = {
-                        general: { avant: null, apres: null },
-                        tasks: {}
-                    };
-                    for (const task of reportData.rooms[roomName].tasks) {
-                        photos[roomName].tasks[task] = { avant: null, apres: null };
+                    photos[roomName] = { general: { avant: null, apres: null }, tasks: {} };
+                    if (reportData.rooms[roomName].tasks) {
+                        for (const task of reportData.rooms[roomName].tasks) {
+                            photos[roomName].tasks[task] = { avant: null, apres: null };
+                        }
                     }
                 }
                 
                 renderReport();
                 hideLoading();
-                
             } catch (error) {
-                console.error('Erreur:', error);
                 showError('Erreur de chargement', error.message);
             }
         }
@@ -622,37 +389,26 @@
             document.getElementById('loading').classList.add('active');
         }
         
-        function hideLoading() {
-            document.getElementById('loading').classList.remove('active');
-        }
+        function hideLoading() { document.getElementById('loading').classList.remove('active'); }
         
         function showError(title, message) {
             hideLoading();
-            document.getElementById('roomsContainer').innerHTML = `
-                <div class="error-state">
-                    <div class="icon">❌</div>
-                    <h2>${title}</h2>
-                    <p>${message}</p>
-                </div>
-            `;
+            document.getElementById('roomsContainer').innerHTML = `<div class="error-state"><div class="icon">❌</div><h2>${title}</h2><p>${message}</p></div>`;
             document.querySelector('.bottom-bar').style.display = 'none';
         }
         
-        // ==================== RENDER ====================
         function renderReport() {
-            // Update header
             document.getElementById('missionAddress').textContent = reportData.address;
             document.getElementById('missionDate').textContent = '📅 ' + formatDate(reportData.date);
             document.getElementById('missionQuote').textContent = '📝 ' + reportData.quote;
             
-            // Render rooms
             const container = document.getElementById('roomsContainer');
             container.innerHTML = '';
             
             for (const roomName in reportData.rooms) {
                 const room = reportData.rooms[roomName];
-                const roomHtml = createRoomCard(roomName, room.tasks);
-                container.innerHTML += roomHtml;
+                const tasks = room.tasks || [];
+                container.innerHTML += createRoomCard(roomName, tasks);
             }
             
             updateProgress();
@@ -671,8 +427,7 @@
                             <div class="photo-box">
                                 <label>Avant</label>
                                 <div class="photo-upload" id="upload-${slugify(roomName)}-${slugify(task)}-avant">
-                                    <input type="file" accept="image/*" capture="environment" 
-                                           onchange="handlePhoto('${safeRoomName}', '${safeTask}', 'avant', this)">
+                                    <input type="file" accept="image/*" capture="environment" onchange="handlePhoto('${safeRoomName}', '${safeTask}', 'avant', this)">
                                     <span class="icon">📷</span>
                                     <span class="text">Prendre photo</span>
                                     <button class="remove-btn" onclick="removePhoto(event, '${safeRoomName}', '${safeTask}', 'avant')">×</button>
@@ -681,8 +436,7 @@
                             <div class="photo-box">
                                 <label>Après</label>
                                 <div class="photo-upload" id="upload-${slugify(roomName)}-${slugify(task)}-apres">
-                                    <input type="file" accept="image/*" capture="environment" 
-                                           onchange="handlePhoto('${safeRoomName}', '${safeTask}', 'apres', this)">
+                                    <input type="file" accept="image/*" capture="environment" onchange="handlePhoto('${safeRoomName}', '${safeTask}', 'apres', this)">
                                     <span class="icon">📷</span>
                                     <span class="text">Prendre photo</span>
                                     <button class="remove-btn" onclick="removePhoto(event, '${safeRoomName}', '${safeTask}', 'apres')">×</button>
@@ -706,8 +460,7 @@
                                 <div class="photo-box">
                                     <label>Avant</label>
                                     <div class="photo-upload" id="upload-${slugify(roomName)}-general-avant">
-                                        <input type="file" accept="image/*" capture="environment" 
-                                               onchange="handleGeneralPhoto('${safeRoomName}', 'avant', this)">
+                                        <input type="file" accept="image/*" capture="environment" onchange="handleGeneralPhoto('${safeRoomName}', 'avant', this)">
                                         <span class="icon">📷</span>
                                         <span class="text">Prendre photo</span>
                                         <button class="remove-btn" onclick="removeGeneralPhoto(event, '${safeRoomName}', 'avant')">×</button>
@@ -716,8 +469,7 @@
                                 <div class="photo-box">
                                     <label>Après</label>
                                     <div class="photo-upload" id="upload-${slugify(roomName)}-general-apres">
-                                        <input type="file" accept="image/*" capture="environment" 
-                                               onchange="handleGeneralPhoto('${safeRoomName}', 'apres', this)">
+                                        <input type="file" accept="image/*" capture="environment" onchange="handleGeneralPhoto('${safeRoomName}', 'apres', this)">
                                         <span class="icon">📷</span>
                                         <span class="text">Prendre photo</span>
                                         <button class="remove-btn" onclick="removeGeneralPhoto(event, '${safeRoomName}', 'apres')">×</button>
@@ -732,16 +484,7 @@
         }
         
         function slugify(str) {
-            return str.toLowerCase()
-                .replace(/[àáâãäå]/g, 'a')
-                .replace(/[èéêë]/g, 'e')
-                .replace(/[ìíîï]/g, 'i')
-                .replace(/[òóôõö]/g, 'o')
-                .replace(/[ùúûü]/g, 'u')
-                .replace(/[ç]/g, 'c')
-                .replace(/[^a-z0-9]/g, '-')
-                .replace(/-+/g, '-')
-                .replace(/^-|-$/g, '');
+            return str.toLowerCase().replace(/[àáâãäå]/g, 'a').replace(/[èéêë]/g, 'e').replace(/[ìíîï]/g, 'i').replace(/[òóôõö]/g, 'o').replace(/[ùúûü]/g, 'u').replace(/[ç]/g, 'c').replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
         }
         
         function formatDate(dateStr) {
@@ -750,29 +493,19 @@
             return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
         
-        // ==================== PHOTO HANDLING ====================
         function handlePhoto(roomName, taskName, type, input) {
             const file = input.files[0];
             if (!file) return;
             
             const reader = new FileReader();
             reader.onload = function(e) {
-                // Compress image
                 compressImage(e.target.result, function(compressed) {
                     photos[roomName].tasks[taskName][type] = compressed;
-                    
-                    // Update UI
                     const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-${slugify(taskName)}-${type}`);
                     uploadDiv.classList.add('has-photo');
-                    
-                    // Add/update image
                     let img = uploadDiv.querySelector('img');
-                    if (!img) {
-                        img = document.createElement('img');
-                        uploadDiv.appendChild(img);
-                    }
+                    if (!img) { img = document.createElement('img'); uploadDiv.appendChild(img); }
                     img.src = compressed;
-                    
                     updateSectionStatus(roomName, taskName);
                     updateProgress();
                 });
@@ -788,17 +521,11 @@
             reader.onload = function(e) {
                 compressImage(e.target.result, function(compressed) {
                     photos[roomName].general[type] = compressed;
-                    
                     const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-general-${type}`);
                     uploadDiv.classList.add('has-photo');
-                    
                     let img = uploadDiv.querySelector('img');
-                    if (!img) {
-                        img = document.createElement('img');
-                        uploadDiv.appendChild(img);
-                    }
+                    if (!img) { img = document.createElement('img'); uploadDiv.appendChild(img); }
                     img.src = compressed;
-                    
                     updateSectionStatus(roomName, 'general');
                     updateProgress();
                 });
@@ -809,18 +536,12 @@
         function removePhoto(event, roomName, taskName, type) {
             event.stopPropagation();
             event.preventDefault();
-            
             photos[roomName].tasks[taskName][type] = null;
-            
             const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-${slugify(taskName)}-${type}`);
             uploadDiv.classList.remove('has-photo');
             const img = uploadDiv.querySelector('img');
             if (img) img.remove();
-            
-            // Reset input
-            const input = uploadDiv.querySelector('input');
-            input.value = '';
-            
+            uploadDiv.querySelector('input').value = '';
             updateSectionStatus(roomName, taskName);
             updateProgress();
         }
@@ -828,17 +549,12 @@
         function removeGeneralPhoto(event, roomName, type) {
             event.stopPropagation();
             event.preventDefault();
-            
             photos[roomName].general[type] = null;
-            
             const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-general-${type}`);
             uploadDiv.classList.remove('has-photo');
             const img = uploadDiv.querySelector('img');
             if (img) img.remove();
-            
-            const input = uploadDiv.querySelector('input');
-            input.value = '';
-            
+            uploadDiv.querySelector('input').value = '';
             updateSectionStatus(roomName, 'general');
             updateProgress();
         }
@@ -848,71 +564,38 @@
             img.onload = function() {
                 const canvas = document.createElement('canvas');
                 const maxSize = 1200;
-                let w = img.width;
-                let h = img.height;
-                
+                let w = img.width, h = img.height;
                 if (w > maxSize || h > maxSize) {
-                    if (w > h) {
-                        h = Math.round(h * maxSize / w);
-                        w = maxSize;
-                    } else {
-                        w = Math.round(w * maxSize / h);
-                        h = maxSize;
-                    }
+                    if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+                    else { w = Math.round(w * maxSize / h); h = maxSize; }
                 }
-                
                 canvas.width = w;
                 canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-                
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
                 callback(canvas.toDataURL('image/jpeg', 0.7));
             };
             img.src = dataUrl;
         }
         
         function updateSectionStatus(roomName, taskName) {
-            const sectionId = taskName === 'general' 
-                ? `section-${slugify(roomName)}-general`
-                : `section-${slugify(roomName)}-${slugify(taskName)}`;
-            
+            const sectionId = taskName === 'general' ? `section-${slugify(roomName)}-general` : `section-${slugify(roomName)}-${slugify(taskName)}`;
             const section = document.getElementById(sectionId);
             if (!section) return;
-            
-            const photoData = taskName === 'general'
-                ? photos[roomName].general
-                : photos[roomName].tasks[taskName];
-            
-            if (photoData.avant && photoData.apres) {
-                section.classList.add('complete');
-            } else {
-                section.classList.remove('complete');
-            }
-            
-            // Update room status
+            const photoData = taskName === 'general' ? photos[roomName].general : photos[roomName].tasks[taskName];
+            if (photoData.avant && photoData.apres) section.classList.add('complete');
+            else section.classList.remove('complete');
             updateRoomStatus(roomName);
         }
         
         function updateRoomStatus(roomName) {
             const roomCard = document.getElementById(`room-${slugify(roomName)}`);
             if (!roomCard) return;
-            
             const roomPhotos = photos[roomName];
             let isComplete = true;
-            
-            // Check general photos
-            if (!roomPhotos.general.avant || !roomPhotos.general.apres) {
-                isComplete = false;
-            }
-            
-            // Check task photos
+            if (!roomPhotos.general.avant || !roomPhotos.general.apres) isComplete = false;
             for (const task in roomPhotos.tasks) {
-                if (!roomPhotos.tasks[task].avant || !roomPhotos.tasks[task].apres) {
-                    isComplete = false;
-                    break;
-                }
+                if (!roomPhotos.tasks[task].avant || !roomPhotos.tasks[task].apres) { isComplete = false; break; }
             }
-            
             const status = roomCard.querySelector('.room-status');
             if (isComplete) {
                 roomCard.classList.add('complete');
@@ -926,38 +609,23 @@
         }
         
         function updateProgress() {
-            let total = 0;
-            let completed = 0;
-            
+            let total = 0, completed = 0;
             for (const roomName in photos) {
-                // General photos (2)
                 total += 2;
                 if (photos[roomName].general.avant) completed++;
                 if (photos[roomName].general.apres) completed++;
-                
-                // Task photos
                 for (const task in photos[roomName].tasks) {
                     total += 2;
                     if (photos[roomName].tasks[task].avant) completed++;
                     if (photos[roomName].tasks[task].apres) completed++;
                 }
             }
-            
             const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-            
             document.getElementById('progressText').textContent = percent + '%';
             document.getElementById('progressFill').style.width = percent + '%';
-            
-            // Enable/disable generate button
-            const btn = document.getElementById('generateBtn');
-            if (percent >= 50) { // At least 50% to generate
-                btn.disabled = false;
-            } else {
-                btn.disabled = true;
-            }
+            document.getElementById('generateBtn').disabled = percent < 50;
         }
         
-        // ==================== PDF GENERATION ====================
         async function generateAndSavePDF() {
             showLoading('Génération du PDF...');
             
@@ -966,11 +634,9 @@
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 const w = 210, h = 297;
                 
-                // === PAGE DE COUVERTURE ===
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(0, 0, w, h, 'F');
                 
-                // Logo text
                 pdf.setFontSize(32);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(130, 172, 255);
@@ -980,21 +646,16 @@
                 pdf.setTextColor(15, 52, 96);
                 pdf.text('Nettoyage & Remise en État', w/2, 60, { align: 'center' });
                 
-                // Line
                 pdf.setDrawColor(130, 172, 255);
                 pdf.setLineWidth(1);
                 pdf.line(30, 75, w-30, 75);
                 
-                // Title
                 pdf.setFontSize(18);
                 pdf.setFont(undefined, 'bold');
                 pdf.text('RAPPORT DE NETTOYAGE', w/2, 95, { align: 'center' });
                 
-                // Info
                 let y = 115;
-                const leftCol = 30;
-                const rightCol = 75;
-                
+                const leftCol = 30, rightCol = 75;
                 pdf.setFontSize(11);
                 
                 pdf.setFont(undefined, 'bold');
@@ -1041,12 +702,10 @@
                     pdf.text(reportData.agency, rightCol, y);
                 }
                 
-                // === ROOM PAGES ===
                 for (const roomName in photos) {
                     pdf.addPage();
                     y = 20;
                     
-                    // Room title
                     pdf.setFontSize(16);
                     pdf.setFont(undefined, 'bold');
                     pdf.setTextColor(15, 52, 96);
@@ -1057,7 +716,6 @@
                     pdf.line(20, y + 4, w - 20, y + 4);
                     y += 18;
                     
-                    // General photos
                     if (photos[roomName].general.avant || photos[roomName].general.apres) {
                         pdf.setFontSize(11);
                         pdf.setFont(undefined, 'bold');
@@ -1073,28 +731,16 @@
                         
                         const imgW = 75, imgH = 55;
                         pdf.setDrawColor(200, 200, 200);
-                        
                         pdf.rect(20, y, imgW, imgH);
-                        if (photos[roomName].general.avant) {
-                            try { pdf.addImage(photos[roomName].general.avant, 'JPEG', 20, y, imgW, imgH); } catch(e) {}
-                        }
-                        
+                        if (photos[roomName].general.avant) { try { pdf.addImage(photos[roomName].general.avant, 'JPEG', 20, y, imgW, imgH); } catch(e) {} }
                         pdf.rect(105, y, imgW, imgH);
-                        if (photos[roomName].general.apres) {
-                            try { pdf.addImage(photos[roomName].general.apres, 'JPEG', 105, y, imgW, imgH); } catch(e) {}
-                        }
-                        
+                        if (photos[roomName].general.apres) { try { pdf.addImage(photos[roomName].general.apres, 'JPEG', 105, y, imgW, imgH); } catch(e) {} }
                         y += imgH + 15;
                     }
                     
-                    // Tasks
                     for (const taskName in photos[roomName].tasks) {
                         const task = photos[roomName].tasks[taskName];
-                        
-                        if (y > 210) {
-                            pdf.addPage();
-                            y = 20;
-                        }
+                        if (y > 210) { pdf.addPage(); y = 20; }
                         
                         pdf.setFontSize(10);
                         pdf.setFont(undefined, 'bold');
@@ -1112,22 +758,14 @@
                         
                         const imgW = 75, imgH = 50;
                         pdf.setDrawColor(200, 200, 200);
-                        
                         pdf.rect(20, y, imgW, imgH);
-                        if (task.avant) {
-                            try { pdf.addImage(task.avant, 'JPEG', 20, y, imgW, imgH); } catch(e) {}
-                        }
-                        
+                        if (task.avant) { try { pdf.addImage(task.avant, 'JPEG', 20, y, imgW, imgH); } catch(e) {} }
                         pdf.rect(105, y, imgW, imgH);
-                        if (task.apres) {
-                            try { pdf.addImage(task.apres, 'JPEG', 105, y, imgW, imgH); } catch(e) {}
-                        }
-                        
+                        if (task.apres) { try { pdf.addImage(task.apres, 'JPEG', 105, y, imgW, imgH); } catch(e) {} }
                         y += imgH + 12;
                     }
                 }
                 
-                // Footer on all pages
                 const pageCount = pdf.internal.getNumberOfPages();
                 for (let p = 1; p <= pageCount; p++) {
                     pdf.setPage(p);
@@ -1136,7 +774,6 @@
                     pdf.text('FLINCO - Page ' + p + '/' + pageCount, w/2, h - 8, { align: 'center' });
                 }
                 
-                // === SAVE TO FIREBASE STORAGE ===
                 document.getElementById('loadingText').textContent = 'Envoi du rapport...';
                 
                 const pdfBlob = pdf.output('blob');
@@ -1146,7 +783,6 @@
                 await storageRef.put(pdfBlob);
                 const pdfUrl = await storageRef.getDownloadURL();
                 
-                // Update Firestore
                 await db.collection('reports').doc(reportId).update({
                     status: 'completed',
                     completedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1154,11 +790,7 @@
                 });
                 
                 hideLoading();
-                
-                // Show success
                 document.getElementById('successOverlay').classList.add('active');
-                
-                // Also download locally
                 pdf.save(fileName);
                 
             } catch (error) {
@@ -1168,7 +800,6 @@
             }
         }
         
-        // ==================== START ====================
         init();
     </script>
 </body>
