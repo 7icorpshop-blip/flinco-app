@@ -46,7 +46,6 @@
             margin: 0 auto;
         }
         
-        /* Header */
         .header {
             display: flex;
             align-items: center;
@@ -70,16 +69,8 @@
             box-shadow: 0 8px 32px rgba(130, 172, 255, 0.3);
         }
         
-        .header-text h1 {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        
-        .header-text p {
-            color: var(--text-muted);
-            font-size: 14px;
-        }
+        .header-text h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .header-text p { color: var(--text-muted); font-size: 14px; }
         
         .badge {
             background: var(--accent);
@@ -93,12 +84,7 @@
             margin-left: auto;
         }
         
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 32px;
-        }
+        .tabs { display: flex; gap: 8px; margin-bottom: 32px; }
         
         .tab {
             flex: 1;
@@ -113,27 +99,12 @@
             text-align: center;
         }
         
-        .tab:hover {
-            background: var(--card-hover);
-            border-color: var(--accent);
-        }
+        .tab:hover { background: var(--card-hover); border-color: var(--accent); }
+        .tab.active { background: var(--primary); border-color: var(--accent); color: white; }
         
-        .tab.active {
-            background: var(--primary);
-            border-color: var(--accent);
-            color: white;
-        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         
-        /* Tab Content */
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        /* Section */
         .section {
             background: var(--card);
             border: 1px solid var(--border);
@@ -162,7 +133,6 @@
             border-radius: 2px;
         }
         
-        /* Import Devis */
         .import-zone {
             border: 2px dashed var(--accent);
             border-radius: 12px;
@@ -174,10 +144,7 @@
             margin-bottom: 20px;
         }
         
-        .import-zone:hover {
-            background: rgba(130, 172, 255, 0.1);
-            border-color: var(--accent-light);
-        }
+        .import-zone:hover { background: rgba(130, 172, 255, 0.1); border-color: var(--accent-light); }
         
         .import-zone input {
             position: absolute;
@@ -189,82 +156,23 @@
             cursor: pointer;
         }
         
-        .import-zone .icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
+        .import-zone .icon { font-size: 48px; margin-bottom: 12px; }
+        .import-zone h4 { font-size: 16px; margin-bottom: 8px; }
+        .import-zone p { color: var(--text-muted); font-size: 13px; }
         
-        .import-zone h4 {
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-        
-        .import-zone p {
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-        
-        .import-result {
-            display: none;
-            padding: 16px;
-            border-radius: 10px;
-            margin-top: 16px;
-        }
-        
-        .import-result.success {
-            display: block;
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid var(--success);
-        }
-        
-        .import-result.error {
-            display: block;
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid var(--danger);
-        }
-        
-        .import-result.loading {
-            display: block;
-            background: rgba(245, 158, 11, 0.15);
-            border: 1px solid var(--warning);
-        }
-        
-        .import-result p {
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
+        .import-result { display: none; padding: 16px; border-radius: 10px; margin-top: 16px; }
+        .import-result.success { display: block; background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); }
+        .import-result.error { display: block; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); }
+        .import-result.loading { display: block; background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); }
+        .import-result p { font-size: 14px; display: flex; align-items: center; gap: 10px; }
         .import-result.success p { color: var(--success); }
         .import-result.error p { color: var(--danger); }
         .import-result.loading p { color: var(--warning); }
         
-        /* Form */
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-        
-        .form-row.single {
-            grid-template-columns: 1fr;
-        }
-        
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .form-group label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .form-row.single { grid-template-columns: 1fr; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
         
         .form-group input, .form-group textarea {
             padding: 14px 16px;
@@ -283,16 +191,9 @@
             box-shadow: 0 0 0 4px rgba(130, 172, 255, 0.15);
         }
         
-        .form-group textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
+        .form-group textarea { min-height: 80px; resize: vertical; }
         
-        /* Room Input */
-        .room-input-wrapper {
-            display: flex;
-            gap: 12px;
-        }
+        .room-input-wrapper { display: flex; gap: 12px; }
         
         .room-input-wrapper input {
             flex: 1;
@@ -305,10 +206,7 @@
             font-family: inherit;
         }
         
-        .room-input-wrapper input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
+        .room-input-wrapper input:focus { outline: none; border-color: var(--accent); }
         
         .btn {
             padding: 14px 24px;
@@ -323,48 +221,14 @@
             font-family: inherit;
         }
         
-        .btn:hover {
-            background: var(--accent-light);
-            transform: translateY(-2px);
-        }
+        .btn:hover { background: var(--accent-light); transform: translateY(-2px); }
+        .btn-danger { background: var(--danger); color: white; padding: 8px 14px; font-size: 12px; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-large { width: 100%; padding: 18px; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; }
         
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-            padding: 8px 14px;
-            font-size: 12px;
-        }
-        
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-        
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #059669;
-        }
-        
-        .btn-large {
-            width: 100%;
-            padding: 18px;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        /* Room Cards */
-        .rooms-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 16px;
-        }
+        .rooms-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
         
         .room-card {
             background: var(--bg);
@@ -381,20 +245,9 @@
             align-items: center;
         }
         
-        .room-header h4 {
-            font-size: 14px;
-            font-weight: 600;
-        }
-        
-        .room-content {
-            padding: 16px;
-        }
-        
-        .task-input-wrapper {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
+        .room-header h4 { font-size: 14px; font-weight: 600; }
+        .room-content { padding: 16px; }
+        .task-input-wrapper { display: flex; gap: 10px; margin-bottom: 12px; }
         
         .task-input-wrapper input {
             flex: 1;
@@ -407,21 +260,9 @@
             font-family: inherit;
         }
         
-        .task-input-wrapper input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        
-        .task-input-wrapper button {
-            padding: 12px 18px;
-            font-size: 13px;
-        }
-        
-        .tasks-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        .task-input-wrapper input:focus { outline: none; border-color: var(--accent); }
+        .task-input-wrapper button { padding: 12px 18px; font-size: 13px; }
+        .tasks-list { display: flex; flex-direction: column; gap: 8px; }
         
         .task-item {
             display: flex;
@@ -433,37 +274,13 @@
             border: 1px solid var(--border);
         }
         
-        .task-item span {
-            font-size: 13px;
-        }
+        .task-item span { font-size: 13px; }
+        .task-item button { background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 18px; padding: 4px 8px; }
+        .task-item button:hover { color: #dc2626; }
         
-        .task-item button {
-            background: transparent;
-            border: none;
-            color: var(--danger);
-            cursor: pointer;
-            font-size: 18px;
-            padding: 4px 8px;
-        }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
         
-        .task-item button:hover {
-            color: #dc2626;
-        }
-        
-        /* Empty state */
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-muted);
-        }
-        
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-            opacity: 0.5;
-        }
-        
-        /* Link Result */
         .link-result {
             display: none;
             background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(130, 172, 255, 0.1) 100%);
@@ -474,21 +291,14 @@
             text-align: center;
         }
         
-        .link-result.show {
-            display: block;
-            animation: slideIn 0.3s ease;
-        }
+        .link-result.show { display: block; animation: slideIn 0.3s ease; }
         
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
-        .link-result h3 {
-            color: var(--success);
-            margin-bottom: 16px;
-            font-size: 18px;
-        }
+        .link-result h3 { color: var(--success); margin-bottom: 16px; font-size: 18px; }
         
         .link-box {
             background: var(--bg);
@@ -510,21 +320,10 @@
             font-size: 13px;
         }
         
-        .link-box input:focus {
-            outline: none;
-        }
+        .link-box input:focus { outline: none; }
+        .link-box button { padding: 10px 16px; font-size: 12px; }
         
-        .link-box button {
-            padding: 10px 16px;
-            font-size: 12px;
-        }
-        
-        /* Reports List */
-        .reports-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+        .reports-list { display: flex; flex-direction: column; gap: 12px; }
         
         .report-card {
             background: var(--bg);
@@ -537,57 +336,19 @@
             transition: all 0.2s;
         }
         
-        .report-card:hover {
-            border-color: var(--accent);
-        }
+        .report-card:hover { border-color: var(--accent); }
+        .report-info h4 { font-size: 15px; margin-bottom: 6px; }
+        .report-meta { display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); }
+        .report-status { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .report-status.pending { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .report-status.completed { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .report-actions { display: flex; gap: 8px; }
+        .report-actions button { padding: 10px 14px; font-size: 12px; }
         
-        .report-info h4 {
-            font-size: 15px;
-            margin-bottom: 6px;
-        }
-        
-        .report-meta {
-            display: flex;
-            gap: 16px;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-        
-        .report-status {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        
-        .report-status.pending {
-            background: rgba(251, 191, 36, 0.2);
-            color: #fbbf24;
-        }
-        
-        .report-status.completed {
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
-        }
-        
-        .report-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .report-actions button {
-            padding: 10px 14px;
-            font-size: 12px;
-        }
-        
-        /* Loading */
         .loading {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(10, 15, 28, 0.9);
             z-index: 1000;
             align-items: center;
@@ -596,9 +357,7 @@
             gap: 20px;
         }
         
-        .loading.active {
-            display: flex;
-        }
+        .loading.active { display: flex; }
         
         .spinner {
             width: 50px;
@@ -609,11 +368,8 @@
             animation: spin 1s linear infinite;
         }
         
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
-        /* Divider */
         .divider {
             display: flex;
             align-items: center;
@@ -625,47 +381,16 @@
             letter-spacing: 1px;
         }
         
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
         
-        /* Responsive */
         @media (max-width: 600px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .tabs {
-                flex-direction: column;
-            }
-            
-            .header {
-                flex-wrap: wrap;
-            }
-            
-            .badge {
-                margin-left: 0;
-                margin-top: 10px;
-                width: 100%;
-                text-align: center;
-            }
-            
-            .report-card {
-                flex-direction: column;
-                gap: 16px;
-                align-items: flex-start;
-            }
-            
-            .report-actions {
-                width: 100%;
-            }
-            
-            .report-actions button {
-                flex: 1;
-            }
+            .form-row { grid-template-columns: 1fr; }
+            .tabs { flex-direction: column; }
+            .header { flex-wrap: wrap; }
+            .badge { margin-left: 0; margin-top: 10px; width: 100%; text-align: center; }
+            .report-card { flex-direction: column; gap: 16px; align-items: flex-start; }
+            .report-actions { width: 100%; }
+            .report-actions button { flex: 1; }
         }
     </style>
 </head>
@@ -685,20 +410,15 @@
             <button class="tab" onclick="showTab('list')">📋 Mes rapports</button>
         </div>
         
-        <!-- TAB: Créer -->
         <div id="tab-create" class="tab-content active">
-            
-            <!-- Section Import Devis -->
             <div class="section">
                 <div class="section-title">Importer un devis (optionnel)</div>
-                
                 <div class="import-zone" id="importZone">
                     <input type="file" accept=".pdf" id="devisInput">
                     <div class="icon">📄</div>
                     <h4>Importer un devis FLINCO</h4>
                     <p>Glissez votre PDF ou cliquez pour parcourir</p>
                 </div>
-                
                 <div class="import-result" id="importResult">
                     <p id="importResultText"></p>
                 </div>
@@ -706,10 +426,8 @@
             
             <div class="divider">ou remplir manuellement</div>
             
-            <!-- Section Infos -->
             <div class="section">
                 <div class="section-title">Informations de la mission</div>
-                
                 <div class="form-row">
                     <div class="form-group">
                         <label>N° Devis</label>
@@ -720,14 +438,12 @@
                         <input type="date" id="date">
                     </div>
                 </div>
-                
                 <div class="form-row single">
                     <div class="form-group">
                         <label>Adresse du bien *</label>
                         <textarea id="address" placeholder="Ex: 15 rue de la Paix, 75001 Paris"></textarea>
                     </div>
                 </div>
-                
                 <div class="form-row">
                     <div class="form-group">
                         <label>Nom de l'agent</label>
@@ -740,15 +456,12 @@
                 </div>
             </div>
             
-            <!-- Section Pièces -->
             <div class="section">
                 <div class="section-title">Pièces et tâches</div>
-                
                 <div class="room-input-wrapper">
                     <input type="text" id="roomName" placeholder="Nom de la pièce (ex: Cuisine, Salon...)">
                     <button class="btn" onclick="addRoom()">+ Ajouter</button>
                 </div>
-                
                 <div id="roomsList" class="rooms-list">
                     <div class="empty-state">
                         <div class="empty-state-icon">🏠</div>
@@ -772,7 +485,6 @@
             </div>
         </div>
         
-        <!-- TAB: Liste -->
         <div id="tab-list" class="tab-content">
             <div class="section">
                 <div class="section-title">Rapports en cours</div>
@@ -792,55 +504,44 @@
     </div>
     
     <script>
-        // ==================== FIREBASE CONFIG ====================
+        // ==================== FIREBASE CONFIG V2 ====================
         const firebaseConfig = {
-            apiKey: "AIzaSyB3zo_KkWFi0TPDnx8FgYVB5ca3fR_Y3xY",
-            authDomain: "flinco-8789b.firebaseapp.com",
-            projectId: "flinco-8789b",
-            storageBucket: "flinco-8789b.firebasestorage.app",
-            messagingSenderId: "446019558198",
-            appId: "1:446019558198:web:bef018390ff56a05a73197"
+            apiKey: "AIzaSyAn4qRaIREAnzFmz-7Oj9UH5GHwSYxXuVY",
+            authDomain: "flinco-v2.firebaseapp.com",
+            projectId: "flinco-v2",
+            storageBucket: "flinco-v2.firebasestorage.app",
+            messagingSenderId: "152962665758",
+            appId: "1:152962665758:web:2d444f4334ed8b1eae4d0f"
         };
         
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const storage = firebase.storage();
         
-        // PDF.js config
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
-        // ==================== STATE ====================
         let rooms = {};
         
-        // ==================== TABS ====================
         function showTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            
             document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
             document.getElementById(`tab-${tabName}`).classList.add('active');
-            
-            if (tabName === 'list') {
-                loadReports();
-            }
+            if (tabName === 'list') loadReports();
         }
         
-        // ==================== IMPORT DEVIS ====================
         document.getElementById('devisInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
             
             const resultDiv = document.getElementById('importResult');
             const resultText = document.getElementById('importResultText');
-            
-            // Show loading
             resultDiv.className = 'import-result loading';
             resultText.innerHTML = '⏳ Analyse du devis en cours...';
             
             const reader = new FileReader();
             reader.onload = function(evt) {
                 const typedArray = new Uint8Array(evt.target.result);
-                
                 pdfjsLib.getDocument(typedArray).promise.then(function(pdf) {
                     let fullText = '';
                     const numPages = pdf.numPages;
@@ -854,28 +555,14 @@
                                 pagesProcessed++;
                                 
                                 if (pagesProcessed === numPages) {
-                                    // Parse le devis
                                     const result = parseDevisFlinco(fullText);
-                                    
                                     if (result.rooms.length > 0) {
-                                        // Remplir les champs
-                                        if (result.devisNum) {
-                                            document.getElementById('quote').value = result.devisNum;
-                                        }
-                                        if (result.address) {
-                                            document.getElementById('address').value = result.address;
-                                        }
-                                        
-                                        // Créer les pièces et tâches
-                                        result.rooms.forEach(function(room) {
-                                            createRoomWithTasks(room.name, room.tasks);
-                                        });
-                                        
-                                        // Afficher succès
+                                        if (result.devisNum) document.getElementById('quote').value = result.devisNum;
+                                        if (result.address) document.getElementById('address').value = result.address;
+                                        result.rooms.forEach(room => createRoomWithTasks(room.name, room.tasks));
                                         const totalTasks = result.rooms.reduce((sum, r) => sum + r.tasks.length, 0);
                                         resultDiv.className = 'import-result success';
                                         resultText.innerHTML = `✅ ${result.rooms.length} pièce(s) et ${totalTasks} tâche(s) importées !`;
-                                        
                                     } else {
                                         resultDiv.className = 'import-result error';
                                         resultText.innerHTML = '⚠️ Aucune pièce détectée. Ajoutez-les manuellement.';
@@ -885,7 +572,6 @@
                         });
                     }
                 }).catch(function(err) {
-                    console.error('Erreur PDF:', err);
                     resultDiv.className = 'import-result error';
                     resultText.innerHTML = '❌ Erreur lecture PDF: ' + err.message;
                 });
@@ -893,108 +579,58 @@
             reader.readAsArrayBuffer(file);
         });
         
-        // ==================== PARSER DEVIS FLINCO ====================
         function parseDevisFlinco(text) {
-            const result = {
-                devisNum: null,
-                address: null,
-                rooms: []
-            };
-            
-            // Extraire numéro de devis
+            const result = { devisNum: null, address: null, rooms: [] };
             const devisMatch = text.match(/Devis\s*N°?\s*(\d+)/i);
-            if (devisMatch) {
-                result.devisNum = devisMatch[1];
-            }
-            
-            // Extraire adresse
+            if (devisMatch) result.devisNum = devisMatch[1];
             const addressMatch = text.match(/(\d+[^a-z]*(?:RUE|AVENUE|BOULEVARD|PLACE|IMPASSE|CHEMIN|ALLÉE)[^a-z]+)/i);
-            if (addressMatch) {
-                result.address = addressMatch[1].trim();
-            }
+            if (addressMatch) result.address = addressMatch[1].trim();
             
-            // Chercher les tâches numérotées
             const taskPattern = /(\d+\.?\d*)\s+([A-ZÀ-Ü][^€\d]+?)(?:\s+U\s+\d|\s+€)/gi;
             const allTasks = [];
             let match;
-            
             while ((match = taskPattern.exec(text)) !== null) {
                 const taskNum = match[1];
-                let taskName = match[2].trim()
-                    .replace(/\s+/g, ' ')
-                    .replace(/\s*\+\s*/g, ' + ');
-                
-                // Ignorer les lignes de sous-total et services
-                if (taskName.match(/SOUS\s*TOTAL|SERVICES|Récupération|Photos avant|Fournitures/i)) {
-                    continue;
-                }
-                
+                let taskName = match[2].trim().replace(/\s+/g, ' ').replace(/\s*\+\s*/g, ' + ');
+                if (taskName.match(/SOUS\s*TOTAL|SERVICES|Récupération|Photos avant|Fournitures/i)) continue;
                 if (taskName.length > 10 && taskName.length < 150) {
-                    allTasks.push({
-                        num: parseFloat(taskNum),
-                        name: taskName
-                    });
+                    allTasks.push({ num: parseFloat(taskNum), name: taskName });
                 }
             }
             
-            console.log('Tâches trouvées:', allTasks);
-            
-            // Associer les tâches aux pièces selon la numérotation FLINCO
             const entree = { name: 'ENTRÉE / PIÈCE DE VIE', tasks: [] };
             const cuisine = { name: 'CUISINE', tasks: [] };
             const sdb = { name: 'SALLE DE BAIN / WC', tasks: [] };
             
-            allTasks.forEach(function(task) {
-                if (task.num >= 1 && task.num < 1.5) {
-                    entree.tasks.push(task.name);
-                } else if (task.num >= 1.5 && task.num < 1.10) {
-                    cuisine.tasks.push(task.name);
-                } else if (task.num >= 1.10 && task.num < 1.14) {
-                    sdb.tasks.push(task.name);
-                }
+            allTasks.forEach(task => {
+                if (task.num >= 1 && task.num < 1.5) entree.tasks.push(task.name);
+                else if (task.num >= 1.5 && task.num < 1.10) cuisine.tasks.push(task.name);
+                else if (task.num >= 1.10 && task.num < 1.14) sdb.tasks.push(task.name);
             });
             
-            // Ajouter les pièces qui ont des tâches
             if (entree.tasks.length > 0) result.rooms.push(entree);
             if (cuisine.tasks.length > 0) result.rooms.push(cuisine);
             if (sdb.tasks.length > 0) result.rooms.push(sdb);
-            
-            console.log('Résultat parsing:', result);
             return result;
         }
         
-        // ==================== CREATE ROOM WITH TASKS ====================
         function createRoomWithTasks(roomName, tasks) {
             if (rooms[roomName]) {
-                // Pièce existe déjà, ajouter les tâches
-                tasks.forEach(function(taskName) {
-                    if (!rooms[roomName].tasks.includes(taskName)) {
-                        rooms[roomName].tasks.push(taskName);
-                    }
+                tasks.forEach(taskName => {
+                    if (!rooms[roomName].tasks.includes(taskName)) rooms[roomName].tasks.push(taskName);
                 });
                 renderRooms();
                 return;
             }
-            
             rooms[roomName] = { tasks: tasks };
             renderRooms();
         }
         
-        // ==================== ROOMS ====================
         function addRoom() {
             const input = document.getElementById('roomName');
             const name = input.value.trim();
-            
-            if (!name) {
-                alert('Veuillez entrer un nom de pièce');
-                return;
-            }
-            
-            if (rooms[name]) {
-                alert('Cette pièce existe déjà');
-                return;
-            }
-            
+            if (!name) { alert('Veuillez entrer un nom de pièce'); return; }
+            if (rooms[name]) { alert('Cette pièce existe déjà'); return; }
             rooms[name] = { tasks: [] };
             input.value = '';
             renderRooms();
@@ -1010,9 +646,7 @@
         function addTask(roomName) {
             const input = document.getElementById(`task-input-${roomName.replace(/[^a-zA-Z0-9]/g, '_')}`);
             const taskName = input.value.trim();
-            
             if (!taskName) return;
-            
             rooms[roomName].tasks.push(taskName);
             input.value = '';
             renderRooms();
@@ -1028,19 +662,13 @@
             const roomNames = Object.keys(rooms);
             
             if (roomNames.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🏠</div>
-                        <p>Ajoutez des pièces pour commencer<br><small>ou importez un devis ci-dessus</small></p>
-                    </div>
-                `;
+                container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🏠</div><p>Ajoutez des pièces pour commencer<br><small>ou importez un devis ci-dessus</small></p></div>`;
                 return;
             }
             
             container.innerHTML = roomNames.map(name => {
                 const safeId = name.replace(/[^a-zA-Z0-9]/g, '_');
                 const safeName = name.replace(/'/g, "\\'");
-                
                 return `
                     <div class="room-card">
                         <div class="room-header">
@@ -1069,24 +697,14 @@
             }).join('');
         }
         
-        // ==================== GENERATE LINK ====================
         async function generateLink() {
             const address = document.getElementById('address').value.trim();
-            
-            if (!address) {
-                alert('Veuillez remplir l\'adresse du bien');
-                return;
-            }
-            
-            if (Object.keys(rooms).length === 0) {
-                alert('Veuillez ajouter au moins une pièce');
-                return;
-            }
+            if (!address) { alert('Veuillez remplir l\'adresse du bien'); return; }
+            if (Object.keys(rooms).length === 0) { alert('Veuillez ajouter au moins une pièce'); return; }
             
             document.getElementById('loading').classList.add('active');
             
             try {
-                // Préparer les données
                 const reportData = {
                     quote: document.getElementById('quote').value || 'N/A',
                     date: document.getElementById('date').value || new Date().toISOString().split('T')[0],
@@ -1100,17 +718,13 @@
                     pdfUrl: null
                 };
                 
-                // Sauvegarder dans Firestore
                 const docRef = await db.collection('reports').add(reportData);
                 const reportId = docRef.id;
-                
-                // Générer le lien
                 const baseUrl = window.location.origin;
                 const agentUrl = `${baseUrl}/flinco-agent.html?id=${reportId}`;
                 
                 document.getElementById('generatedLink').value = agentUrl;
                 document.getElementById('linkResult').classList.add('show');
-                
             } catch (error) {
                 console.error('Erreur:', error);
                 alert('Erreur lors de la création: ' + error.message);
@@ -1123,7 +737,6 @@
             const input = document.getElementById('generatedLink');
             input.select();
             document.execCommand('copy');
-            
             const btn = event.target;
             btn.textContent = '✓ Copié !';
             setTimeout(() => btn.textContent = '📋 Copier', 2000);
@@ -1136,32 +749,19 @@
             window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
         }
         
-        // ==================== LOAD REPORTS ====================
         async function loadReports() {
             const container = document.getElementById('reportsList');
-            
             try {
-                const snapshot = await db.collection('reports')
-                    .orderBy('createdAt', 'desc')
-                    .limit(50)
-                    .get();
-                
+                const snapshot = await db.collection('reports').orderBy('createdAt', 'desc').limit(50).get();
                 if (snapshot.empty) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon">📄</div>
-                            <p>Aucun rapport pour le moment</p>
-                        </div>
-                    `;
+                    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📄</div><p>Aucun rapport pour le moment</p></div>`;
                     return;
                 }
-                
                 container.innerHTML = snapshot.docs.map(doc => {
                     const data = doc.data();
                     const createdDate = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString('fr-FR') : 'N/A';
                     const statusClass = data.status === 'completed' ? 'completed' : 'pending';
                     const statusText = data.status === 'completed' ? '✓ Terminé' : '⏳ En attente';
-                    
                     return `
                         <div class="report-card">
                             <div class="report-info">
@@ -1180,9 +780,7 @@
                         </div>
                     `;
                 }).join('');
-                
             } catch (error) {
-                console.error('Erreur:', error);
                 container.innerHTML = `<p style="color: var(--danger);">Erreur de chargement</p>`;
             }
         }
@@ -1190,15 +788,11 @@
         function copyReportLink(reportId) {
             const baseUrl = window.location.origin;
             const link = `${baseUrl}/flinco-agent.html?id=${reportId}`;
-            
-            navigator.clipboard.writeText(link).then(() => {
-                alert('Lien copié !');
-            });
+            navigator.clipboard.writeText(link).then(() => alert('Lien copié !'));
         }
         
         async function deleteReport(reportId) {
             if (!confirm('Supprimer ce rapport ?')) return;
-            
             try {
                 await db.collection('reports').doc(reportId).delete();
                 loadReports();
@@ -1207,7 +801,6 @@
             }
         }
         
-        // ==================== INIT ====================
         document.getElementById('date').valueAsDate = new Date();
         renderRooms();
     </script>
