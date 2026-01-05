@@ -337,7 +337,21 @@
                 <div class="progress-fill" id="progressFill" style="width: 0%"></div>
             </div>
         </div>
-        
+
+        <div style="background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+            <h3 style="font-size: 14px; font-weight: 600; color: var(--primary); margin-bottom: 12px;">➕ Ajouter des éléments</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Élément manquant ? Ajoutez-le ici</p>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <input type="text" id="newRoomInput" placeholder="Nom de la pièce (ex: Buanderie)" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px;">
+                <button onclick="addNewRoom()" style="padding: 10px 16px; background: var(--accent); color: var(--primary); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">+ Pièce</button>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <select id="roomSelectForTask" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px;"></select>
+                <input type="text" id="newTaskInput" placeholder="Nom de la tâche" style="flex: 2; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px;">
+                <button onclick="addNewTask()" style="padding: 10px 16px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">+ Tâche</button>
+            </div>
+        </div>
+
         <div id="roomsContainer"></div>
     </div>
     
@@ -586,17 +600,116 @@
             document.getElementById('missionAddress').textContent = reportData.address;
             document.getElementById('missionDate').textContent = '📅 ' + formatDate(reportData.date);
             document.getElementById('missionQuote').textContent = '📝 ' + reportData.quote;
-            
+
             const container = document.getElementById('roomsContainer');
             container.innerHTML = '';
-            
+
             for (const roomName in reportData.rooms) {
                 const room = reportData.rooms[roomName];
                 const tasks = room.tasks || [];
                 container.innerHTML += createRoomCard(roomName, tasks);
             }
-            
+
+            updateRoomSelect();
             updateProgress();
+        }
+
+        function updateRoomSelect() {
+            const select = document.getElementById('roomSelectForTask');
+            select.innerHTML = '<option value="">-- Choisir une pièce --</option>';
+            for (const roomName in reportData.rooms) {
+                const option = document.createElement('option');
+                option.value = roomName;
+                option.textContent = roomName;
+                select.appendChild(option);
+            }
+        }
+
+        async function addNewRoom() {
+            const input = document.getElementById('newRoomInput');
+            const roomName = input.value.trim();
+
+            if (!roomName) {
+                alert('Veuillez entrer un nom de pièce');
+                return;
+            }
+
+            if (reportData.rooms[roomName]) {
+                alert('Cette pièce existe déjà');
+                return;
+            }
+
+            // Ajouter la pièce
+            reportData.rooms[roomName] = { tasks: [] };
+            photos[roomName] = { general: { avant: null, apres: null }, tasks: {} };
+
+            // Synchroniser avec Firebase
+            try {
+                await db.collection('reports').doc(reportId).update({
+                    rooms: reportData.rooms
+                });
+            } catch (error) {
+                console.error('Erreur sync:', error);
+            }
+
+            // Réafficher
+            renderReport();
+            saveToLocalStorage();
+
+            input.value = '';
+            alert('✅ Pièce ajoutée !');
+        }
+
+        async function addNewTask() {
+            const roomSelect = document.getElementById('roomSelectForTask');
+            const taskInput = document.getElementById('newTaskInput');
+            const roomName = roomSelect.value;
+            const taskName = taskInput.value.trim();
+
+            if (!roomName) {
+                alert('Veuillez choisir une pièce');
+                return;
+            }
+
+            if (!taskName) {
+                alert('Veuillez entrer un nom de tâche');
+                return;
+            }
+
+            // Ajouter la tâche
+            if (!reportData.rooms[roomName].tasks) {
+                reportData.rooms[roomName].tasks = [];
+            }
+            reportData.rooms[roomName].tasks.push(taskName);
+
+            // Initialiser la structure photos
+            const needsOpenClosed = /four|frigo|réfrigérateur|lave-vaisselle|lave vaisselle|hotte/i.test(taskName);
+            if (needsOpenClosed) {
+                photos[roomName].tasks[taskName] = {
+                    avant: null,
+                    apres: null,
+                    ouvert: null,
+                    ferme: null
+                };
+            } else {
+                photos[roomName].tasks[taskName] = { avant: null, apres: null };
+            }
+
+            // Synchroniser avec Firebase
+            try {
+                await db.collection('reports').doc(reportId).update({
+                    rooms: reportData.rooms
+                });
+            } catch (error) {
+                console.error('Erreur sync:', error);
+            }
+
+            // Réafficher
+            renderReport();
+            saveToLocalStorage();
+
+            taskInput.value = '';
+            alert('✅ Tâche ajoutée !');
         }
         
         function createRoomCard(roomName, tasks) {
@@ -707,19 +820,45 @@
             return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
         
-        function handlePhoto(roomName, taskName, type, input) {
+        async function handlePhoto(roomName, taskName, type, input) {
             const file = input.files[0];
             if (!file) return;
-            
+
             const reader = new FileReader();
-            reader.onload = function(e) {
-                compressImage(e.target.result, function(compressed) {
+            reader.onload = async function(e) {
+                compressImage(e.target.result, async function(compressed) {
+                    // Afficher immédiatement l'image
                     photos[roomName].tasks[taskName][type] = compressed;
                     const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-${slugify(taskName)}-${type}`);
                     uploadDiv.classList.add('has-photo');
                     let img = uploadDiv.querySelector('img');
                     if (!img) { img = document.createElement('img'); uploadDiv.appendChild(img); }
                     img.src = compressed;
+
+                    // Upload automatique vers Firebase Storage si en ligne
+                    if (isOnline) {
+                        try {
+                            // Convertir base64 en blob
+                            const blob = await fetch(compressed).then(r => r.blob());
+                            const fileName = `${reportId}/${slugify(roomName)}/${slugify(taskName)}_${type}_${Date.now()}.jpg`;
+                            const storageRef = storage.ref().child(`photos/${fileName}`);
+
+                            // Uploader
+                            await storageRef.put(blob);
+                            const photoUrl = await storageRef.getDownloadURL();
+
+                            // Remplacer le base64 par l'URL
+                            photos[roomName].tasks[taskName][type] = photoUrl;
+
+                            console.log(`✅ Photo uploadée: ${fileName}`);
+
+                            // Sauvegarder dans Firestore
+                            await syncPhotosToFirestore();
+                        } catch (error) {
+                            console.error('Erreur upload photo:', error);
+                        }
+                    }
+
                     updateSectionStatus(roomName, taskName);
                     updateProgress();
                 });
@@ -727,24 +866,64 @@
             reader.readAsDataURL(file);
         }
         
-        function handleGeneralPhoto(roomName, type, input) {
+        async function handleGeneralPhoto(roomName, type, input) {
             const file = input.files[0];
             if (!file) return;
-            
+
             const reader = new FileReader();
-            reader.onload = function(e) {
-                compressImage(e.target.result, function(compressed) {
+            reader.onload = async function(e) {
+                compressImage(e.target.result, async function(compressed) {
+                    // Afficher immédiatement l'image
                     photos[roomName].general[type] = compressed;
                     const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-general-${type}`);
                     uploadDiv.classList.add('has-photo');
                     let img = uploadDiv.querySelector('img');
                     if (!img) { img = document.createElement('img'); uploadDiv.appendChild(img); }
                     img.src = compressed;
+
+                    // Upload automatique vers Firebase Storage si en ligne
+                    if (isOnline) {
+                        try {
+                            // Convertir base64 en blob
+                            const blob = await fetch(compressed).then(r => r.blob());
+                            const fileName = `${reportId}/${slugify(roomName)}/general_${type}_${Date.now()}.jpg`;
+                            const storageRef = storage.ref().child(`photos/${fileName}`);
+
+                            // Uploader
+                            await storageRef.put(blob);
+                            const photoUrl = await storageRef.getDownloadURL();
+
+                            // Remplacer le base64 par l'URL
+                            photos[roomName].general[type] = photoUrl;
+
+                            console.log(`✅ Photo uploadée: ${fileName}`);
+
+                            // Sauvegarder dans Firestore
+                            await syncPhotosToFirestore();
+                        } catch (error) {
+                            console.error('Erreur upload photo:', error);
+                        }
+                    }
+
                     updateSectionStatus(roomName, 'general');
                     updateProgress();
                 });
             };
             reader.readAsDataURL(file);
+        }
+
+        async function syncPhotosToFirestore() {
+            if (!isOnline || !reportId) return;
+
+            try {
+                await db.collection('reports').doc(reportId).update({
+                    photos: photos,
+                    lastPhotoUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('✅ Photos synchronisées avec Firestore');
+            } catch (error) {
+                console.error('Erreur sync Firestore:', error);
+            }
         }
         
         function removePhoto(event, roomName, taskName, type) {
@@ -995,19 +1174,49 @@
                         pdf.setTextColor(100, 100, 100);
                         pdf.text('Vue générale', 20, y);
                         y += 6;
-                        
+
                         pdf.setFontSize(9);
                         pdf.setFont(undefined, 'normal');
                         pdf.text('Avant', 25, y);
                         pdf.text('Après', 110, y);
                         y += 4;
-                        
+
                         const imgW = 75, imgH = 55;
                         pdf.setDrawColor(200, 200, 200);
                         pdf.rect(20, y, imgW, imgH);
-                        if (photos[roomName].general.avant) { try { pdf.addImage(photos[roomName].general.avant, 'JPEG', 20, y, imgW, imgH); } catch(e) {} }
+                        if (photos[roomName].general.avant) {
+                            try {
+                                if (photos[roomName].general.avant.startsWith('http')) {
+                                    const avantImg = await fetch(photos[roomName].general.avant);
+                                    const avantBlob = await avantImg.blob();
+                                    const avantBase64 = await new Promise((resolve) => {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => resolve(reader.result);
+                                        reader.readAsDataURL(avantBlob);
+                                    });
+                                    pdf.addImage(avantBase64, 'JPEG', 20, y, imgW, imgH);
+                                } else {
+                                    pdf.addImage(photos[roomName].general.avant, 'JPEG', 20, y, imgW, imgH);
+                                }
+                            } catch(e) { console.error('Erreur général avant:', e); }
+                        }
                         pdf.rect(105, y, imgW, imgH);
-                        if (photos[roomName].general.apres) { try { pdf.addImage(photos[roomName].general.apres, 'JPEG', 105, y, imgW, imgH); } catch(e) {} }
+                        if (photos[roomName].general.apres) {
+                            try {
+                                if (photos[roomName].general.apres.startsWith('http')) {
+                                    const apresImg = await fetch(photos[roomName].general.apres);
+                                    const apresBlob = await apresImg.blob();
+                                    const apresBase64 = await new Promise((resolve) => {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => resolve(reader.result);
+                                        reader.readAsDataURL(apresBlob);
+                                    });
+                                    pdf.addImage(apresBase64, 'JPEG', 105, y, imgW, imgH);
+                                } else {
+                                    pdf.addImage(photos[roomName].general.apres, 'JPEG', 105, y, imgW, imgH);
+                                }
+                            } catch(e) { console.error('Erreur général après:', e); }
+                        }
                         y += imgH + 15;
                     }
                     
@@ -1033,9 +1242,41 @@
                         const imgW = 75, imgH = 50;
                         pdf.setDrawColor(200, 200, 200);
                         pdf.rect(20, y, imgW, imgH);
-                        if (task.avant) { try { pdf.addImage(task.avant, 'JPEG', 20, y, imgW, imgH); } catch(e) {} }
+                        if (task.avant) {
+                            try {
+                                // Si c'est une URL, la charger
+                                if (task.avant.startsWith('http')) {
+                                    const avantImg = await fetch(task.avant);
+                                    const avantBlob = await avantImg.blob();
+                                    const avantBase64 = await new Promise((resolve) => {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => resolve(reader.result);
+                                        reader.readAsDataURL(avantBlob);
+                                    });
+                                    pdf.addImage(avantBase64, 'JPEG', 20, y, imgW, imgH);
+                                } else {
+                                    pdf.addImage(task.avant, 'JPEG', 20, y, imgW, imgH);
+                                }
+                            } catch(e) { console.error('Erreur image avant:', e); }
+                        }
                         pdf.rect(105, y, imgW, imgH);
-                        if (task.apres) { try { pdf.addImage(task.apres, 'JPEG', 105, y, imgW, imgH); } catch(e) {} }
+                        if (task.apres) {
+                            try {
+                                // Si c'est une URL, la charger
+                                if (task.apres.startsWith('http')) {
+                                    const apresImg = await fetch(task.apres);
+                                    const apresBlob = await apresImg.blob();
+                                    const apresBase64 = await new Promise((resolve) => {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => resolve(reader.result);
+                                        reader.readAsDataURL(apresBlob);
+                                    });
+                                    pdf.addImage(apresBase64, 'JPEG', 105, y, imgW, imgH);
+                                } else {
+                                    pdf.addImage(task.apres, 'JPEG', 105, y, imgW, imgH);
+                                }
+                            } catch(e) { console.error('Erreur image après:', e); }
+                        }
                         y += imgH + 8;
 
                         // Photos ouvert/fermé pour les équipements
@@ -1049,9 +1290,39 @@
                             y += 4;
 
                             pdf.rect(20, y, imgW, imgH);
-                            if (task.ouvert) { try { pdf.addImage(task.ouvert, 'JPEG', 20, y, imgW, imgH); } catch(e) {} }
+                            if (task.ouvert) {
+                                try {
+                                    if (task.ouvert.startsWith('http')) {
+                                        const ouvertImg = await fetch(task.ouvert);
+                                        const ouvertBlob = await ouvertImg.blob();
+                                        const ouvertBase64 = await new Promise((resolve) => {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => resolve(reader.result);
+                                            reader.readAsDataURL(ouvertBlob);
+                                        });
+                                        pdf.addImage(ouvertBase64, 'JPEG', 20, y, imgW, imgH);
+                                    } else {
+                                        pdf.addImage(task.ouvert, 'JPEG', 20, y, imgW, imgH);
+                                    }
+                                } catch(e) { console.error('Erreur image ouvert:', e); }
+                            }
                             pdf.rect(105, y, imgW, imgH);
-                            if (task.ferme) { try { pdf.addImage(task.ferme, 'JPEG', 105, y, imgW, imgH); } catch(e) {} }
+                            if (task.ferme) {
+                                try {
+                                    if (task.ferme.startsWith('http')) {
+                                        const fermeImg = await fetch(task.ferme);
+                                        const fermeBlob = await fermeImg.blob();
+                                        const fermeBase64 = await new Promise((resolve) => {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => resolve(reader.result);
+                                            reader.readAsDataURL(fermeBlob);
+                                        });
+                                        pdf.addImage(fermeBase64, 'JPEG', 105, y, imgW, imgH);
+                                    } else {
+                                        pdf.addImage(task.ferme, 'JPEG', 105, y, imgW, imgH);
+                                    }
+                                } catch(e) { console.error('Erreur image fermé:', e); }
+                            }
                             y += imgH + 8;
                         }
 
