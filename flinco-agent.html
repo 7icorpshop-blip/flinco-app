@@ -894,9 +894,17 @@
                 pdf.rect(0, 0, w, h, 'F');
 
                 // Ajouter le logo si disponible
-                if (reportData.logo) {
+                if (reportData.logoUrl) {
                     try {
-                        pdf.addImage(reportData.logo, 'PNG', 15, 15, 30, 30);
+                        // Charger le logo depuis l'URL
+                        const logoImg = await fetch(reportData.logoUrl);
+                        const logoBlob = await logoImg.blob();
+                        const logoBase64 = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.readAsDataURL(logoBlob);
+                        });
+                        pdf.addImage(logoBase64, 'PNG', 15, 15, 30, 30);
                     } catch(e) {
                         console.warn('Erreur ajout logo:', e);
                     }
