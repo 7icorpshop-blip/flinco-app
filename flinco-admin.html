@@ -486,6 +486,10 @@
             <button class="btn btn-success btn-large" onclick="generateLink()">
                 🔗 Générer le lien pour l'agent
             </button>
+
+            <button class="btn btn-large" onclick="resetForm()" style="background: var(--text-muted); color: white; margin-top: 10px; display: none;" id="cancelEditBtn">
+                ❌ Annuler les modifications
+            </button>
             
             <div id="linkResult" class="link-result">
                 <h3>✅ Pré-rapport créé avec succès !</h3>
@@ -495,6 +499,10 @@
                     <button class="btn" onclick="copyLink()">📋 Copier</button>
                 </div>
                 <button class="btn" onclick="shareWhatsApp()">📱 Partager via WhatsApp</button>
+                <div style="margin-top: 20px; padding: 16px; background: rgba(130, 172, 255, 0.1); border-radius: 10px; border: 1px solid var(--accent);">
+                    <p style="font-size: 13px; color: var(--text); margin-bottom: 8px;">💡 <strong>Besoin de modifier ou d'ajouter des éléments ?</strong></p>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Vous pouvez retrouver ce rapport dans l'onglet "Mes rapports" et cliquer sur "✏️ Modifier" pour ajouter des pièces, tâches ou modifier les informations, même après avoir envoyé le lien à votre agent !</p>
+                </div>
             </div>
         </div>
         
@@ -536,6 +544,7 @@
         let rooms = {};
         let logoFile = null;
         let logoPreviewBase64 = null;
+        let editingReportId = null;
         
         function showTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -838,6 +847,7 @@
                             </div>
                             <div class="report-actions">
                                 <button class="btn" onclick="copyReportLink('${doc.id}')">🔗 Lien</button>
+                                <button class="btn" onclick="editReport('${doc.id}')" style="background: var(--accent); color: var(--primary);">✏️ Modifier</button>
                                 ${data.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${data.pdfUrl}', '_blank')">📥 PDF</button>` : ''}
                                 <button class="btn btn-danger" onclick="deleteReport('${doc.id}')">🗑️</button>
                             </div>
@@ -864,7 +874,139 @@
                 alert('Erreur: ' + error.message);
             }
         }
-        
+
+        async function editReport(reportId) {
+            try {
+                document.getElementById('loading').classList.add('active');
+
+                const doc = await db.collection('reports').doc(reportId).get();
+                if (!doc.exists) {
+                    alert('Rapport introuvable');
+                    return;
+                }
+
+                const data = doc.data();
+                editingReportId = reportId;
+
+                // Remplir les champs avec les données du rapport
+                document.getElementById('quote').value = data.quote || '';
+                document.getElementById('date').value = data.date || '';
+                document.getElementById('address').value = data.address || '';
+                document.getElementById('agent').value = data.agent || '';
+                document.getElementById('agency').value = data.agency || '';
+
+                // Charger les pièces et tâches
+                rooms = data.rooms || {};
+                renderRooms();
+
+                // Charger le logo si disponible
+                if (data.logoUrl) {
+                    logoPreviewBase64 = data.logoUrl;
+                    const resultDiv = document.getElementById('logoResult');
+                    const resultText = document.getElementById('logoResultText');
+                    resultDiv.className = 'import-result success';
+                    resultText.innerHTML = '✅ Logo existant chargé';
+                }
+
+                // Passer à l'onglet de création/édition
+                showTab('create');
+
+                // Changer le texte du bouton et afficher le bouton Annuler
+                const generateBtn = document.querySelector('.btn-success.btn-large');
+                generateBtn.innerHTML = '💾 Enregistrer les modifications';
+                generateBtn.onclick = saveReportChanges;
+
+                const cancelBtn = document.getElementById('cancelEditBtn');
+                cancelBtn.style.display = 'flex';
+
+                document.getElementById('loading').classList.remove('active');
+
+                // Scroller vers le haut
+                window.scrollTo(0, 0);
+
+            } catch (error) {
+                document.getElementById('loading').classList.remove('active');
+                alert('Erreur lors du chargement: ' + error.message);
+            }
+        }
+
+        async function saveReportChanges() {
+            const address = document.getElementById('address').value.trim();
+            if (!address) { alert('Veuillez remplir l\'adresse du bien'); return; }
+            if (Object.keys(rooms).length === 0) { alert('Veuillez ajouter au moins une pièce'); return; }
+
+            document.getElementById('loading').classList.add('active');
+
+            try {
+                let logoUrl = null;
+
+                // Uploader le nouveau logo si changé
+                if (logoFile) {
+                    const logoStoragePath = `logos/${Date.now()}_${logoFile.name}`;
+                    const logoRef = storage.ref().child(logoStoragePath);
+                    await logoRef.put(logoFile);
+                    logoUrl = await logoRef.getDownloadURL();
+                } else if (logoPreviewBase64 && logoPreviewBase64.startsWith('http')) {
+                    // Garder l'ancien logo
+                    logoUrl = logoPreviewBase64;
+                }
+
+                const reportData = {
+                    quote: document.getElementById('quote').value || 'N/A',
+                    date: document.getElementById('date').value || new Date().toISOString().split('T')[0],
+                    address: address,
+                    agent: document.getElementById('agent').value || '',
+                    agency: document.getElementById('agency').value || '',
+                    rooms: rooms,
+                    logoUrl: logoUrl,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('reports').doc(editingReportId).update(reportData);
+
+                alert('✅ Rapport mis à jour avec succès !');
+
+                // Réinitialiser
+                resetForm();
+                showTab('list');
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la mise à jour: ' + error.message);
+            }
+
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        function resetForm() {
+            editingReportId = null;
+            rooms = {};
+            logoFile = null;
+            logoPreviewBase64 = null;
+
+            document.getElementById('quote').value = '';
+            document.getElementById('date').valueAsDate = new Date();
+            document.getElementById('address').value = '';
+            document.getElementById('agent').value = '';
+            document.getElementById('agency').value = '';
+
+            renderRooms();
+
+            const resultDiv = document.getElementById('logoResult');
+            resultDiv.className = 'import-result';
+
+            document.getElementById('linkResult').classList.remove('show');
+
+            // Réinitialiser le bouton
+            const generateBtn = document.querySelector('.btn-success.btn-large');
+            generateBtn.innerHTML = '🔗 Générer le lien pour l\'agent';
+            generateBtn.onclick = generateLink;
+
+            // Cacher le bouton Annuler
+            const cancelBtn = document.getElementById('cancelEditBtn');
+            cancelBtn.style.display = 'none';
+        }
+
         document.getElementById('date').valueAsDate = new Date();
         renderRooms();
     </script>
