@@ -66,6 +66,37 @@
         
         .header h1 { font-size: 20px; font-weight: 700; }
         .header p { opacity: 0.85; font-size: 12px; }
+
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: var(--card);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .connection-status.online { background: var(--success); color: white; }
+        .connection-status.offline { background: var(--warning); color: white; }
+        .connection-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
         
         .mission-info {
             background: rgba(255,255,255,0.1);
@@ -273,6 +304,11 @@
     </style>
 </head>
 <body>
+    <div class="connection-status online" id="connectionStatus">
+        <span class="dot"></span>
+        <span id="statusText">En ligne</span>
+    </div>
+
     <div class="container">
         <header class="header">
             <div class="header-top">
@@ -341,46 +377,195 @@
         let reportId = null;
         let reportData = null;
         let photos = {};
+        let isOnline = navigator.onLine;
+        let autoSaveInterval = null;
         
+        // ==================== GESTION MODE HORS-LIGNE ====================
+        function updateConnectionStatus() {
+            isOnline = navigator.onLine;
+            const statusEl = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+
+            if (isOnline) {
+                statusEl.className = 'connection-status online';
+                statusText.textContent = 'En ligne';
+                syncLocalDataIfNeeded();
+            } else {
+                statusEl.className = 'connection-status offline';
+                statusText.textContent = 'Mode hors-ligne';
+            }
+        }
+
+        function saveToLocalStorage() {
+            if (!reportId) return;
+
+            const localData = {
+                reportId: reportId,
+                reportData: reportData,
+                photos: photos,
+                timestamp: Date.now()
+            };
+
+            try {
+                localStorage.setItem('flinco_report_' + reportId, JSON.stringify(localData));
+                console.log('✅ Données sauvegardées localement');
+            } catch (e) {
+                console.warn('⚠️ Erreur sauvegarde locale:', e);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            if (!reportId) return null;
+
+            try {
+                const data = localStorage.getItem('flinco_report_' + reportId);
+                if (data) {
+                    console.log('📦 Données locales trouvées');
+                    return JSON.parse(data);
+                }
+            } catch (e) {
+                console.warn('⚠️ Erreur chargement local:', e);
+            }
+
+            return null;
+        }
+
+        async function syncLocalDataIfNeeded() {
+            // Cette fonction sera appelée quand la connexion revient
+            // pour synchroniser les données locales avec Firebase
+            console.log('🔄 Vérification de la synchronisation...');
+
+            const localData = loadFromLocalStorage();
+            if (!localData || !localData.readyToSync || !localData.pdfBase64) {
+                console.log('Rien à synchroniser');
+                return;
+            }
+
+            try {
+                showLoading('Synchronisation du rapport...');
+
+                // Convertir base64 en blob
+                const base64Response = await fetch(localData.pdfBase64);
+                const pdfBlob = await base64Response.blob();
+
+                const storageRef = storage.ref().child(`reports/${reportId}/${localData.pdfFileName}`);
+                await storageRef.put(pdfBlob);
+                const pdfUrl = await storageRef.getDownloadURL();
+
+                await db.collection('reports').doc(reportId).update({
+                    status: 'completed',
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    pdfUrl: pdfUrl
+                });
+
+                // Supprimer les données locales après synchronisation
+                localStorage.removeItem('flinco_report_' + reportId);
+
+                hideLoading();
+                alert('✅ Rapport synchronisé avec succès !');
+                document.getElementById('successOverlay').classList.add('active');
+
+            } catch (error) {
+                console.error('Erreur de synchronisation:', error);
+                hideLoading();
+                alert('⚠️ Erreur lors de la synchronisation. Nous réessaierons automatiquement.');
+            }
+        }
+
+        // Démarrer la sauvegarde automatique toutes les 10 secondes
+        function startAutoSave() {
+            if (autoSaveInterval) clearInterval(autoSaveInterval);
+            autoSaveInterval = setInterval(() => {
+                saveToLocalStorage();
+            }, 10000); // 10 secondes
+        }
+
+        // Écouter les changements de connexion
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        window.addEventListener('beforeunload', () => {
+            saveToLocalStorage();
+        });
+
         async function init() {
             const params = new URLSearchParams(window.location.search);
             reportId = params.get('id');
-            
+
             if (!reportId) {
                 showError('Lien invalide', 'Aucun rapport spécifié dans l\'URL');
                 return;
             }
-            
+
+            updateConnectionStatus();
             showLoading('Chargement du rapport...');
-            
+
+            // Essayer de charger depuis localStorage d'abord
+            const localData = loadFromLocalStorage();
+
             try {
-                const doc = await db.collection('reports').doc(reportId).get();
-                
-                if (!doc.exists) {
-                    showError('Rapport introuvable', 'Ce rapport n\'existe pas ou a été supprimé');
+                if (isOnline) {
+                    // Si en ligne, charger depuis Firebase
+                    const doc = await db.collection('reports').doc(reportId).get();
+
+                    if (!doc.exists) {
+                        showError('Rapport introuvable', 'Ce rapport n\'existe pas ou a été supprimé');
+                        return;
+                    }
+
+                    reportData = doc.data();
+                } else if (localData) {
+                    // Si hors-ligne et données locales disponibles
+                    reportData = localData.reportData;
+                    photos = localData.photos;
+                } else {
+                    // Hors-ligne et pas de données locales
+                    showError('Mode hors-ligne', 'Vous devez charger ce rapport en ligne au moins une fois avant de l\'utiliser hors-ligne.');
                     return;
                 }
-                
-                reportData = doc.data();
-                
+
                 if (reportData.status === 'completed') {
                     showError('Rapport déjà terminé', 'Ce rapport a déjà été complété.');
                     return;
                 }
-                
-                for (const roomName in reportData.rooms) {
-                    photos[roomName] = { general: { avant: null, apres: null }, tasks: {} };
-                    if (reportData.rooms[roomName].tasks) {
-                        for (const task of reportData.rooms[roomName].tasks) {
-                            photos[roomName].tasks[task] = { avant: null, apres: null };
+
+                // Initialiser la structure photos si nécessaire
+                if (!localData || !localData.photos) {
+                    for (const roomName in reportData.rooms) {
+                        photos[roomName] = { general: { avant: null, apres: null }, tasks: {} };
+                        if (reportData.rooms[roomName].tasks) {
+                            for (const task of reportData.rooms[roomName].tasks) {
+                                // Déterminer si c'est un équipement nécessitant des photos ouvertes/fermées
+                                const needsOpenClosed = /four|frigo|réfrigérateur|lave-vaisselle|lave vaisselle|hotte/i.test(task);
+                                if (needsOpenClosed) {
+                                    photos[roomName].tasks[task] = {
+                                        avant: null,
+                                        apres: null,
+                                        ouvert: null,
+                                        ferme: null
+                                    };
+                                } else {
+                                    photos[roomName].tasks[task] = { avant: null, apres: null };
+                                }
+                            }
                         }
                     }
                 }
-                
+
                 renderReport();
+                saveToLocalStorage();
+                startAutoSave();
                 hideLoading();
             } catch (error) {
-                showError('Erreur de chargement', error.message);
+                if (!isOnline && localData) {
+                    // Si erreur mais données locales disponibles
+                    reportData = localData.reportData;
+                    photos = localData.photos;
+                    renderReport();
+                    startAutoSave();
+                    hideLoading();
+                } else {
+                    showError('Erreur de chargement', error.message);
+                }
             }
         }
         
@@ -416,10 +601,12 @@
         
         function createRoomCard(roomName, tasks) {
             const safeRoomName = roomName.replace(/'/g, "\\'").replace(/"/g, '\\"');
-            
+
             let tasksHtml = '';
             for (const task of tasks) {
                 const safeTask = task.replace(/'/g, "\\'").replace(/"/g, '\\"');
+                const needsOpenClosed = /four|frigo|réfrigérateur|lave-vaisselle|lave vaisselle|hotte/i.test(task);
+
                 tasksHtml += `
                     <div class="photo-section" id="section-${slugify(roomName)}-${slugify(task)}">
                         <h4><span class="check">✓</span> ${task}</h4>
@@ -442,6 +629,33 @@
                                     <button class="remove-btn" onclick="removePhoto(event, '${safeRoomName}', '${safeTask}', 'apres')">×</button>
                                 </div>
                             </div>
+                `;
+
+                // Ajouter les photos ouvert/fermé pour les équipements
+                if (needsOpenClosed) {
+                    tasksHtml += `
+                            <div class="photo-box">
+                                <label>Ouvert</label>
+                                <div class="photo-upload" id="upload-${slugify(roomName)}-${slugify(task)}-ouvert">
+                                    <input type="file" accept="image/*" capture="environment" onchange="handlePhoto('${safeRoomName}', '${safeTask}', 'ouvert', this)">
+                                    <span class="icon">📷</span>
+                                    <span class="text">Prendre photo</span>
+                                    <button class="remove-btn" onclick="removePhoto(event, '${safeRoomName}', '${safeTask}', 'ouvert')">×</button>
+                                </div>
+                            </div>
+                            <div class="photo-box">
+                                <label>Fermé</label>
+                                <div class="photo-upload" id="upload-${slugify(roomName)}-${slugify(task)}-ferme">
+                                    <input type="file" accept="image/*" capture="environment" onchange="handlePhoto('${safeRoomName}', '${safeTask}', 'ferme', this)">
+                                    <span class="icon">📷</span>
+                                    <span class="text">Prendre photo</span>
+                                    <button class="remove-btn" onclick="removePhoto(event, '${safeRoomName}', '${safeTask}', 'ferme')">×</button>
+                                </div>
+                            </div>
+                    `;
+                }
+
+                tasksHtml += `
                         </div>
                     </div>
                 `;
@@ -582,9 +796,20 @@
             const section = document.getElementById(sectionId);
             if (!section) return;
             const photoData = taskName === 'general' ? photos[roomName].general : photos[roomName].tasks[taskName];
-            if (photoData.avant && photoData.apres) section.classList.add('complete');
+
+            // Vérifier si la section est complète
+            let isComplete = photoData.avant && photoData.apres;
+
+            // Si c'est un équipement avec photos ouvert/fermé, vérifier aussi ces photos
+            if (photoData.ouvert !== undefined && photoData.ferme !== undefined) {
+                isComplete = isComplete && photoData.ouvert && photoData.ferme;
+            }
+
+            if (isComplete) section.classList.add('complete');
             else section.classList.remove('complete');
+
             updateRoomStatus(roomName);
+            saveToLocalStorage(); // Sauvegarder à chaque changement
         }
         
         function updateRoomStatus(roomName) {
@@ -592,10 +817,29 @@
             if (!roomCard) return;
             const roomPhotos = photos[roomName];
             let isComplete = true;
+
+            // Vérifier les photos générales
             if (!roomPhotos.general.avant || !roomPhotos.general.apres) isComplete = false;
+
+            // Vérifier toutes les tâches
             for (const task in roomPhotos.tasks) {
-                if (!roomPhotos.tasks[task].avant || !roomPhotos.tasks[task].apres) { isComplete = false; break; }
+                const taskPhotos = roomPhotos.tasks[task];
+
+                // Photos avant/après requises
+                if (!taskPhotos.avant || !taskPhotos.apres) {
+                    isComplete = false;
+                    break;
+                }
+
+                // Si équipement avec photos ouvert/fermé, les vérifier aussi
+                if (taskPhotos.ouvert !== undefined && taskPhotos.ferme !== undefined) {
+                    if (!taskPhotos.ouvert || !taskPhotos.ferme) {
+                        isComplete = false;
+                        break;
+                    }
+                }
             }
+
             const status = roomCard.querySelector('.room-status');
             if (isComplete) {
                 roomCard.classList.add('complete');
@@ -611,13 +855,25 @@
         function updateProgress() {
             let total = 0, completed = 0;
             for (const roomName in photos) {
+                // Photos générales
                 total += 2;
                 if (photos[roomName].general.avant) completed++;
                 if (photos[roomName].general.apres) completed++;
+
+                // Photos des tâches
                 for (const task in photos[roomName].tasks) {
-                    total += 2;
-                    if (photos[roomName].tasks[task].avant) completed++;
-                    if (photos[roomName].tasks[task].apres) completed++;
+                    const taskPhotos = photos[roomName].tasks[task];
+
+                    total += 2; // avant et après
+                    if (taskPhotos.avant) completed++;
+                    if (taskPhotos.apres) completed++;
+
+                    // Si équipement avec photos ouvert/fermé
+                    if (taskPhotos.ouvert !== undefined && taskPhotos.ferme !== undefined) {
+                        total += 2;
+                        if (taskPhotos.ouvert) completed++;
+                        if (taskPhotos.ferme) completed++;
+                    }
                 }
             }
             const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -628,15 +884,24 @@
         
         async function generateAndSavePDF() {
             showLoading('Génération du PDF...');
-            
+
             try {
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 const w = 210, h = 297;
-                
+
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(0, 0, w, h, 'F');
-                
+
+                // Ajouter le logo si disponible
+                if (reportData.logo) {
+                    try {
+                        pdf.addImage(reportData.logo, 'PNG', 15, 15, 30, 30);
+                    } catch(e) {
+                        console.warn('Erreur ajout logo:', e);
+                    }
+                }
+
                 pdf.setFontSize(32);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(130, 172, 255);
@@ -741,28 +1006,48 @@
                     for (const taskName in photos[roomName].tasks) {
                         const task = photos[roomName].tasks[taskName];
                         if (y > 210) { pdf.addPage(); y = 20; }
-                        
+
                         pdf.setFontSize(10);
                         pdf.setFont(undefined, 'bold');
                         pdf.setTextColor(15, 52, 96);
                         const taskLines = pdf.splitTextToSize('• ' + taskName, 170);
                         pdf.text(taskLines, 20, y);
                         y += taskLines.length * 5 + 3;
-                        
+
+                        // Photos avant/après
                         pdf.setFontSize(9);
                         pdf.setFont(undefined, 'normal');
                         pdf.setTextColor(100, 100, 100);
                         pdf.text('Avant', 25, y);
                         pdf.text('Après', 110, y);
                         y += 4;
-                        
+
                         const imgW = 75, imgH = 50;
                         pdf.setDrawColor(200, 200, 200);
                         pdf.rect(20, y, imgW, imgH);
                         if (task.avant) { try { pdf.addImage(task.avant, 'JPEG', 20, y, imgW, imgH); } catch(e) {} }
                         pdf.rect(105, y, imgW, imgH);
                         if (task.apres) { try { pdf.addImage(task.apres, 'JPEG', 105, y, imgW, imgH); } catch(e) {} }
-                        y += imgH + 12;
+                        y += imgH + 8;
+
+                        // Photos ouvert/fermé pour les équipements
+                        if (task.ouvert !== undefined && task.ferme !== undefined) {
+                            if (y > 210) { pdf.addPage(); y = 20; }
+
+                            pdf.setFontSize(9);
+                            pdf.setTextColor(100, 100, 100);
+                            pdf.text('Ouvert', 25, y);
+                            pdf.text('Fermé', 110, y);
+                            y += 4;
+
+                            pdf.rect(20, y, imgW, imgH);
+                            if (task.ouvert) { try { pdf.addImage(task.ouvert, 'JPEG', 20, y, imgW, imgH); } catch(e) {} }
+                            pdf.rect(105, y, imgW, imgH);
+                            if (task.ferme) { try { pdf.addImage(task.ferme, 'JPEG', 105, y, imgW, imgH); } catch(e) {} }
+                            y += imgH + 8;
+                        }
+
+                        y += 4; // Espacement entre tâches
                     }
                 }
                 
@@ -774,25 +1059,47 @@
                     pdf.text('FLINCO - Page ' + p + '/' + pageCount, w/2, h - 8, { align: 'center' });
                 }
                 
-                document.getElementById('loadingText').textContent = 'Envoi du rapport...';
-                
-                const pdfBlob = pdf.output('blob');
                 const fileName = `FLINCO_Rapport_${reportData.quote}_${reportData.date.replace(/-/g, '')}.pdf`;
-                const storageRef = storage.ref().child(`reports/${reportId}/${fileName}`);
-                
-                await storageRef.put(pdfBlob);
-                const pdfUrl = await storageRef.getDownloadURL();
-                
-                await db.collection('reports').doc(reportId).update({
-                    status: 'completed',
-                    completedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    pdfUrl: pdfUrl
-                });
-                
-                hideLoading();
-                document.getElementById('successOverlay').classList.add('active');
+
+                // Télécharger le PDF localement
                 pdf.save(fileName);
-                
+
+                if (isOnline) {
+                    // Si en ligne, envoyer à Firebase
+                    document.getElementById('loadingText').textContent = 'Envoi du rapport...';
+
+                    const pdfBlob = pdf.output('blob');
+                    const storageRef = storage.ref().child(`reports/${reportId}/${fileName}`);
+
+                    await storageRef.put(pdfBlob);
+                    const pdfUrl = await storageRef.getDownloadURL();
+
+                    await db.collection('reports').doc(reportId).update({
+                        status: 'completed',
+                        completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        pdfUrl: pdfUrl
+                    });
+
+                    // Supprimer les données locales après synchronisation réussie
+                    localStorage.removeItem('flinco_report_' + reportId);
+
+                    hideLoading();
+                    document.getElementById('successOverlay').classList.add('active');
+                } else {
+                    // Si hors-ligne, sauvegarder le PDF en base64 dans localStorage
+                    const pdfBase64 = pdf.output('datauristring');
+                    const localData = loadFromLocalStorage();
+                    if (localData) {
+                        localData.pdfBase64 = pdfBase64;
+                        localData.pdfFileName = fileName;
+                        localData.readyToSync = true;
+                        localStorage.setItem('flinco_report_' + reportId, JSON.stringify(localData));
+                    }
+
+                    hideLoading();
+                    alert('✅ PDF généré et sauvegardé localement !\n\nLe rapport sera automatiquement synchronisé avec le serveur lorsque vous serez en ligne.');
+                }
+
             } catch (error) {
                 console.error('Erreur:', error);
                 hideLoading();

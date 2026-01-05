@@ -425,7 +425,20 @@
             </div>
             
             <div class="divider">ou remplir manuellement</div>
-            
+
+            <div class="section">
+                <div class="section-title">Logo FLINCO (pour le rapport)</div>
+                <div class="import-zone" style="margin-bottom: 0;">
+                    <input type="file" accept="image/*" id="logoInput">
+                    <div class="icon">🎨</div>
+                    <h4>Ajouter le logo FLINCO</h4>
+                    <p>Le logo apparaîtra sur le rapport PDF</p>
+                </div>
+                <div class="import-result" id="logoResult">
+                    <p id="logoResultText"></p>
+                </div>
+            </div>
+
             <div class="section">
                 <div class="section-title">Informations de la mission</div>
                 <div class="form-row">
@@ -519,8 +532,9 @@
         const storage = firebase.storage();
         
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        
+
         let rooms = {};
+        let logoBase64 = null;
         
         function showTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -530,6 +544,28 @@
             if (tabName === 'list') loadReports();
         }
         
+        document.getElementById('logoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const resultDiv = document.getElementById('logoResult');
+            const resultText = document.getElementById('logoResultText');
+            resultDiv.className = 'import-result loading';
+            resultText.innerHTML = '⏳ Chargement du logo...';
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                logoBase64 = evt.target.result;
+                resultDiv.className = 'import-result success';
+                resultText.innerHTML = '✅ Logo chargé avec succès !';
+            };
+            reader.onerror = function() {
+                resultDiv.className = 'import-result error';
+                resultText.innerHTML = '❌ Erreur lors du chargement du logo';
+            };
+            reader.readAsDataURL(file);
+        });
+
         document.getElementById('devisInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -712,6 +748,7 @@
                     agent: document.getElementById('agent').value || '',
                     agency: document.getElementById('agency').value || '',
                     rooms: rooms,
+                    logo: logoBase64,
                     status: 'pending',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     completedAt: null,
