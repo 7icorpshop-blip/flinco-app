@@ -534,7 +534,8 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         let rooms = {};
-        let logoBase64 = null;
+        let logoFile = null;
+        let logoPreviewBase64 = null;
         
         function showTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -548,20 +549,36 @@
             const file = e.target.files[0];
             if (!file) return;
 
+            // Vérifier que c'est une image
+            if (!file.type.startsWith('image/')) {
+                alert('Veuillez sélectionner une image');
+                return;
+            }
+
+            // Vérifier la taille (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('L\'image est trop grande (max 5MB)');
+                return;
+            }
+
             const resultDiv = document.getElementById('logoResult');
             const resultText = document.getElementById('logoResultText');
             resultDiv.className = 'import-result loading';
             resultText.innerHTML = '⏳ Chargement du logo...';
 
+            logoFile = file;
+
+            // Créer une prévisualisation
             const reader = new FileReader();
             reader.onload = function(evt) {
-                logoBase64 = evt.target.result;
+                logoPreviewBase64 = evt.target.result;
                 resultDiv.className = 'import-result success';
                 resultText.innerHTML = '✅ Logo chargé avec succès !';
             };
             reader.onerror = function() {
                 resultDiv.className = 'import-result error';
                 resultText.innerHTML = '❌ Erreur lors du chargement du logo';
+                logoFile = null;
             };
             reader.readAsDataURL(file);
         });
@@ -737,10 +754,20 @@
             const address = document.getElementById('address').value.trim();
             if (!address) { alert('Veuillez remplir l\'adresse du bien'); return; }
             if (Object.keys(rooms).length === 0) { alert('Veuillez ajouter au moins une pièce'); return; }
-            
+
             document.getElementById('loading').classList.add('active');
-            
+
             try {
+                let logoUrl = null;
+
+                // Uploader le logo dans Firebase Storage si présent
+                if (logoFile) {
+                    const logoStoragePath = `logos/${Date.now()}_${logoFile.name}`;
+                    const logoRef = storage.ref().child(logoStoragePath);
+                    await logoRef.put(logoFile);
+                    logoUrl = await logoRef.getDownloadURL();
+                }
+
                 const reportData = {
                     quote: document.getElementById('quote').value || 'N/A',
                     date: document.getElementById('date').value || new Date().toISOString().split('T')[0],
@@ -748,25 +775,25 @@
                     agent: document.getElementById('agent').value || '',
                     agency: document.getElementById('agency').value || '',
                     rooms: rooms,
-                    logo: logoBase64,
+                    logoUrl: logoUrl,
                     status: 'pending',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     completedAt: null,
                     pdfUrl: null
                 };
-                
+
                 const docRef = await db.collection('reports').add(reportData);
                 const reportId = docRef.id;
                 const baseUrl = window.location.origin;
                 const agentUrl = `${baseUrl}/flinco-agent.html?id=${reportId}`;
-                
+
                 document.getElementById('generatedLink').value = agentUrl;
                 document.getElementById('linkResult').classList.add('show');
             } catch (error) {
                 console.error('Erreur:', error);
                 alert('Erreur lors de la création: ' + error.message);
             }
-            
+
             document.getElementById('loading').classList.remove('active');
         }
         
