@@ -1115,7 +1115,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="report-actions">
+                            <div class="report-actions" style="flex-wrap: wrap;">
+                                ${report.status === 'pending' ? `<button class="btn" onclick="toggleStatus('${report.id}', 'completed')" style="background: var(--success); color: white;">✓ Marquer terminé</button>` : `<button class="btn" onclick="toggleStatus('${report.id}', 'pending')" style="background: var(--warning); color: white;">↺ Marquer en attente</button>`}
                                 <button class="btn" onclick="copyReportLink('${report.id}')">🔗 Lien</button>
                                 <button class="btn" onclick="duplicateReport('${report.id}')" style="background: #6366f1; color: white;">📋 Dupliquer</button>
                                 <button class="btn" onclick="editReport('${report.id}')" style="background: var(--accent); color: var(--primary);">✏️ Modifier</button>
@@ -1275,6 +1276,35 @@
                 loadReports();
             } catch (error) {
                 alert('Erreur: ' + error.message);
+            }
+        }
+
+        async function toggleStatus(reportId, newStatus) {
+            try {
+                const updateData = {
+                    status: newStatus
+                };
+
+                if (newStatus === 'completed') {
+                    updateData.completedAt = firebase.firestore.FieldValue.serverTimestamp();
+                } else {
+                    updateData.completedAt = null;
+                }
+
+                await db.collection('reports').doc(reportId).update(updateData);
+
+                // Update local data
+                const reportIndex = allReportsData.findIndex(r => r.id === reportId);
+                if (reportIndex !== -1) {
+                    allReportsData[reportIndex].status = newStatus;
+                    allReportsData[reportIndex].completedAt = newStatus === 'completed' ? new Date() : null;
+                }
+
+                updateStatistics(allReportsData);
+                applyFilters();
+
+            } catch (error) {
+                alert('Erreur lors de la mise à jour: ' + error.message);
             }
         }
 
