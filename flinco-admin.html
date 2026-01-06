@@ -507,12 +507,89 @@
         </div>
         
         <div id="tab-list" class="tab-content">
+            <div class="section" id="statsSection">
+                <div class="section-title">📊 Statistiques</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%); padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;" id="totalReports">0</div>
+                        <div style="font-size: 12px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">Total</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%); padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;" id="completedReports">0</div>
+                        <div style="font-size: 12px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">Terminés</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%); padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;" id="pendingReports">0</div>
+                        <div style="font-size: 12px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">En attente</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;" id="completionRate">0%</div>
+                        <div style="font-size: 12px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">Taux de complétion</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="section">
-                <div class="section-title">Rapports en cours</div>
+                <div class="section-title">Filtres et recherche</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto auto; gap: 12px; margin-bottom: 16px;">
+                    <input type="text" id="searchInput" placeholder="Rechercher (adresse, devis...)" oninput="applyFilters()" style="padding: 12px 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit;">
+                    <select id="statusFilter" onchange="applyFilters()" style="padding: 12px 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit;">
+                        <option value="all">Tous les statuts</option>
+                        <option value="pending">En attente</option>
+                        <option value="completed">Terminés</option>
+                    </select>
+                    <select id="sortFilter" onchange="applyFilters()" style="padding: 12px 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit;">
+                        <option value="date_desc">Plus récents</option>
+                        <option value="date_asc">Plus anciens</option>
+                        <option value="address">Par adresse</option>
+                    </select>
+                    <button onclick="exportToCSV()" class="btn btn-success" style="padding: 12px 20px;">📊 Exporter CSV</button>
+                    <button onclick="resetFilters()" class="btn" style="padding: 12px 20px; background: var(--text-muted);">🔄 Réinitialiser</button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 0;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <label style="font-size: 12px; color: var(--text-muted); min-width: 80px;">Date début:</label>
+                        <input type="date" id="dateStart" onchange="applyFilters()" style="flex: 1; padding: 10px 14px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 13px;">
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <label style="font-size: 12px; color: var(--text-muted); min-width: 80px;">Date fin:</label>
+                        <input type="date" id="dateEnd" onchange="applyFilters()" style="flex: 1; padding: 10px 14px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 13px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div class="section-title" style="margin-bottom: 0;">Rapports en cours</div>
+                    <div id="bulkActions" style="display: none; gap: 8px;">
+                        <span id="selectedCount" style="color: var(--text-muted); font-size: 13px; font-weight: 600;">0 sélectionné(s)</span>
+                        <button onclick="selectAll()" class="btn" style="padding: 8px 14px; font-size: 12px;">Tout sélectionner</button>
+                        <button onclick="deselectAll()" class="btn" style="padding: 8px 14px; font-size: 12px; background: var(--text-muted);">Tout désélectionner</button>
+                        <button onclick="bulkDelete()" class="btn btn-danger" style="padding: 8px 14px; font-size: 12px;">🗑️ Supprimer sélection</button>
+                    </div>
+                </div>
                 <div id="reportsList" class="reports-list">
                     <div class="empty-state">
                         <div class="empty-state-icon">📄</div>
                         <p>Aucun rapport pour le moment</p>
+                    </div>
+                </div>
+                <div id="pagination" style="display: none; margin-top: 20px; padding: 16px; background: var(--card); border-radius: 12px; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 13px; color: var(--text-muted);">
+                            <span id="pageInfo">Page 1 sur 1</span>
+                            <span style="margin-left: 16px;" id="totalInfo">0 rapport(s) total</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="changePage(-1)" id="prevBtn" class="btn" style="padding: 8px 14px; font-size: 12px;">◀ Précédent</button>
+                            <select id="pageSizeSelect" onchange="changePageSize()" style="padding: 8px 12px; background: var(--bg); border: 2px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px;">
+                                <option value="10">10 par page</option>
+                                <option value="20" selected>20 par page</option>
+                                <option value="50">50 par page</option>
+                                <option value="100">100 par page</option>
+                            </select>
+                            <button onclick="changePage(1)" id="nextBtn" class="btn" style="padding: 8px 14px; font-size: 12px;">Suivant ▶</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -822,40 +899,367 @@
             window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
         }
         
+        let allReportsData = [];
+
         async function loadReports() {
             const container = document.getElementById('reportsList');
             try {
-                const snapshot = await db.collection('reports').orderBy('createdAt', 'desc').limit(50).get();
+                const snapshot = await db.collection('reports').orderBy('createdAt', 'desc').get();
+
                 if (snapshot.empty) {
                     container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📄</div><p>Aucun rapport pour le moment</p></div>`;
+                    updateStatistics([]);
                     return;
                 }
-                container.innerHTML = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    const createdDate = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString('fr-FR') : 'N/A';
-                    const statusClass = data.status === 'completed' ? 'completed' : 'pending';
-                    const statusText = data.status === 'completed' ? '✓ Terminé' : '⏳ En attente';
-                    return `
-                        <div class="report-card">
-                            <div class="report-info">
-                                <h4>${data.address}</h4>
-                                <div class="report-meta">
-                                    <span>📅 ${createdDate}</span>
-                                    <span>📝 ${data.quote}</span>
-                                    <span class="report-status ${statusClass}">${statusText}</span>
-                                </div>
-                            </div>
-                            <div class="report-actions">
-                                <button class="btn" onclick="copyReportLink('${doc.id}')">🔗 Lien</button>
-                                <button class="btn" onclick="editReport('${doc.id}')" style="background: var(--accent); color: var(--primary);">✏️ Modifier</button>
-                                ${data.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${data.pdfUrl}', '_blank')">📥 PDF</button>` : ''}
-                                <button class="btn btn-danger" onclick="deleteReport('${doc.id}')">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+
+                // Store all reports data
+                allReportsData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // Update statistics
+                updateStatistics(allReportsData);
+
+                // Apply filters and render
+                applyFilters();
+
             } catch (error) {
                 container.innerHTML = `<p style="color: var(--danger);">Erreur de chargement</p>`;
+            }
+        }
+
+        function updateStatistics(reports) {
+            const total = reports.length;
+            const completed = reports.filter(r => r.status === 'completed').length;
+            const pending = reports.filter(r => r.status === 'pending').length;
+            const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            document.getElementById('totalReports').textContent = total;
+            document.getElementById('completedReports').textContent = completed;
+            document.getElementById('pendingReports').textContent = pending;
+            document.getElementById('completionRate').textContent = completionRate + '%';
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            const dateStart = document.getElementById('dateStart').value;
+            const dateEnd = document.getElementById('dateEnd').value;
+
+            let filteredReports = [...allReportsData];
+
+            // Apply search filter
+            if (searchTerm) {
+                filteredReports = filteredReports.filter(report => {
+                    return (report.address && report.address.toLowerCase().includes(searchTerm)) ||
+                           (report.quote && report.quote.toLowerCase().includes(searchTerm)) ||
+                           (report.agent && report.agent.toLowerCase().includes(searchTerm)) ||
+                           (report.agency && report.agency.toLowerCase().includes(searchTerm));
+                });
+            }
+
+            // Apply status filter
+            if (statusFilter !== 'all') {
+                filteredReports = filteredReports.filter(report => report.status === statusFilter);
+            }
+
+            // Apply date range filter
+            if (dateStart) {
+                const startDate = new Date(dateStart).getTime();
+                filteredReports = filteredReports.filter(report => {
+                    const reportDate = report.createdAt ? report.createdAt.toMillis() : 0;
+                    return reportDate >= startDate;
+                });
+            }
+
+            if (dateEnd) {
+                const endDate = new Date(dateEnd).getTime() + (24 * 60 * 60 * 1000); // End of day
+                filteredReports = filteredReports.filter(report => {
+                    const reportDate = report.createdAt ? report.createdAt.toMillis() : 0;
+                    return reportDate <= endDate;
+                });
+            }
+
+            // Apply sorting
+            filteredReports.sort((a, b) => {
+                if (sortFilter === 'date_desc') {
+                    return (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0);
+                } else if (sortFilter === 'date_asc') {
+                    return (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0);
+                } else if (sortFilter === 'address') {
+                    return (a.address || '').localeCompare(b.address || '');
+                }
+                return 0;
+            });
+
+            // Reset to first page when filters change
+            currentPage = 1;
+
+            renderReports(filteredReports);
+        }
+
+        function exportToCSV() {
+            if (currentFilteredReports.length === 0) {
+                alert('Aucun rapport à exporter');
+                return;
+            }
+
+            // CSV Header
+            const headers = ['Date Création', 'N° Devis', 'Adresse', 'Agent', 'Agence', 'Statut', 'Date Intervention', 'Notes Admin', 'Lien PDF'];
+
+            // CSV Rows
+            const rows = currentFilteredReports.map(report => {
+                const createdDate = report.createdAt ? new Date(report.createdAt.toDate()).toLocaleDateString('fr-FR') : '';
+                const status = report.status === 'completed' ? 'Terminé' : 'En attente';
+                const pdfUrl = report.pdfUrl || '';
+                const notes = (report.adminNotes || '').replace(/"/g, '""'); // Escape quotes
+
+                return [
+                    createdDate,
+                    report.quote || '',
+                    (report.address || '').replace(/"/g, '""'),
+                    report.agent || '',
+                    report.agency || '',
+                    status,
+                    report.date || '',
+                    notes,
+                    pdfUrl
+                ];
+            });
+
+            // Build CSV content
+            let csvContent = '\uFEFF'; // UTF-8 BOM for Excel compatibility
+            csvContent += headers.map(h => `"${h}"`).join(',') + '\n';
+            csvContent += rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+            // Download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const timestamp = new Date().toISOString().split('T')[0];
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', `FLINCO_Rapports_${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = 'all';
+            document.getElementById('sortFilter').value = 'date_desc';
+            document.getElementById('dateStart').value = '';
+            document.getElementById('dateEnd').value = '';
+            applyFilters();
+        }
+
+        let selectedReports = new Set();
+        let currentPage = 1;
+        let pageSize = 20;
+        let currentFilteredReports = [];
+
+        function renderReports(reports) {
+            const container = document.getElementById('reportsList');
+            currentFilteredReports = reports;
+
+            if (reports.length === 0) {
+                container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><p>Aucun rapport ne correspond à vos critères</p></div>`;
+                document.getElementById('bulkActions').style.display = 'none';
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+
+            // Show bulk actions if there are reports
+            document.getElementById('bulkActions').style.display = 'flex';
+
+            // Calculate pagination
+            const totalPages = Math.ceil(reports.length / pageSize);
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+            const paginatedReports = reports.slice(startIdx, endIdx);
+
+            // Update pagination info
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} sur ${totalPages}`;
+            document.getElementById('totalInfo').textContent = `${reports.length} rapport(s) total`;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+
+            // Show pagination only if needed
+            if (reports.length > 10) {
+                document.getElementById('pagination').style.display = 'block';
+            } else {
+                document.getElementById('pagination').style.display = 'none';
+            }
+
+            container.innerHTML = paginatedReports.map(report => {
+                const createdDate = report.createdAt ? new Date(report.createdAt.toDate()).toLocaleDateString('fr-FR') : 'N/A';
+                const statusClass = report.status === 'completed' ? 'completed' : 'pending';
+                const statusText = report.status === 'completed' ? '✓ Terminé' : '⏳ En attente';
+                const hasNotes = report.adminNotes && report.adminNotes.trim();
+                const isSelected = selectedReports.has(report.id);
+                return `
+                    <div class="report-card" style="flex-direction: column; align-items: stretch; ${isSelected ? 'border-color: var(--accent); background: rgba(130, 172, 255, 0.05);' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${hasNotes ? '12px' : '0'};">
+                            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleReportSelection('${report.id}')" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent);">
+                                <div class="report-info">
+                                    <h4>${report.address}</h4>
+                                    <div class="report-meta">
+                                        <span>📅 ${createdDate}</span>
+                                        <span>📝 ${report.quote}</span>
+                                        <span class="report-status ${statusClass}">${statusText}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="report-actions" style="flex-wrap: wrap;">
+                                ${report.status === 'pending' ? `<button class="btn" onclick="toggleStatus('${report.id}', 'completed')" style="background: var(--success); color: white;">✓ Marquer terminé</button>` : `<button class="btn" onclick="toggleStatus('${report.id}', 'pending')" style="background: var(--warning); color: white;">↺ Marquer en attente</button>`}
+                                <button class="btn" onclick="copyReportLink('${report.id}')">🔗 Lien</button>
+                                <button class="btn" onclick="duplicateReport('${report.id}')" style="background: #6366f1; color: white;">📋 Dupliquer</button>
+                                <button class="btn" onclick="editReport('${report.id}')" style="background: var(--accent); color: var(--primary);">✏️ Modifier</button>
+                                ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${report.pdfUrl}', '_blank')">📥 PDF</button>` : ''}
+                                <button class="btn btn-danger" onclick="deleteReport('${report.id}')">🗑️</button>
+                            </div>
+                        </div>
+                        ${hasNotes ? `
+                            <div style="background: rgba(130, 172, 255, 0.1); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;">
+                                <div style="font-size: 11px; color: var(--accent); font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">📌 Note interne</div>
+                                <div style="font-size: 13px; color: var(--text); white-space: pre-wrap;">${report.adminNotes}</div>
+                            </div>
+                        ` : ''}
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="note-${report.id}" placeholder="💬 Ajouter une note interne (visible uniquement par l'admin)..." value="${report.adminNotes || ''}" style="flex: 1; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px;">
+                            <button onclick="saveNote('${report.id}')" class="btn" style="padding: 8px 14px; font-size: 12px;">💾 Sauvegarder</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            updateSelectionCount();
+        }
+
+        function toggleReportSelection(reportId) {
+            if (selectedReports.has(reportId)) {
+                selectedReports.delete(reportId);
+            } else {
+                selectedReports.add(reportId);
+            }
+            applyFilters();
+        }
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(currentFilteredReports.length / pageSize);
+            currentPage = Math.max(1, Math.min(totalPages, currentPage + direction));
+            renderReports(currentFilteredReports);
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSizeSelect').value);
+            currentPage = 1; // Reset to first page
+            renderReports(currentFilteredReports);
+        }
+
+        function selectAll() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            let filteredReports = [...allReportsData];
+
+            if (searchTerm) {
+                filteredReports = filteredReports.filter(report => {
+                    return (report.address && report.address.toLowerCase().includes(searchTerm)) ||
+                           (report.quote && report.quote.toLowerCase().includes(searchTerm)) ||
+                           (report.agent && report.agent.toLowerCase().includes(searchTerm)) ||
+                           (report.agency && report.agency.toLowerCase().includes(searchTerm));
+                });
+            }
+
+            if (statusFilter !== 'all') {
+                filteredReports = filteredReports.filter(report => report.status === statusFilter);
+            }
+
+            filteredReports.forEach(report => selectedReports.add(report.id));
+            applyFilters();
+        }
+
+        function deselectAll() {
+            selectedReports.clear();
+            applyFilters();
+        }
+
+        function updateSelectionCount() {
+            document.getElementById('selectedCount').textContent = `${selectedReports.size} sélectionné(s)`;
+        }
+
+        async function bulkDelete() {
+            if (selectedReports.size === 0) {
+                alert('Aucun rapport sélectionné');
+                return;
+            }
+
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer ${selectedReports.size} rapport(s) ?`)) {
+                return;
+            }
+
+            document.getElementById('loading').classList.add('active');
+
+            try {
+                const deletePromises = Array.from(selectedReports).map(reportId =>
+                    db.collection('reports').doc(reportId).delete()
+                );
+
+                await Promise.all(deletePromises);
+
+                // Remove deleted reports from local data
+                allReportsData = allReportsData.filter(report => !selectedReports.has(report.id));
+
+                selectedReports.clear();
+                updateStatistics(allReportsData);
+                applyFilters();
+
+                alert(`✅ ${deletePromises.length} rapport(s) supprimé(s) avec succès`);
+
+            } catch (error) {
+                alert('Erreur lors de la suppression: ' + error.message);
+            }
+
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        async function saveNote(reportId) {
+            const noteInput = document.getElementById(`note-${reportId}`);
+            const noteText = noteInput.value.trim();
+
+            try {
+                await db.collection('reports').doc(reportId).update({
+                    adminNotes: noteText,
+                    lastNoteUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Update local data
+                const reportIndex = allReportsData.findIndex(r => r.id === reportId);
+                if (reportIndex !== -1) {
+                    allReportsData[reportIndex].adminNotes = noteText;
+                }
+
+                // Re-render
+                applyFilters();
+
+                // Show success feedback
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Sauvegardé';
+                btn.style.background = 'var(--success)';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                }, 2000);
+
+            } catch (error) {
+                alert('Erreur lors de la sauvegarde: ' + error.message);
             }
         }
         
@@ -872,6 +1276,86 @@
                 loadReports();
             } catch (error) {
                 alert('Erreur: ' + error.message);
+            }
+        }
+
+        async function toggleStatus(reportId, newStatus) {
+            try {
+                const updateData = {
+                    status: newStatus
+                };
+
+                if (newStatus === 'completed') {
+                    updateData.completedAt = firebase.firestore.FieldValue.serverTimestamp();
+                } else {
+                    updateData.completedAt = null;
+                }
+
+                await db.collection('reports').doc(reportId).update(updateData);
+
+                // Update local data
+                const reportIndex = allReportsData.findIndex(r => r.id === reportId);
+                if (reportIndex !== -1) {
+                    allReportsData[reportIndex].status = newStatus;
+                    allReportsData[reportIndex].completedAt = newStatus === 'completed' ? new Date() : null;
+                }
+
+                updateStatistics(allReportsData);
+                applyFilters();
+
+            } catch (error) {
+                alert('Erreur lors de la mise à jour: ' + error.message);
+            }
+        }
+
+        async function duplicateReport(reportId) {
+            if (!confirm('Créer une copie de ce rapport ?')) return;
+
+            try {
+                document.getElementById('loading').classList.add('active');
+
+                const doc = await db.collection('reports').doc(reportId).get();
+                if (!doc.exists) {
+                    alert('Rapport introuvable');
+                    return;
+                }
+
+                const originalData = doc.data();
+
+                // Create a copy with new data
+                const duplicateData = {
+                    ...originalData,
+                    status: 'pending',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    completedAt: null,
+                    pdfUrl: null,
+                    adminNotes: originalData.adminNotes ? `[Copie] ${originalData.adminNotes}` : '[Copie du rapport]',
+                    quote: originalData.quote ? `${originalData.quote}-COPIE` : 'COPIE',
+                    photos: null // Reset photos for the duplicate
+                };
+
+                const newDocRef = await db.collection('reports').add(duplicateData);
+                const newReportId = newDocRef.id;
+
+                document.getElementById('loading').classList.remove('active');
+
+                alert('✅ Rapport dupliqué avec succès !');
+
+                // Reload reports
+                await loadReports();
+
+                // Optionally, copy the link
+                const baseUrl = window.location.origin;
+                const agentUrl = `${baseUrl}/flinco-agent.html?id=${newReportId}`;
+                if (confirm('Voulez-vous copier le lien du nouveau rapport ?')) {
+                    navigator.clipboard.writeText(agentUrl).then(() => {
+                        alert('Lien copié !');
+                    });
+                }
+
+            } catch (error) {
+                document.getElementById('loading').classList.remove('active');
+                alert('Erreur lors de la duplication: ' + error.message);
             }
         }
 
