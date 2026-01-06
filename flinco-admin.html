@@ -531,7 +531,7 @@
 
             <div class="section">
                 <div class="section-title">Filtres et recherche</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto auto; gap: 12px; margin-bottom: 16px;">
                     <input type="text" id="searchInput" placeholder="Rechercher (adresse, devis...)" oninput="applyFilters()" style="padding: 12px 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit;">
                     <select id="statusFilter" onchange="applyFilters()" style="padding: 12px 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit;">
                         <option value="all">Tous les statuts</option>
@@ -543,7 +543,18 @@
                         <option value="date_asc">Plus anciens</option>
                         <option value="address">Par adresse</option>
                     </select>
+                    <button onclick="exportToCSV()" class="btn btn-success" style="padding: 12px 20px;">📊 Exporter CSV</button>
                     <button onclick="resetFilters()" class="btn" style="padding: 12px 20px; background: var(--text-muted);">🔄 Réinitialiser</button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 0;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <label style="font-size: 12px; color: var(--text-muted); min-width: 80px;">Date début:</label>
+                        <input type="date" id="dateStart" onchange="applyFilters()" style="flex: 1; padding: 10px 14px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 13px;">
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <label style="font-size: 12px; color: var(--text-muted); min-width: 80px;">Date fin:</label>
+                        <input type="date" id="dateEnd" onchange="applyFilters()" style="flex: 1; padding: 10px 14px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 13px;">
+                    </div>
                 </div>
             </div>
 
@@ -934,6 +945,8 @@
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const statusFilter = document.getElementById('statusFilter').value;
             const sortFilter = document.getElementById('sortFilter').value;
+            const dateStart = document.getElementById('dateStart').value;
+            const dateEnd = document.getElementById('dateEnd').value;
 
             let filteredReports = [...allReportsData];
 
@@ -950,6 +963,23 @@
             // Apply status filter
             if (statusFilter !== 'all') {
                 filteredReports = filteredReports.filter(report => report.status === statusFilter);
+            }
+
+            // Apply date range filter
+            if (dateStart) {
+                const startDate = new Date(dateStart).getTime();
+                filteredReports = filteredReports.filter(report => {
+                    const reportDate = report.createdAt ? report.createdAt.toMillis() : 0;
+                    return reportDate >= startDate;
+                });
+            }
+
+            if (dateEnd) {
+                const endDate = new Date(dateEnd).getTime() + (24 * 60 * 60 * 1000); // End of day
+                filteredReports = filteredReports.filter(report => {
+                    const reportDate = report.createdAt ? report.createdAt.toMillis() : 0;
+                    return reportDate <= endDate;
+                });
             }
 
             // Apply sorting
@@ -970,10 +1000,60 @@
             renderReports(filteredReports);
         }
 
+        function exportToCSV() {
+            if (currentFilteredReports.length === 0) {
+                alert('Aucun rapport à exporter');
+                return;
+            }
+
+            // CSV Header
+            const headers = ['Date Création', 'N° Devis', 'Adresse', 'Agent', 'Agence', 'Statut', 'Date Intervention', 'Notes Admin', 'Lien PDF'];
+
+            // CSV Rows
+            const rows = currentFilteredReports.map(report => {
+                const createdDate = report.createdAt ? new Date(report.createdAt.toDate()).toLocaleDateString('fr-FR') : '';
+                const status = report.status === 'completed' ? 'Terminé' : 'En attente';
+                const pdfUrl = report.pdfUrl || '';
+                const notes = (report.adminNotes || '').replace(/"/g, '""'); // Escape quotes
+
+                return [
+                    createdDate,
+                    report.quote || '',
+                    (report.address || '').replace(/"/g, '""'),
+                    report.agent || '',
+                    report.agency || '',
+                    status,
+                    report.date || '',
+                    notes,
+                    pdfUrl
+                ];
+            });
+
+            // Build CSV content
+            let csvContent = '\uFEFF'; // UTF-8 BOM for Excel compatibility
+            csvContent += headers.map(h => `"${h}"`).join(',') + '\n';
+            csvContent += rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+            // Download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const timestamp = new Date().toISOString().split('T')[0];
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', `FLINCO_Rapports_${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         function resetFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = 'all';
             document.getElementById('sortFilter').value = 'date_desc';
+            document.getElementById('dateStart').value = '';
+            document.getElementById('dateEnd').value = '';
             applyFilters();
         }
 
@@ -1037,6 +1117,7 @@
                             </div>
                             <div class="report-actions">
                                 <button class="btn" onclick="copyReportLink('${report.id}')">🔗 Lien</button>
+                                <button class="btn" onclick="duplicateReport('${report.id}')" style="background: #6366f1; color: white;">📋 Dupliquer</button>
                                 <button class="btn" onclick="editReport('${report.id}')" style="background: var(--accent); color: var(--primary);">✏️ Modifier</button>
                                 ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${report.pdfUrl}', '_blank')">📥 PDF</button>` : ''}
                                 <button class="btn btn-danger" onclick="deleteReport('${report.id}')">🗑️</button>
@@ -1194,6 +1275,57 @@
                 loadReports();
             } catch (error) {
                 alert('Erreur: ' + error.message);
+            }
+        }
+
+        async function duplicateReport(reportId) {
+            if (!confirm('Créer une copie de ce rapport ?')) return;
+
+            try {
+                document.getElementById('loading').classList.add('active');
+
+                const doc = await db.collection('reports').doc(reportId).get();
+                if (!doc.exists) {
+                    alert('Rapport introuvable');
+                    return;
+                }
+
+                const originalData = doc.data();
+
+                // Create a copy with new data
+                const duplicateData = {
+                    ...originalData,
+                    status: 'pending',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    completedAt: null,
+                    pdfUrl: null,
+                    adminNotes: originalData.adminNotes ? `[Copie] ${originalData.adminNotes}` : '[Copie du rapport]',
+                    quote: originalData.quote ? `${originalData.quote}-COPIE` : 'COPIE',
+                    photos: null // Reset photos for the duplicate
+                };
+
+                const newDocRef = await db.collection('reports').add(duplicateData);
+                const newReportId = newDocRef.id;
+
+                document.getElementById('loading').classList.remove('active');
+
+                alert('✅ Rapport dupliqué avec succès !');
+
+                // Reload reports
+                await loadReports();
+
+                // Optionally, copy the link
+                const baseUrl = window.location.origin;
+                const agentUrl = `${baseUrl}/flinco-agent.html?id=${newReportId}`;
+                if (confirm('Voulez-vous copier le lien du nouveau rapport ?')) {
+                    navigator.clipboard.writeText(agentUrl).then(() => {
+                        alert('Lien copié !');
+                    });
+                }
+
+            } catch (error) {
+                document.getElementById('loading').classList.remove('active');
+                alert('Erreur lors de la duplication: ' + error.message);
             }
         }
 
