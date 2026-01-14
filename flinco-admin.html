@@ -420,7 +420,133 @@
         .quick-room-btn.added .check-icon {
             display: inline;
         }
-        
+
+        .photo-upload-box {
+            position: relative;
+            width: 100%;
+            padding-top: 75%;
+            background: var(--bg);
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .photo-upload-box:hover {
+            border-color: var(--accent);
+            background: rgba(130, 172, 255, 0.05);
+        }
+
+        .photo-upload-box input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .photo-upload-box .content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 100%;
+        }
+
+        .photo-upload-box .icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .photo-upload-box .text {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .photo-upload-box img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-upload-box.has-photo {
+            border-style: solid;
+            border-color: var(--success);
+        }
+
+        .photo-upload-box.has-photo .content {
+            display: none;
+        }
+
+        .photo-remove-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 28px;
+            height: 28px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: all 0.2s;
+        }
+
+        .photo-remove-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
+        .photo-upload-box.has-photo .photo-remove-btn {
+            display: flex;
+        }
+
+        .room-photos-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .room-photos-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-photos-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .photo-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
         @media (max-width: 600px) {
             .form-row { grid-template-columns: 1fr; }
             .tabs { flex-direction: column; }
@@ -559,7 +685,13 @@
                     </div>
                 </div>
             </div>
-            
+
+            <div class="section" id="photosSection" style="display: none;">
+                <div class="section-title">📸 Gestion des photos</div>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">Ajoutez ou modifiez les photos du rapport. Les photos sont organisées par pièce et par tâche.</p>
+                <div id="photosManagement"></div>
+            </div>
+
             <button class="btn btn-success btn-large" onclick="generateLink()">
                 🔗 Générer le lien pour l'agent
             </button>
@@ -699,6 +831,7 @@
         let logoFile = null;
         let logoPreviewBase64 = null;
         let editingReportId = null;
+        let reportPhotos = {};
 
         // Liste prédéfinie des pièces
         const predefinedRooms = [
@@ -1952,6 +2085,218 @@
             }
         }
 
+        // ==================== GESTION DES PHOTOS ====================
+
+        function renderPhotosManagement() {
+            const container = document.getElementById('photosManagement');
+            const roomNames = Object.keys(rooms);
+
+            if (roomNames.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">Ajoutez d\'abord des pièces pour gérer les photos</p>';
+                return;
+            }
+
+            container.innerHTML = roomNames.map(roomName => {
+                // Initialiser la structure photos si elle n'existe pas
+                if (!reportPhotos[roomName]) {
+                    reportPhotos[roomName] = { general: { avant: null, apres: null }, tasks: {} };
+                }
+
+                // Générer l'HTML pour les photos générales
+                let generalPhotosHtml = `
+                    <div style="margin-bottom: 16px;">
+                        <h5 style="font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 10px;">📷 Photos générales de la pièce</h5>
+                        <div class="task-photos-grid">
+                            <div>
+                                <div class="photo-label">Avant</div>
+                                <div class="photo-upload-box ${reportPhotos[roomName].general.avant ? 'has-photo' : ''}" id="photo-${slugify(roomName)}-general-avant">
+                                    <input type="file" accept="image/*" onchange="handleAdminPhoto('${roomName.replace(/'/g, "\\'")}', 'general', 'avant', this)">
+                                    <div class="content">
+                                        <div class="icon">📸</div>
+                                        <div class="text">Ajouter photo</div>
+                                    </div>
+                                    ${reportPhotos[roomName].general.avant ? `<img src="${reportPhotos[roomName].general.avant}" alt="Avant">` : ''}
+                                    <button class="photo-remove-btn" onclick="removeAdminPhoto(event, '${roomName.replace(/'/g, "\\'")}', 'general', 'avant')">×</button>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="photo-label">Après</div>
+                                <div class="photo-upload-box ${reportPhotos[roomName].general.apres ? 'has-photo' : ''}" id="photo-${slugify(roomName)}-general-apres">
+                                    <input type="file" accept="image/*" onchange="handleAdminPhoto('${roomName.replace(/'/g, "\\'")}', 'general', 'apres', this)">
+                                    <div class="content">
+                                        <div class="icon">📸</div>
+                                        <div class="text">Ajouter photo</div>
+                                    </div>
+                                    ${reportPhotos[roomName].general.apres ? `<img src="${reportPhotos[roomName].general.apres}" alt="Après">` : ''}
+                                    <button class="photo-remove-btn" onclick="removeAdminPhoto(event, '${roomName.replace(/'/g, "\\'")}', 'general', 'apres')">×</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Générer l'HTML pour les photos des tâches
+                let tasksPhotosHtml = '';
+                const roomTasks = rooms[roomName].tasks || [];
+                if (roomTasks.length > 0) {
+                    tasksPhotosHtml = roomTasks.map(taskName => {
+                        // Initialiser la structure pour cette tâche
+                        if (!reportPhotos[roomName].tasks[taskName]) {
+                            reportPhotos[roomName].tasks[taskName] = { avant: null, apres: null };
+                        }
+
+                        return `
+                            <div style="margin-bottom: 16px; padding: 12px; background: var(--bg); border-radius: 8px;">
+                                <h6 style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">• ${taskName}</h6>
+                                <div class="task-photos-grid">
+                                    <div>
+                                        <div class="photo-label">Avant</div>
+                                        <div class="photo-upload-box ${reportPhotos[roomName].tasks[taskName].avant ? 'has-photo' : ''}" id="photo-${slugify(roomName)}-${slugify(taskName)}-avant">
+                                            <input type="file" accept="image/*" onchange="handleAdminPhoto('${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'avant', this)">
+                                            <div class="content">
+                                                <div class="icon">📸</div>
+                                                <div class="text">Ajouter photo</div>
+                                            </div>
+                                            ${reportPhotos[roomName].tasks[taskName].avant ? `<img src="${reportPhotos[roomName].tasks[taskName].avant}" alt="Avant">` : ''}
+                                            <button class="photo-remove-btn" onclick="removeAdminPhoto(event, '${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'avant')">×</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="photo-label">Après</div>
+                                        <div class="photo-upload-box ${reportPhotos[roomName].tasks[taskName].apres ? 'has-photo' : ''}" id="photo-${slugify(roomName)}-${slugify(taskName)}-apres">
+                                            <input type="file" accept="image/*" onchange="handleAdminPhoto('${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'apres', this)">
+                                            <div class="content">
+                                                <div class="icon">📸</div>
+                                                <div class="text">Ajouter photo</div>
+                                            </div>
+                                            ${reportPhotos[roomName].tasks[taskName].apres ? `<img src="${reportPhotos[roomName].tasks[taskName].apres}" alt="Après">` : ''}
+                                            <button class="photo-remove-btn" onclick="removeAdminPhoto(event, '${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'apres')">×</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                return `
+                    <div class="room-photos-section">
+                        <div class="room-photos-header">
+                            🏠 ${roomName}
+                        </div>
+                        ${generalPhotosHtml}
+                        ${tasksPhotosHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function slugify(text) {
+            return text.toLowerCase()
+                .replace(/[àáâãäå]/g, 'a')
+                .replace(/[èéêë]/g, 'e')
+                .replace(/[ìíîï]/g, 'i')
+                .replace(/[òóôõö]/g, 'o')
+                .replace(/[ùúûü]/g, 'u')
+                .replace(/[ñ]/g, 'n')
+                .replace(/[ç]/g, 'c')
+                .replace(/[^a-z0-9]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '');
+        }
+
+        async function handleAdminPhoto(roomName, taskName, type, input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const compressed = await compressImageAdmin(e.target.result);
+
+                    // Upload vers Firebase Storage
+                    const blob = await fetch(compressed).then(r => r.blob());
+                    const fileName = `${editingReportId}/${slugify(roomName)}/${taskName === 'general' ? 'general' : slugify(taskName)}_${type}_${Date.now()}.jpg`;
+                    const storageRef = storage.ref().child(`photos/${fileName}`);
+
+                    await storageRef.put(blob);
+                    const photoUrl = await storageRef.getDownloadURL();
+
+                    // Sauvegarder l'URL dans la structure
+                    if (taskName === 'general') {
+                        reportPhotos[roomName].general[type] = photoUrl;
+                    } else {
+                        reportPhotos[roomName].tasks[taskName][type] = photoUrl;
+                    }
+
+                    // Mettre à jour Firestore immédiatement
+                    await db.collection('reports').doc(editingReportId).update({
+                        photos: reportPhotos,
+                        lastPhotoUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // Re-render l'interface
+                    renderPhotosManagement();
+
+                    console.log(`✅ Photo uploadée: ${fileName}`);
+                } catch (error) {
+                    console.error('Erreur upload photo:', error);
+                    alert('Erreur lors de l\'upload de la photo: ' + error.message);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function removeAdminPhoto(event, roomName, taskName, type) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (!confirm('Supprimer cette photo ?')) return;
+
+            try {
+                // Retirer de la structure
+                if (taskName === 'general') {
+                    reportPhotos[roomName].general[type] = null;
+                } else {
+                    reportPhotos[roomName].tasks[taskName][type] = null;
+                }
+
+                // Mettre à jour Firestore
+                await db.collection('reports').doc(editingReportId).update({
+                    photos: reportPhotos,
+                    lastPhotoUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Re-render l'interface
+                renderPhotosManagement();
+
+                console.log('✅ Photo supprimée');
+            } catch (error) {
+                console.error('Erreur suppression photo:', error);
+                alert('Erreur lors de la suppression: ' + error.message);
+            }
+        }
+
+        function compressImageAdmin(dataUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    const maxSize = 1200;
+                    if (w > maxSize || h > maxSize) {
+                        if (w > h) { h = (h / w) * maxSize; w = maxSize; }
+                        else { w = (w / h) * maxSize; h = maxSize; }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+                img.src = dataUrl;
+            });
+        }
+
         async function generateLink() {
             const address = document.getElementById('address').value.trim();
             if (!address) { alert('Veuillez remplir l\'adresse du bien'); return; }
@@ -2509,6 +2854,11 @@
                     resultText.innerHTML = '✅ Logo existant chargé';
                 }
 
+                // Afficher et charger les photos
+                reportPhotos = data.photos || {};
+                renderPhotosManagement();
+                document.getElementById('photosSection').style.display = 'block';
+
                 // Passer à l'onglet de création/édition
                 showTab('create');
 
@@ -2584,6 +2934,7 @@
             rooms = {};
             logoFile = null;
             logoPreviewBase64 = null;
+            reportPhotos = {};
 
             document.getElementById('quote').value = '';
             document.getElementById('date').valueAsDate = new Date();
@@ -2598,6 +2949,9 @@
             resultDiv.className = 'import-result';
 
             document.getElementById('linkResult').classList.remove('show');
+
+            // Masquer la section photos
+            document.getElementById('photosSection').style.display = 'none';
 
             // Réinitialiser le bouton
             const generateBtn = document.querySelector('.btn-success.btn-large');
