@@ -510,6 +510,36 @@
             <div class="section">
                 <div class="section-title">Pièces et tâches</div>
 
+                <div style="background: rgba(16, 185, 129, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 2px solid var(--success);">
+                    <h4 style="font-size: 13px; font-weight: 600; color: var(--success); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">✨ Gérer mes tâches personnalisées</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Créez vos propres tâches personnalisées qui seront disponibles pour toutes les pièces ou pour des pièces spécifiques.</p>
+
+                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                        <select id="customTaskCategory" style="padding: 12px 14px; background: var(--card); border: 2px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; font-family: inherit;">
+                            <option value="Sol">Sol</option>
+                            <option value="Murs">Murs</option>
+                            <option value="Plinthes">Plinthes</option>
+                            <option value="Plafond">Plafond</option>
+                            <option value="Ouvrants">Ouvrants</option>
+                            <option value="Électricité & Éclairage">Électricité & Éclairage</option>
+                            <option value="Menuiseries">Menuiseries</option>
+                            <option value="Mobilier">Mobilier</option>
+                            <option value="Personnalisé">➕ Nouvelle catégorie</option>
+                        </select>
+                        <input type="text" id="customCategoryName" placeholder="Nom de la nouvelle catégorie..." style="flex: 1; padding: 12px 14px; background: var(--card); border: 2px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; display: none;">
+                    </div>
+
+                    <div style="display: flex; gap: 12px;">
+                        <input type="text" id="customTaskName" placeholder="Nom de la tâche commune (ex: Nettoyage poignées de porte)" style="flex: 1; padding: 12px 14px; background: var(--card); border: 2px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px;">
+                        <button class="btn btn-success" onclick="addCustomCommonTask()">💾 Ajouter aux tâches communes</button>
+                    </div>
+
+                    <div id="customTasksList" style="margin-top: 12px; display: none;">
+                        <div class="divider" style="margin: 12px 0;">Mes tâches personnalisées</div>
+                        <div id="customTasksContent" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                    </div>
+                </div>
+
                 <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px;">
                     <h4 style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">🏠 Sélection rapide des pièces</h4>
                     <div id="quickRoomButtons" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;"></div>
@@ -1714,7 +1744,214 @@
                 toggle.textContent = '▶';
             }
         }
-        
+
+        // ==================== GESTION DES TÂCHES PERSONNALISÉES ====================
+
+        // Afficher/cacher le champ de nouvelle catégorie
+        document.addEventListener('DOMContentLoaded', function() {
+            const categorySelect = document.getElementById('customTaskCategory');
+            const categoryNameInput = document.getElementById('customCategoryName');
+
+            if (categorySelect) {
+                categorySelect.addEventListener('change', function() {
+                    if (this.value === 'Personnalisé') {
+                        categoryNameInput.style.display = 'block';
+                    } else {
+                        categoryNameInput.style.display = 'none';
+                    }
+                });
+            }
+        });
+
+        // Charger les tâches personnalisées depuis localStorage
+        function loadCustomTasks() {
+            const saved = localStorage.getItem('flincoCustomTasks');
+            if (saved) {
+                try {
+                    const customTasksData = JSON.parse(saved);
+                    // Fusionner avec les tâches communes existantes
+                    Object.keys(customTasksData).forEach(category => {
+                        if (!commonTasks[category]) {
+                            commonTasks[category] = [];
+                        }
+                        customTasksData[category].forEach(task => {
+                            if (!commonTasks[category].includes(task)) {
+                                commonTasks[category].push(task);
+                            }
+                        });
+                    });
+                    renderCustomTasksList();
+                } catch (e) {
+                    console.error('Erreur lors du chargement des tâches personnalisées:', e);
+                }
+            }
+        }
+
+        // Sauvegarder les tâches personnalisées dans localStorage
+        function saveCustomTasks() {
+            const customTasksData = {};
+            const saved = localStorage.getItem('flincoCustomTasks');
+            if (saved) {
+                try {
+                    Object.assign(customTasksData, JSON.parse(saved));
+                } catch (e) {
+                    console.error('Erreur:', e);
+                }
+            }
+            localStorage.setItem('flincoCustomTasks', JSON.stringify(customTasksData));
+        }
+
+        // Ajouter une tâche commune personnalisée
+        function addCustomCommonTask() {
+            const categorySelect = document.getElementById('customTaskCategory');
+            const categoryNameInput = document.getElementById('customCategoryName');
+            const taskNameInput = document.getElementById('customTaskName');
+
+            let category = categorySelect.value;
+            const taskName = taskNameInput.value.trim();
+
+            // Validation
+            if (category === 'Personnalisé') {
+                category = categoryNameInput.value.trim();
+                if (!category) {
+                    alert('Veuillez entrer un nom de catégorie');
+                    return;
+                }
+            }
+
+            if (!taskName) {
+                alert('Veuillez entrer un nom de tâche');
+                return;
+            }
+
+            // Créer la catégorie si elle n'existe pas
+            if (!commonTasks[category]) {
+                commonTasks[category] = [];
+            }
+
+            // Vérifier si la tâche existe déjà
+            if (commonTasks[category].includes(taskName)) {
+                alert('Cette tâche existe déjà dans cette catégorie');
+                return;
+            }
+
+            // Ajouter la tâche
+            commonTasks[category].push(taskName);
+
+            // Sauvegarder dans localStorage
+            const saved = localStorage.getItem('flincoCustomTasks');
+            let customTasksData = {};
+            if (saved) {
+                try {
+                    customTasksData = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Erreur:', e);
+                }
+            }
+
+            if (!customTasksData[category]) {
+                customTasksData[category] = [];
+            }
+            customTasksData[category].push(taskName);
+            localStorage.setItem('flincoCustomTasks', JSON.stringify(customTasksData));
+
+            // Réinitialiser les champs
+            taskNameInput.value = '';
+            categoryNameInput.value = '';
+            categorySelect.value = 'Sol';
+            categoryNameInput.style.display = 'none';
+
+            // Afficher un message de succès
+            alert(`✅ Tâche "${taskName}" ajoutée à la catégorie "${category}"`);
+
+            // Mettre à jour l'affichage
+            renderCustomTasksList();
+            renderRooms(); // Re-render pour afficher la nouvelle tâche
+        }
+
+        // Supprimer une tâche personnalisée
+        function removeCustomTask(category, taskName) {
+            if (!confirm(`Supprimer la tâche "${taskName}" de la catégorie "${category}" ?`)) {
+                return;
+            }
+
+            // Retirer de commonTasks
+            const index = commonTasks[category].indexOf(taskName);
+            if (index > -1) {
+                commonTasks[category].splice(index, 1);
+            }
+
+            // Si la catégorie est vide, la supprimer
+            if (commonTasks[category].length === 0) {
+                delete commonTasks[category];
+            }
+
+            // Mettre à jour localStorage
+            const saved = localStorage.getItem('flincoCustomTasks');
+            if (saved) {
+                try {
+                    const customTasksData = JSON.parse(saved);
+                    if (customTasksData[category]) {
+                        const taskIndex = customTasksData[category].indexOf(taskName);
+                        if (taskIndex > -1) {
+                            customTasksData[category].splice(taskIndex, 1);
+                        }
+                        if (customTasksData[category].length === 0) {
+                            delete customTasksData[category];
+                        }
+                        localStorage.setItem('flincoCustomTasks', JSON.stringify(customTasksData));
+                    }
+                } catch (e) {
+                    console.error('Erreur:', e);
+                }
+            }
+
+            // Mettre à jour l'affichage
+            renderCustomTasksList();
+            renderRooms(); // Re-render pour masquer la tâche supprimée
+        }
+
+        // Afficher la liste des tâches personnalisées
+        function renderCustomTasksList() {
+            const saved = localStorage.getItem('flincoCustomTasks');
+            if (!saved) {
+                document.getElementById('customTasksList').style.display = 'none';
+                return;
+            }
+
+            try {
+                const customTasksData = JSON.parse(saved);
+                const categories = Object.keys(customTasksData);
+
+                if (categories.length === 0) {
+                    document.getElementById('customTasksList').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('customTasksList').style.display = 'block';
+
+                const content = document.getElementById('customTasksContent');
+                content.innerHTML = categories.map(category => {
+                    const tasks = customTasksData[category];
+                    return `
+                        <div style="background: var(--card); padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                            <div style="font-size: 11px; font-weight: 700; color: var(--success); margin-bottom: 6px; text-transform: uppercase;">📌 ${category}</div>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                ${tasks.map(task => `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: var(--bg); border-radius: 6px; font-size: 12px;">
+                                        <span>${task}</span>
+                                        <button onclick="removeCustomTask('${category.replace(/'/g, "\\'")}', '${task.replace(/'/g, "\\'")}' )" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 16px; padding: 0 4px;">×</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('Erreur lors du rendu des tâches personnalisées:', e);
+            }
+        }
+
         async function generateLink() {
             const address = document.getElementById('address').value.trim();
             if (!address) { alert('Veuillez remplir l\'adresse du bien'); return; }
@@ -2373,6 +2610,7 @@
         }
 
         document.getElementById('date').valueAsDate = new Date();
+        loadCustomTasks(); // Charger les tâches personnalisées depuis localStorage
         renderRooms();
         initQuickRoomButtons();
     </script>
