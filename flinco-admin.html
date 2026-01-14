@@ -380,8 +380,46 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        
+
         .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        .quick-room-btn {
+            padding: 10px 14px;
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .quick-room-btn:hover {
+            border-color: var(--accent);
+            background: var(--card-hover);
+            transform: translateY(-1px);
+        }
+
+        .quick-room-btn.added {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .quick-room-btn .check-icon {
+            display: none;
+            font-size: 16px;
+        }
+
+        .quick-room-btn.added .check-icon {
+            display: inline;
+        }
         
         @media (max-width: 600px) {
             .form-row { grid-template-columns: 1fr; }
@@ -471,14 +509,23 @@
             
             <div class="section">
                 <div class="section-title">Pièces et tâches</div>
-                <div class="room-input-wrapper">
-                    <input type="text" id="roomName" placeholder="Nom de la pièce (ex: Cuisine, Salon...)">
-                    <button class="btn" onclick="addRoom()">+ Ajouter</button>
+
+                <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+                    <h4 style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">🏠 Sélection rapide des pièces</h4>
+                    <div id="quickRoomButtons" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;"></div>
                 </div>
+
+                <div class="divider">ou pièce personnalisée</div>
+
+                <div class="room-input-wrapper">
+                    <input type="text" id="roomName" placeholder="Nom d'une pièce personnalisée...">
+                    <button class="btn" onclick="addCustomRoom()">+ Ajouter</button>
+                </div>
+
                 <div id="roomsList" class="rooms-list">
                     <div class="empty-state">
                         <div class="empty-state-icon">🏠</div>
-                        <p>Ajoutez des pièces pour commencer<br><small>ou importez un devis ci-dessus</small></p>
+                        <p>Sélectionnez des pièces ci-dessus pour commencer<br><small>ou importez un devis</small></p>
                     </div>
                 </div>
             </div>
@@ -622,6 +669,35 @@
         let logoFile = null;
         let logoPreviewBase64 = null;
         let editingReportId = null;
+
+        // Liste prédéfinie des pièces
+        const predefinedRooms = [
+            'Entrée',
+            'Salon',
+            'Séjour',
+            'Salle à manger',
+            'Cuisine',
+            'Cellier / Garde-manger',
+            'Chambre',
+            'Bureau',
+            'Dressing',
+            'Salle de bain',
+            'Salle d\'eau',
+            'Toilettes / WC',
+            'Buanderie',
+            'Couloir / Dégagement',
+            'Palier',
+            'Escalier',
+            'Balcon',
+            'Terrasse',
+            'Loggia',
+            'Véranda',
+            'Débarras / Local de rangement',
+            'Cave',
+            'Grenier / Combles',
+            'Garage',
+            'Parking'
+        ];
         
         function showTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -629,6 +705,46 @@
             document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
             document.getElementById(`tab-${tabName}`).classList.add('active');
             if (tabName === 'list') loadReports();
+        }
+
+        function initQuickRoomButtons() {
+            const container = document.getElementById('quickRoomButtons');
+            container.innerHTML = predefinedRooms.map(roomName => {
+                const isAdded = rooms.hasOwnProperty(roomName);
+                return `
+                    <button class="quick-room-btn ${isAdded ? 'added' : ''}" onclick="toggleQuickRoom('${roomName.replace(/'/g, "\\'")}')">
+                        <span>${roomName}</span>
+                        <span class="check-icon">✓</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function toggleQuickRoom(roomName) {
+            if (rooms[roomName]) {
+                // Retirer la pièce
+                if (confirm(`Retirer "${roomName}" ?`)) {
+                    delete rooms[roomName];
+                    renderRooms();
+                    initQuickRoomButtons();
+                }
+            } else {
+                // Ajouter la pièce
+                rooms[roomName] = { tasks: [] };
+                renderRooms();
+                initQuickRoomButtons();
+            }
+        }
+
+        function addCustomRoom() {
+            const input = document.getElementById('roomName');
+            const name = input.value.trim();
+            if (!name) { alert('Veuillez entrer un nom de pièce'); return; }
+            if (rooms[name]) { alert('Cette pièce existe déjà'); return; }
+            rooms[name] = { tasks: [] };
+            input.value = '';
+            renderRooms();
+            initQuickRoomButtons();
         }
         
         document.getElementById('logoInput').addEventListener('change', function(e) {
@@ -759,26 +875,19 @@
                     if (!rooms[roomName].tasks.includes(taskName)) rooms[roomName].tasks.push(taskName);
                 });
                 renderRooms();
+                initQuickRoomButtons();
                 return;
             }
             rooms[roomName] = { tasks: tasks };
             renderRooms();
-        }
-        
-        function addRoom() {
-            const input = document.getElementById('roomName');
-            const name = input.value.trim();
-            if (!name) { alert('Veuillez entrer un nom de pièce'); return; }
-            if (rooms[name]) { alert('Cette pièce existe déjà'); return; }
-            rooms[name] = { tasks: [] };
-            input.value = '';
-            renderRooms();
+            initQuickRoomButtons();
         }
         
         function removeRoom(name) {
             if (confirm(`Supprimer la pièce "${name}" ?`)) {
                 delete rooms[name];
                 renderRooms();
+                initQuickRoomButtons();
             }
         }
         
@@ -1382,6 +1491,7 @@
                 // Charger les pièces et tâches
                 rooms = data.rooms || {};
                 renderRooms();
+                initQuickRoomButtons();
 
                 // Charger le logo si disponible
                 if (data.logoUrl) {
@@ -1475,6 +1585,7 @@
             document.getElementById('agency').value = '';
 
             renderRooms();
+            initQuickRoomButtons();
 
             const resultDiv = document.getElementById('logoResult');
             resultDiv.className = 'import-result';
@@ -1493,6 +1604,7 @@
 
         document.getElementById('date').valueAsDate = new Date();
         renderRooms();
+        initQuickRoomButtons();
     </script>
 </body>
 </html>
