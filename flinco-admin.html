@@ -699,209 +699,661 @@
             'Parking'
         ];
 
-        // Tâches prédéfinies par type de pièce
+        // Tâches communes à toutes les pièces
+        const commonTasks = {
+            'Sol': [
+                'Dépoussiérage sol',
+                'Nettoyage sol',
+                'Nettoyage taches sol'
+            ],
+            'Murs': [
+                'Mur droit — Dépoussiérage',
+                'Mur droit — Nettoyage traces',
+                'Mur droit — Lessivage',
+                'Mur gauche — Dépoussiérage',
+                'Mur gauche — Nettoyage traces',
+                'Mur gauche — Lessivage',
+                'Mur face — Dépoussiérage',
+                'Mur face — Nettoyage traces',
+                'Mur face — Lessivage',
+                'Mur arrière — Dépoussiérage',
+                'Mur arrière — Nettoyage traces',
+                'Mur arrière — Lessivage'
+            ],
+            'Plinthes': [
+                'Plinthe droite — Dépoussiérage',
+                'Plinthe droite — Nettoyage traces',
+                'Plinthe gauche — Dépoussiérage',
+                'Plinthe gauche — Nettoyage traces',
+                'Plinthe face — Dépoussiérage',
+                'Plinthe face — Nettoyage traces',
+                'Plinthe arrière — Dépoussiérage',
+                'Plinthe arrière — Nettoyage traces'
+            ],
+            'Plafond': [
+                'Dépoussiérage plafond',
+                'Nettoyage plafond'
+            ],
+            'Ouvrants': [
+                'Fenêtre(s) nettoyée(s) intérieur',
+                'Fenêtre(s) nettoyée(s) extérieur',
+                'Encadrement fenêtre propre',
+                'Rebord de fenêtre propre',
+                'Volets / stores nettoyés'
+            ],
+            'Électricité & Éclairage': [
+                'Interrupteurs nettoyés',
+                'Prises nettoyées',
+                'Bouche VMC nettoyée',
+                'Radiateur nettoyé',
+                'Changement / mise en place ampoule',
+                'Changement / mise en place spot',
+                'Changement / mise en place néon'
+            ],
+            'Menuiseries': [
+                'Porte nettoyée (deux faces)',
+                'Encadrement porte propre',
+                'Poignée nettoyée',
+                'Refixation poignée'
+            ],
+            'Mobilier': [
+                'Débarras mobilier',
+                'Placard — Nettoyage extérieur (fermé)',
+                'Placard — Nettoyage intérieur (ouvert)'
+            ]
+        };
+
+        // Tâches prédéfinies par type de pièce (version détaillée et complète)
         const predefinedTasksByRoom = {
             'Entrée': [
-                'Aspirer / Laver le sol',
-                'Dépoussiérer les meubles',
-                'Nettoyer les interrupteurs',
-                'Nettoyer la porte d\'entrée',
-                'Nettoyer les plinthes',
-                'Vider la poubelle'
+                // Équipements et rangements
+                'Meuble chaussures — Nettoyage extérieur (fermé)',
+                'Meuble chaussures — Nettoyage intérieur (ouvert)',
+                'Patères — Nettoyage',
+                'Miroir — Nettoyage',
+                // Porte entrée
+                'Porte entrée — Nettoyage intérieur',
+                'Porte entrée — Nettoyage extérieur',
+                'Serrure porte entrée nettoyée',
+                'Poignée porte entrée nettoyée',
+                // Nettoyage final
+                'Débarras encombrants',
+                'Poubelles sorties'
             ],
             'Salon': [
-                'Aspirer / Laver le sol',
-                'Dépoussiérer les meubles',
-                'Nettoyer les vitres',
-                'Nettoyer les radiateurs',
-                'Nettoyer les plinthes',
-                'Nettoyer le canapé',
-                'Nettoyer la table basse',
-                'Ranger et organiser'
+                // Mobilier
+                'Canapé — Dépoussiérage',
+                'Canapé — Nettoyage taches',
+                'Fauteuil(s) — Dépoussiérage',
+                'Fauteuil(s) — Nettoyage taches',
+                'Table basse — Nettoyage',
+                'Meuble TV — Dépoussiérage',
+                'Meuble TV — Nettoyage',
+                'Bibliothèque / Étagères — Dépoussiérage',
+                'Bibliothèque / Étagères — Nettoyage',
+                // Cheminée
+                'Cheminée — Aspiration cendres',
+                'Cheminée — Nettoyage vitres insert',
+                'Cheminée — Nettoyage encadrement',
+                // Rideaux et stores
+                'Rideaux — Dépoussiérage',
+                'Stores / Volets roulants — Nettoyage',
+                // Électronique
+                'TV / Écran nettoyé',
+                // Éclairage
+                'Luminaire(s) — Dépoussiérage',
+                'Abat-jour nettoyé',
+                // Débarras
+                'Débarras mobilier',
+                'Poubelles sorties'
             ],
             'Séjour': [
-                'Aspirer / Laver le sol',
-                'Dépoussiérer les meubles',
-                'Nettoyer les vitres',
-                'Nettoyer les radiateurs',
-                'Nettoyer les plinthes',
-                'Nettoyer la TV / Écran',
-                'Ranger et organiser'
+                // Mobilier
+                'Table à manger — Nettoyage',
+                'Chaises — Nettoyage',
+                'Buffet / Bahut — Dépoussiérage extérieur',
+                'Buffet / Bahut — Nettoyage intérieur (ouvert)',
+                'Console — Nettoyage',
+                // Rideaux
+                'Rideaux — Dépoussiérage',
+                'Stores / Volets roulants — Nettoyage',
+                // Électronique
+                'TV / Écran nettoyé',
+                // Éclairage
+                'Luminaire(s) — Dépoussiérage',
+                'Suspension nettoyée',
+                // Équipements muraux
+                'Tableaux / Cadres — Dépoussiérage',
+                'Miroir(s) nettoyé(s)',
+                // Débarras
+                'Débarras mobilier',
+                'Poubelles sorties'
             ],
             'Salle à manger': [
-                'Aspirer / Laver le sol',
-                'Nettoyer la table',
-                'Nettoyer les chaises',
-                'Dépoussiérer le buffet',
-                'Nettoyer les vitres',
-                'Nettoyer les plinthes'
+                // Mobilier
+                'Table — Nettoyage',
+                'Chaises — Nettoyage (dessus/dessous)',
+                'Buffet / Vaisselier — Dépoussiérage extérieur',
+                'Buffet / Vaisselier — Nettoyage intérieur (ouvert)',
+                'Desserte — Nettoyage',
+                // Rideaux
+                'Rideaux — Dépoussiérage',
+                // Éclairage
+                'Luminaire / Suspension — Dépoussiérage',
+                // Équipements muraux
+                'Tableaux / Cadres — Dépoussiérage',
+                'Miroir nettoyé',
+                // Débarras
+                'Débarras mobilier',
+                'Poubelles sorties'
             ],
             'Cuisine': [
-                'Nettoyer le plan de travail',
-                'Nettoyer la hotte',
-                'Dégraisser la hotte',
-                'Nettoyer le four',
-                'Nettoyer les plaques de cuisson',
-                'Nettoyer l\'évier',
-                'Nettoyer le frigo (intérieur)',
-                'Nettoyer le frigo (extérieur)',
-                'Nettoyer le micro-ondes',
-                'Nettoyer le lave-vaisselle',
-                'Nettoyer les placards (extérieur)',
-                'Dégraisser les surfaces',
-                'Laver le sol',
-                'Nettoyer les murs / Crédence',
-                'Vider la poubelle',
-                'Nettoyer les plinthes'
+                // Évier et robinetterie
+                'Évier — Nettoyage',
+                'Évier — Détartrage',
+                'Robinet évier — Nettoyage',
+                'Robinet évier — Détartrage',
+                'Joints évier — Nettoyage',
+                // Plan de travail
+                'Plan de travail — Dépoussiérage',
+                'Plan de travail — Nettoyage',
+                'Plan de travail — Dégraissage',
+                // Plaque cuisson
+                'Plaque cuisson — Nettoyage',
+                'Plaque cuisson — Dégraissage',
+                'Grilles plaque cuisson — Dégraissage',
+                'Joints plaque cuisson — Nettoyage',
+                // Hotte
+                'Hotte — Nettoyage extérieur',
+                'Hotte — Nettoyage intérieur (ouvert)',
+                'Hotte — Dégraissage',
+                'Filtre hotte — Nettoyage',
+                'Filtre hotte — Dégraissage',
+                // Four
+                'Four — Nettoyage extérieur (fermé)',
+                'Four — Nettoyage intérieur (ouvert)',
+                'Four — Dégraissage',
+                'Vitre four — Nettoyage',
+                'Grilles four — Dégraissage',
+                'Plaques four — Dégraissage',
+                // Micro-ondes
+                'Micro-ondes — Nettoyage extérieur (fermé)',
+                'Micro-ondes — Nettoyage intérieur (ouvert)',
+                'Plateau micro-ondes — Nettoyage',
+                // Réfrigérateur
+                'Réfrigérateur — Nettoyage extérieur (fermé)',
+                'Réfrigérateur — Nettoyage intérieur (ouvert)',
+                'Joints réfrigérateur — Nettoyage',
+                'Clayettes réfrigérateur — Nettoyage',
+                'Bacs légumes — Nettoyage',
+                // Congélateur
+                'Congélateur — Nettoyage extérieur (fermé)',
+                'Congélateur — Nettoyage intérieur (ouvert)',
+                'Dégivrage congélateur',
+                // Lave-vaisselle
+                'Lave-vaisselle — Nettoyage extérieur (fermé)',
+                'Lave-vaisselle — Nettoyage intérieur (ouvert)',
+                'Filtre lave-vaisselle — Nettoyage',
+                'Joints lave-vaisselle — Nettoyage',
+                // Lave-linge (si dans cuisine)
+                'Lave-linge — Nettoyage extérieur (fermé)',
+                'Lave-linge — Nettoyage intérieur (ouvert)',
+                'Filtre lave-linge — Nettoyage',
+                'Joints lave-linge — Nettoyage',
+                'Bac produits — Nettoyage',
+                // Meubles
+                'Meubles bas — Nettoyage extérieur (fermé)',
+                'Meubles bas — Nettoyage intérieur (ouvert)',
+                'Meubles hauts — Nettoyage extérieur (fermé)',
+                'Meubles hauts — Nettoyage intérieur (ouvert)',
+                'Poignées meubles — Nettoyage',
+                'Dessus meubles hauts — Dépoussiérage',
+                // Crédence et murs
+                'Crédence — Nettoyage',
+                'Crédence — Dégraissage',
+                'Joints crédence — Nettoyage',
+                // Poubelle
+                'Poubelle — Nettoyage extérieur',
+                'Poubelle — Nettoyage intérieur (ouvert)',
+                'Poubelles sorties',
+                // Accessoires
+                'Égouttoir — Nettoyage',
+                'Porte-torchons nettoyé',
+                // Débarras
+                'Débarras ustensiles cassés',
+                'Débarras mobilier'
             ],
             'Cellier / Garde-manger': [
-                'Laver le sol',
-                'Dépoussiérer les étagères',
-                'Nettoyer les surfaces',
-                'Ranger et organiser',
-                'Vider la poubelle'
+                // Rangements
+                'Étagères — Dépoussiérage',
+                'Étagères — Nettoyage',
+                'Placards — Nettoyage extérieur (fermé)',
+                'Placards — Nettoyage intérieur (ouvert)',
+                // Électroménager
+                'Congélateur — Nettoyage extérieur (fermé)',
+                'Congélateur — Nettoyage intérieur (ouvert)',
+                'Dégivrage congélateur',
+                // Compteurs et tableaux
+                'Compteur électrique — Dépoussiérage',
+                'Tableau électrique — Dépoussiérage',
+                'Compteur eau / gaz — Dépoussiérage',
+                // Débarras
+                'Débarras cartons vides',
+                'Poubelles sorties'
             ],
             'Chambre': [
-                'Aspirer / Laver le sol',
-                'Dépoussiérer les meubles',
-                'Nettoyer les vitres',
-                'Nettoyer les plinthes',
-                'Nettoyer le lit (structure)',
-                'Nettoyer la table de chevet',
-                'Nettoyer l\'armoire (extérieur)',
-                'Ranger et organiser'
+                // Lit
+                'Lit — Dépoussiérage structure',
+                'Lit — Nettoyage structure',
+                'Tête de lit — Dépoussiérage',
+                'Tête de lit — Nettoyage',
+                'Matelas — Aspiration',
+                'Sommier — Aspiration dessous',
+                // Tables de chevet
+                'Table(s) de chevet — Dépoussiérage',
+                'Table(s) de chevet — Nettoyage',
+                'Tiroir(s) table de chevet — Nettoyage intérieur (ouvert)',
+                // Armoire / Penderie
+                'Armoire — Nettoyage extérieur (fermé)',
+                'Armoire — Nettoyage intérieur (ouvert)',
+                'Penderie — Dépoussiérage',
+                'Penderie — Nettoyage',
+                'Étagères armoire — Dépoussiérage',
+                'Tiroirs — Nettoyage intérieur (ouvert)',
+                'Miroir armoire — Nettoyage',
+                // Commode
+                'Commode — Dépoussiérage',
+                'Commode — Nettoyage',
+                'Tiroirs commode — Nettoyage intérieur (ouvert)',
+                // Rideaux
+                'Rideaux — Dépoussiérage',
+                'Stores / Volets roulants — Nettoyage',
+                // Éclairage
+                'Lampe(s) de chevet — Dépoussiérage',
+                'Abat-jour nettoyé',
+                'Luminaire — Dépoussiérage',
+                // Décoration
+                'Miroir(s) nettoyé(s)',
+                'Tableaux / Cadres — Dépoussiérage',
+                // Débarras
+                'Débarras mobilier',
+                'Poubelles sorties'
             ],
             'Bureau': [
-                'Aspirer / Laver le sol',
-                'Dépoussiérer les meubles',
-                'Nettoyer le bureau',
-                'Nettoyer les vitres',
-                'Nettoyer les plinthes',
-                'Nettoyer l\'écran / PC',
-                'Ranger et organiser',
-                'Vider la poubelle'
+                // Bureau
+                'Bureau — Dépoussiérage',
+                'Bureau — Nettoyage',
+                'Tiroirs bureau — Nettoyage intérieur (ouvert)',
+                // Chaise
+                'Chaise bureau — Dépoussiérage',
+                'Chaise bureau — Nettoyage',
+                // Rangements
+                'Étagères — Dépoussiérage',
+                'Bibliothèque — Dépoussiérage',
+                'Caisson — Nettoyage extérieur (fermé)',
+                'Caisson — Nettoyage intérieur (ouvert)',
+                // Électronique
+                'Écran ordinateur — Nettoyage',
+                'Clavier — Dépoussiérage',
+                'Clavier — Nettoyage',
+                'Unité centrale — Dépoussiérage',
+                'Imprimante — Dépoussiérage',
+                // Accessoires
+                'Lampe bureau — Dépoussiérage',
+                'Corbeille papier — Nettoyage',
+                // Débarras
+                'Débarras mobilier',
+                'Poubelles sorties'
             ],
             'Dressing': [
-                'Aspirer / Laver le sol',
-                'Dépoussiérer les étagères',
-                'Nettoyer les armoires (extérieur)',
-                'Nettoyer les miroirs',
-                'Ranger et organiser'
+                // Penderies
+                'Penderie(s) — Dépoussiérage extérieur',
+                'Penderie(s) — Nettoyage intérieur (ouvert)',
+                'Barres penderie — Nettoyage',
+                'Cintres — Dépoussiérage',
+                // Étagères
+                'Étagères — Dépoussiérage',
+                'Étagères — Nettoyage',
+                // Tiroirs
+                'Tiroirs — Nettoyage extérieur (fermé)',
+                'Tiroirs — Nettoyage intérieur (ouvert)',
+                // Rangements chaussures
+                'Rangement chaussures — Dépoussiérage',
+                'Rangement chaussures — Nettoyage',
+                // Miroir
+                'Miroir(s) nettoyé(s)',
+                'Miroir plein pied — Nettoyage',
+                // Accessoires
+                'Boîtes rangement — Dépoussiérage',
+                'Paniers — Nettoyage',
+                // Débarras
+                'Débarras mobilier'
             ],
             'Salle de bain': [
-                'Nettoyer le lavabo',
-                'Nettoyer la baignoire',
-                'Nettoyer la douche',
-                'Nettoyer les WC',
-                'Nettoyer le carrelage mural',
-                'Détartrer les robinets',
-                'Nettoyer le miroir',
-                'Laver le sol',
-                'Nettoyer les meubles',
-                'Nettoyer les radiateurs',
-                'Vider la poubelle'
+                // Lavabo
+                'Lavabo — Nettoyage',
+                'Lavabo — Détartrage',
+                'Robinet lavabo — Nettoyage',
+                'Robinet lavabo — Détartrage',
+                'Joints lavabo — Nettoyage',
+                'Siphon lavabo — Nettoyage extérieur',
+                // Baignoire
+                'Baignoire — Nettoyage',
+                'Baignoire — Détartrage',
+                'Robinet baignoire — Nettoyage',
+                'Robinet baignoire — Détartrage',
+                'Joints baignoire — Nettoyage',
+                'Pommeau douche baignoire — Détartrage',
+                'Bonde baignoire — Nettoyage',
+                // Douche
+                'Cabine douche — Nettoyage',
+                'Paroi douche — Nettoyage',
+                'Paroi douche — Détartrage',
+                'Joints douche — Nettoyage',
+                'Receveur douche — Nettoyage',
+                'Receveur douche — Détartrage',
+                'Robinet douche — Nettoyage',
+                'Robinet douche — Détartrage',
+                'Pommeau douche — Détartrage',
+                'Flexible douche — Nettoyage',
+                'Bonde douche — Nettoyage',
+                // Meuble vasque
+                'Meuble vasque — Nettoyage extérieur (fermé)',
+                'Meuble vasque — Nettoyage intérieur (ouvert)',
+                'Tiroirs meuble — Nettoyage intérieur (ouvert)',
+                // Miroir
+                'Miroir — Nettoyage',
+                'Armoire miroir — Nettoyage extérieur (fermé)',
+                'Armoire miroir — Nettoyage intérieur (ouvert)',
+                // WC (si dans salle de bain)
+                'WC — Nettoyage cuvette',
+                'WC — Détartrage cuvette',
+                'WC — Nettoyage extérieur',
+                'Abattant WC — Nettoyage dessus/dessous',
+                'Chasse d\'eau — Nettoyage',
+                'Réservoir WC — Dépoussiérage',
+                // Accessoires
+                'Porte-serviettes — Nettoyage',
+                'Distributeur savon — Nettoyage',
+                'Porte-papier WC — Nettoyage',
+                'Poubelle — Nettoyage extérieur',
+                'Poubelle — Nettoyage intérieur (ouvert)',
+                // Carrelage
+                'Carrelage mural — Nettoyage',
+                'Joints carrelage — Nettoyage',
+                // Ventilation
+                'Grille VMC — Nettoyage',
+                'Grille aération — Nettoyage',
+                // Débarras
+                'Débarras flacons vides',
+                'Poubelles sorties'
             ],
             'Salle d\'eau': [
-                'Nettoyer le lavabo',
-                'Nettoyer la douche',
-                'Détartrer les robinets',
-                'Nettoyer le miroir',
-                'Laver le sol',
-                'Nettoyer le carrelage',
-                'Vider la poubelle'
+                // Lavabo
+                'Lavabo — Nettoyage',
+                'Lavabo — Détartrage',
+                'Robinet lavabo — Nettoyage',
+                'Robinet lavabo — Détartrage',
+                'Joints lavabo — Nettoyage',
+                'Siphon lavabo — Nettoyage extérieur',
+                // Douche
+                'Cabine douche — Nettoyage',
+                'Paroi douche — Nettoyage',
+                'Paroi douche — Détartrage',
+                'Joints douche — Nettoyage',
+                'Receveur douche — Nettoyage',
+                'Receveur douche — Détartrage',
+                'Robinet douche — Nettoyage',
+                'Robinet douche — Détartrage',
+                'Pommeau douche — Détartrage',
+                'Flexible douche — Nettoyage',
+                'Bonde douche — Nettoyage',
+                // Meuble vasque
+                'Meuble vasque — Nettoyage extérieur (fermé)',
+                'Meuble vasque — Nettoyage intérieur (ouvert)',
+                'Tiroirs meuble — Nettoyage intérieur (ouvert)',
+                // Miroir
+                'Miroir — Nettoyage',
+                'Armoire miroir — Nettoyage extérieur (fermé)',
+                'Armoire miroir — Nettoyage intérieur (ouvert)',
+                // Accessoires
+                'Porte-serviettes — Nettoyage',
+                'Distributeur savon — Nettoyage',
+                'Poubelle — Nettoyage extérieur',
+                'Poubelle — Nettoyage intérieur (ouvert)',
+                // Carrelage
+                'Carrelage mural — Nettoyage',
+                'Joints carrelage — Nettoyage',
+                // Ventilation
+                'Grille VMC — Nettoyage',
+                'Grille aération — Nettoyage',
+                // Débarras
+                'Débarras flacons vides',
+                'Poubelles sorties'
             ],
             'Toilettes / WC': [
-                'Nettoyer les WC (cuvette)',
-                'Nettoyer les WC (extérieur)',
-                'Nettoyer le lavabo',
-                'Nettoyer le miroir',
-                'Laver le sol',
-                'Nettoyer les murs',
-                'Vider la poubelle'
+                // WC
+                'WC — Nettoyage cuvette',
+                'WC — Détartrage cuvette',
+                'WC — Nettoyage extérieur',
+                'Abattant WC — Nettoyage dessus/dessous',
+                'Chasse d\'eau — Nettoyage',
+                'Réservoir WC — Dépoussiérage',
+                'Réservoir WC — Nettoyage',
+                // Lave-mains (si présent)
+                'Lave-mains — Nettoyage',
+                'Lave-mains — Détartrage',
+                'Robinet lave-mains — Nettoyage',
+                // Miroir
+                'Miroir — Nettoyage',
+                // Accessoires
+                'Porte-papier WC — Nettoyage',
+                'Dérouleur papier — Nettoyage',
+                'Balai WC — Nettoyage support',
+                'Poubelle — Nettoyage extérieur',
+                'Poubelle — Nettoyage intérieur (ouvert)',
+                // Carrelage
+                'Carrelage mural — Nettoyage',
+                'Joints carrelage — Nettoyage',
+                // Ventilation
+                'Grille VMC — Nettoyage',
+                'Grille aération — Nettoyage',
+                // Débarras
+                'Poubelles sorties'
             ],
             'Buanderie': [
-                'Laver le sol',
-                'Nettoyer le lave-linge (extérieur)',
-                'Nettoyer le sèche-linge',
-                'Nettoyer l\'évier / Bac',
-                'Dépoussiérer les étagères',
-                'Ranger et organiser'
+                // Lave-linge
+                'Lave-linge — Nettoyage extérieur (fermé)',
+                'Lave-linge — Nettoyage intérieur (ouvert)',
+                'Lave-linge — Nettoyage tambour',
+                'Filtre lave-linge — Nettoyage',
+                'Joints lave-linge — Nettoyage',
+                'Bac produits — Nettoyage',
+                // Sèche-linge
+                'Sèche-linge — Nettoyage extérieur (fermé)',
+                'Sèche-linge — Nettoyage intérieur (ouvert)',
+                'Filtre sèche-linge — Nettoyage',
+                'Condenseur sèche-linge — Nettoyage',
+                // Évier / Bac
+                'Évier / Bac — Nettoyage',
+                'Évier / Bac — Détartrage',
+                'Robinet — Nettoyage',
+                // Rangements
+                'Étagères — Dépoussiérage',
+                'Étagères — Nettoyage',
+                'Placards — Nettoyage extérieur (fermé)',
+                'Placards — Nettoyage intérieur (ouvert)',
+                // Accessoires
+                'Étendoir — Nettoyage',
+                'Panier linge — Nettoyage',
+                'Table repasser — Nettoyage',
+                'Fer repasser — Nettoyage',
+                // Débarras
+                'Débarras produits vides',
+                'Poubelles sorties'
             ],
             'Couloir / Dégagement': [
-                'Aspirer / Laver le sol',
-                'Dépoussiérer',
-                'Nettoyer les interrupteurs',
-                'Nettoyer les plinthes',
-                'Nettoyer les portes'
+                // Rangements
+                'Placard(s) — Nettoyage extérieur (fermé)',
+                'Placard(s) — Nettoyage intérieur (ouvert)',
+                'Étagères — Dépoussiérage',
+                // Équipements muraux
+                'Tableaux / Cadres — Dépoussiérage',
+                'Miroir(s) — Nettoyage',
+                'Patères — Nettoyage',
+                // Débarras
+                'Débarras encombrants'
             ],
             'Palier': [
-                'Aspirer / Laver le sol',
-                'Dépoussiérer',
-                'Nettoyer les interrupteurs',
-                'Nettoyer les plinthes'
+                // Rangements
+                'Placard(s) — Nettoyage extérieur (fermé)',
+                'Placard(s) — Nettoyage intérieur (ouvert)',
+                // Équipements muraux
+                'Tableaux / Cadres — Dépoussiérage',
+                // Débarras
+                'Débarras encombrants'
             ],
             'Escalier': [
-                'Aspirer / Laver les marches',
-                'Nettoyer la rampe',
-                'Dépoussiérer',
-                'Nettoyer les plinthes'
+                // Marches
+                'Marches — Aspiration',
+                'Marches — Nettoyage',
+                'Contremarches — Nettoyage',
+                'Nez de marche — Nettoyage',
+                // Rampe
+                'Rampe / Main courante — Dépoussiérage',
+                'Rampe / Main courante — Nettoyage',
+                'Balustres — Dépoussiérage',
+                'Balustres — Nettoyage',
+                // Débarras
+                'Débarras encombrants'
             ],
             'Balcon': [
-                'Balayer le sol',
-                'Laver le sol',
-                'Nettoyer la rambarde',
-                'Nettoyer les vitres / Baies',
-                'Ranger les meubles de jardin'
+                // Sol
+                'Balayage sol',
+                'Nettoyage sol',
+                'Joints sol — Nettoyage',
+                // Garde-corps
+                'Garde-corps / Rambarde — Dépoussiérage',
+                'Garde-corps / Rambarde — Nettoyage',
+                'Barreaux — Nettoyage',
+                // Mobilier extérieur
+                'Table extérieur — Nettoyage',
+                'Chaises extérieur — Nettoyage',
+                'Salon jardin — Dépoussiérage',
+                'Salon jardin — Nettoyage',
+                // Équipements
+                'Jardinière(s) — Nettoyage extérieur',
+                'Cache-climatisation — Nettoyage',
+                // Débarras
+                'Débarras encombrants'
             ],
             'Terrasse': [
-                'Balayer le sol',
-                'Laver le sol',
-                'Nettoyer les meubles de jardin',
-                'Nettoyer les vitres / Baies',
-                'Ranger et organiser'
+                // Sol
+                'Balayage sol',
+                'Nettoyage sol',
+                'Joints sol — Nettoyage',
+                // Garde-corps
+                'Garde-corps / Rambarde — Dépoussiérage',
+                'Garde-corps / Rambarde — Nettoyage',
+                // Mobilier extérieur
+                'Table extérieur — Nettoyage',
+                'Chaises extérieur — Nettoyage',
+                'Salon jardin — Dépoussiérage',
+                'Salon jardin — Nettoyage',
+                'Transat(s) — Nettoyage',
+                'Parasol — Dépoussiérage',
+                // Équipements
+                'Jardinière(s) — Nettoyage extérieur',
+                'Barbecue — Nettoyage extérieur',
+                'Cache-climatisation — Nettoyage',
+                // Débarras
+                'Débarras encombrants',
+                'Débarras mobilier jardin'
             ],
             'Loggia': [
-                'Balayer / Laver le sol',
-                'Nettoyer les vitres',
-                'Dépoussiérer',
-                'Nettoyer les meubles'
+                // Rangements
+                'Placard(s) — Nettoyage extérieur (fermé)',
+                'Placard(s) — Nettoyage intérieur (ouvert)',
+                // Mobilier
+                'Meuble(s) — Dépoussiérage',
+                'Meuble(s) — Nettoyage',
+                // Débarras
+                'Débarras encombrants'
             ],
             'Véranda': [
-                'Aspirer / Laver le sol',
-                'Nettoyer les vitres',
-                'Dépoussiérer les meubles',
-                'Nettoyer les radiateurs',
-                'Ranger et organiser'
+                // Vitres
+                'Vitres — Nettoyage intérieur',
+                'Vitres — Nettoyage extérieur',
+                'Encadrements vitres — Nettoyage',
+                // Mobilier
+                'Table — Nettoyage',
+                'Chaises — Nettoyage',
+                'Canapé — Dépoussiérage',
+                'Meuble(s) — Dépoussiérage',
+                'Meuble(s) — Nettoyage',
+                // Équipements
+                'Store intérieur — Dépoussiérage',
+                // Débarras
+                'Débarras mobilier'
             ],
             'Débarras / Local de rangement': [
-                'Balayer / Laver le sol',
-                'Dépoussiérer les étagères',
-                'Ranger et organiser',
-                'Vider les cartons'
+                // Rangements
+                'Étagères — Dépoussiérage',
+                'Étagères — Nettoyage',
+                'Placards — Nettoyage extérieur (fermé)',
+                'Placards — Nettoyage intérieur (ouvert)',
+                // Débarras
+                'Débarras cartons',
+                'Débarras encombrants',
+                'Tri objets à jeter',
+                'Poubelles sorties'
             ],
             'Cave': [
-                'Balayer le sol',
-                'Dépoussiérer',
-                'Ranger et organiser',
-                'Vider les encombrants'
+                // Rangements
+                'Étagères — Dépoussiérage',
+                'Étagères — Nettoyage',
+                // Débarras
+                'Débarras cartons',
+                'Débarras encombrants',
+                'Tri objets à jeter',
+                'Toiles araignée enlevées'
             ],
             'Grenier / Combles': [
-                'Balayer le sol',
-                'Dépoussiérer',
-                'Ranger et organiser',
-                'Vider les encombrants'
+                // Rangements
+                'Étagères — Dépoussiérage',
+                // Débarras
+                'Débarras cartons',
+                'Débarras encombrants',
+                'Tri objets à jeter',
+                'Toiles araignée enlevées'
             ],
             'Garage': [
-                'Balayer le sol',
-                'Nettoyer le sol (dégraisser)',
-                'Ranger les outils',
-                'Organiser l\'espace',
-                'Vider les encombrants'
+                // Sol
+                'Balayage sol',
+                'Nettoyage sol',
+                'Dégraissage sol (taches)',
+                // Rangements
+                'Étagères — Dépoussiérage',
+                'Établi — Dépoussiérage',
+                'Établi — Nettoyage',
+                'Armoire(s) — Nettoyage extérieur (fermé)',
+                // Équipements
+                'Porte garage — Nettoyage intérieur',
+                'Porte garage — Nettoyage extérieur',
+                // Débarras
+                'Débarras cartons',
+                'Débarras encombrants',
+                'Tri objets à jeter',
+                'Rangement outils'
             ],
             'Parking': [
-                'Balayer le sol',
-                'Nettoyer les murs (si besoin)',
-                'Ranger et organiser'
+                // Sol
+                'Balayage sol',
+                'Nettoyage sol',
+                // Murs
+                'Murs — Dépoussiérage (si besoin)',
+                // Débarras
+                'Débarras encombrants'
             ]
         };
         
@@ -1125,23 +1577,67 @@
                 const safeName = name.replace(/'/g, "\\'");
                 const predefinedTasks = predefinedTasksByRoom[name] || [];
 
-                // Générer les boutons de tâches prédéfinies
-                let quickTasksHtml = '';
-                if (predefinedTasks.length > 0) {
-                    quickTasksHtml = `
-                        <div style="background: rgba(130, 172, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border);">
-                            <h5 style="font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">✨ Tâches courantes</h5>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px;">
-                                ${predefinedTasks.map(taskName => {
-                                    const isAdded = rooms[name].tasks.includes(taskName);
-                                    const safeTaskName = taskName.replace(/'/g, "\\'");
+                // Générer les tâches communes (applicables à toutes les pièces)
+                let commonTasksHtml = '';
+                const allCommonTasks = Object.keys(commonTasks).flatMap(category =>
+                    commonTasks[category].map(task => ({ category, task }))
+                );
+
+                if (allCommonTasks.length > 0) {
+                    commonTasksHtml = `
+                        <div style="background: rgba(16, 185, 129, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--success);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; cursor: pointer;" onclick="toggleCommonTasks('${safeId}')">
+                                <h5 style="font-size: 11px; font-weight: 600; color: var(--success); margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">🌟 TÂCHES COMMUNES (toutes pièces)</h5>
+                                <span id="common-toggle-${safeId}" style="font-size: 14px; color: var(--success);">▼</span>
+                            </div>
+                            <div id="common-tasks-${safeId}" style="display: block;">
+                                ${Object.keys(commonTasks).map(category => {
+                                    const categoryTasks = commonTasks[category];
                                     return `
-                                        <button class="quick-room-btn ${isAdded ? 'added' : ''}" onclick="toggleQuickTask('${safeName}', '${safeTaskName}')" style="padding: 8px 10px; font-size: 11px;">
-                                            <span>${taskName}</span>
-                                            <span class="check-icon">✓</span>
-                                        </button>
+                                        <div style="margin-bottom: 10px;">
+                                            <div style="font-size: 10px; font-weight: 700; color: var(--success); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8;">📌 ${category}</div>
+                                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px;">
+                                                ${categoryTasks.map(taskName => {
+                                                    const isAdded = rooms[name].tasks.includes(taskName);
+                                                    const safeTaskName = taskName.replace(/'/g, "\\'");
+                                                    return `
+                                                        <button class="quick-room-btn ${isAdded ? 'added' : ''}" onclick="toggleQuickTask('${safeName}', '${safeTaskName}')" style="padding: 8px 10px; font-size: 11px;">
+                                                            <span>${taskName}</span>
+                                                            <span class="check-icon">✓</span>
+                                                        </button>
+                                                    `;
+                                                }).join('')}
+                                            </div>
+                                        </div>
                                     `;
                                 }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Générer les tâches spécifiques à la pièce
+                let specificTasksHtml = '';
+                if (predefinedTasks.length > 0) {
+                    specificTasksHtml = `
+                        <div style="background: rgba(130, 172, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--accent);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; cursor: pointer;" onclick="toggleSpecificTasks('${safeId}')">
+                                <h5 style="font-size: 11px; font-weight: 600; color: var(--accent); margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">✨ TÂCHES SPÉCIFIQUES — ${name.toUpperCase()}</h5>
+                                <span id="specific-toggle-${safeId}" style="font-size: 14px; color: var(--accent);">▼</span>
+                            </div>
+                            <div id="specific-tasks-${safeId}" style="display: block;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px;">
+                                    ${predefinedTasks.map(taskName => {
+                                        const isAdded = rooms[name].tasks.includes(taskName);
+                                        const safeTaskName = taskName.replace(/'/g, "\\'");
+                                        return `
+                                            <button class="quick-room-btn ${isAdded ? 'added' : ''}" onclick="toggleQuickTask('${safeName}', '${safeTaskName}')" style="padding: 8px 10px; font-size: 11px;">
+                                                <span>${taskName}</span>
+                                                <span class="check-icon">✓</span>
+                                            </button>
+                                        `;
+                                    }).join('')}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -1150,18 +1646,20 @@
                 return `
                     <div class="room-card">
                         <div class="room-header">
-                            <h4>🏠 ${name}</h4>
+                            <h4>🏠 ${name} <span style="font-size: 11px; opacity: 0.7; font-weight: 400;">(${rooms[name].tasks.length} tâche(s) sélectionnée(s))</span></h4>
                             <button class="btn btn-danger" onclick="removeRoom('${safeName}')">Supprimer</button>
                         </div>
                         <div class="room-content">
-                            ${quickTasksHtml}
+                            ${commonTasksHtml}
+                            ${specificTasksHtml}
+                            <div class="divider" style="margin: 16px 0;">Tâche personnalisée</div>
                             <div class="task-input-wrapper">
-                                <input type="text" id="task-input-${safeId}" placeholder="Ou tâche personnalisée..." onkeypress="if(event.key==='Enter')addTask('${safeName}')">
-                                <button class="btn" onclick="addTask('${safeName}')">+ Tâche</button>
+                                <input type="text" id="task-input-${safeId}" placeholder="Ajouter une tâche personnalisée..." onkeypress="if(event.key==='Enter')addTask('${safeName}')">
+                                <button class="btn" onclick="addTask('${safeName}')">+ Ajouter</button>
                             </div>
-                            <div class="tasks-list">
+                            <div class="tasks-list" style="margin-top: 12px;">
                                 ${rooms[name].tasks.length === 0 ?
-                                    '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 10px;">Aucune tâche ajoutée</p>' :
+                                    '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 10px;">Aucune tâche sélectionnée</p>' :
                                     rooms[name].tasks.map((task, i) => `
                                         <div class="task-item">
                                             <span>• ${task}</span>
@@ -1189,6 +1687,32 @@
             }
 
             renderRooms();
+        }
+
+        function toggleCommonTasks(safeId) {
+            const container = document.getElementById(`common-tasks-${safeId}`);
+            const toggle = document.getElementById(`common-toggle-${safeId}`);
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                container.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        }
+
+        function toggleSpecificTasks(safeId) {
+            const container = document.getElementById(`specific-tasks-${safeId}`);
+            const toggle = document.getElementById(`specific-toggle-${safeId}`);
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                container.style.display = 'none';
+                toggle.textContent = '▶';
+            }
         }
         
         async function generateLink() {
