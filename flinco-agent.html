@@ -390,6 +390,7 @@
         
         let reportId = null;
         let reportData = null;
+        let photoMode = 'avant-apres'; // Par défaut: avant-apres, apres-only, avant-apres-video
         let photos = {};
         let isOnline = navigator.onLine;
         let autoSaveInterval = null;
@@ -541,6 +542,10 @@
                     showError('Rapport déjà terminé', 'Ce rapport a déjà été complété.');
                     return;
                 }
+
+                // Charger le mode photos (par défaut: avant-apres)
+                photoMode = reportData.photoMode || 'avant-apres';
+                console.log('📸 Mode photos:', photoMode);
 
                 // Initialiser la structure photos si nécessaire
                 if (!localData || !localData.photos) {
@@ -714,6 +719,8 @@
         
         function createRoomCard(roomName, tasks) {
             const safeRoomName = roomName.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const showAvant = photoMode !== 'apres-only';
+            const showVideo = photoMode === 'avant-apres-video';
 
             let tasksHtml = '';
             for (const task of tasks) {
@@ -724,7 +731,7 @@
                     <div class="photo-section" id="section-${slugify(roomName)}-${slugify(task)}">
                         <h4><span class="check">✓</span> ${task}</h4>
                         <div class="photo-grid">
-                            <div class="photo-box">
+                            ${showAvant ? `<div class="photo-box">
                                 <label>Avant</label>
                                 <div class="photo-upload" id="upload-${slugify(roomName)}-${slugify(task)}-avant">
                                     <input type="file" accept="image/*" capture="environment" onchange="handlePhoto('${safeRoomName}', '${safeTask}', 'avant', this)">
@@ -732,7 +739,7 @@
                                     <span class="text">Prendre photo</span>
                                     <button class="remove-btn" onclick="removePhoto(event, '${safeRoomName}', '${safeTask}', 'avant')">×</button>
                                 </div>
-                            </div>
+                            </div>` : ''}
                             <div class="photo-box">
                                 <label>Après</label>
                                 <div class="photo-upload" id="upload-${slugify(roomName)}-${slugify(task)}-apres">
@@ -773,7 +780,7 @@
                     </div>
                 `;
             }
-            
+
             return `
                 <div class="room-card" id="room-${slugify(roomName)}">
                     <div class="room-header">
@@ -784,7 +791,7 @@
                         <div class="photo-section general-photo-section" id="section-${slugify(roomName)}-general">
                             <h4><span class="check">✓</span> Vue générale</h4>
                             <div class="photo-grid">
-                                <div class="photo-box">
+                                ${showAvant ? `<div class="photo-box">
                                     <label>Avant</label>
                                     <div class="photo-upload" id="upload-${slugify(roomName)}-general-avant">
                                         <input type="file" accept="image/*" capture="environment" onchange="handleGeneralPhoto('${safeRoomName}', 'avant', this)">
@@ -792,7 +799,7 @@
                                         <span class="text">Prendre photo</span>
                                         <button class="remove-btn" onclick="removeGeneralPhoto(event, '${safeRoomName}', 'avant')">×</button>
                                     </div>
-                                </div>
+                                </div>` : ''}
                                 <div class="photo-box">
                                     <label>Après</label>
                                     <div class="photo-upload" id="upload-${slugify(roomName)}-general-apres">
