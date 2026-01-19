@@ -854,8 +854,8 @@
                             await storageRef.put(blob);
                             const photoUrl = await storageRef.getDownloadURL();
 
-                            // Remplacer le base64 par l'URL
-                            photos[roomName].tasks[taskName][type] = photoUrl;
+                            // GARDER le base64 pour la génération PDF (pas de remplacement par l'URL)
+                            // photos[roomName].tasks[taskName][type] reste en base64
 
                             console.log(`✅ Photo uploadée: ${fileName}`);
 
@@ -900,8 +900,9 @@
                             await storageRef.put(blob);
                             const photoUrl = await storageRef.getDownloadURL();
 
-                            // Remplacer le base64 par l'URL
-                            photos[roomName].general[type] = photoUrl;
+                            // GARDER le base64 pour la génération PDF (pas de remplacement par l'URL)
+                            // photos[roomName].general[type] reste en base64
+                            // photos[roomName].general[type] = photoUrl;
 
                             console.log(`✅ Photo uploadée: ${fileName}`);
 
