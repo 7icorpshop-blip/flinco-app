@@ -616,7 +616,114 @@
             }
 
             updateRoomSelect();
+            restoreVideosDisplay();
+            restorePhotosDisplay();
             updateProgress();
+        }
+
+        function restoreVideosDisplay() {
+            for (const roomName in photos) {
+                // Restaurer vidéo générale
+                if (photos[roomName].general && photos[roomName].general.video) {
+                    const container = document.getElementById(`video-container-${slugify(roomName)}-general`);
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="border: 2px solid #10b981; border-radius: 8px; padding: 12px; background: #f0fdf4; margin-bottom: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <strong style="color: #065f46;">🎬 Vidéo</strong>
+                                    <button onclick="removeVideoComplete('${roomName.replace(/'/g, "\\'")}', null, 'general')"
+                                            style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                        ✕ Supprimer
+                                    </button>
+                                </div>
+                                <video controls style="width: 100%; max-width: 400px; border-radius: 4px;">
+                                    <source src="${photos[roomName].general.video}" type="video/mp4">
+                                </video>
+                            </div>
+                        `;
+                        // Masquer le bouton "+ Ajouter vidéo"
+                        const btn = container.previousElementSibling;
+                        if (btn && btn.classList.contains('add-video-btn')) {
+                            btn.style.display = 'none';
+                        }
+                    }
+                }
+
+                // Restaurer vidéos des tâches
+                if (photos[roomName].tasks) {
+                    for (const taskName in photos[roomName].tasks) {
+                        const task = photos[roomName].tasks[taskName];
+                        if (task.video) {
+                            const container = document.getElementById(`video-container-${slugify(roomName)}-${slugify(taskName)}`);
+                            if (container) {
+                                container.innerHTML = `
+                                    <div style="border: 2px solid #10b981; border-radius: 8px; padding: 12px; background: #f0fdf4; margin-bottom: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                            <strong style="color: #065f46;">🎬 Vidéo</strong>
+                                            <button onclick="removeVideoComplete('${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'task')"
+                                                    style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                                ✕ Supprimer
+                                            </button>
+                                        </div>
+                                        <video controls style="width: 100%; max-width: 400px; border-radius: 4px;">
+                                            <source src="${task.video}" type="video/mp4">
+                                        </video>
+                                    </div>
+                                `;
+                                // Masquer le bouton "+ Ajouter vidéo"
+                                const btn = container.previousElementSibling;
+                                if (btn && btn.classList.contains('add-video-btn')) {
+                                    btn.style.display = 'none';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function restorePhotosDisplay() {
+            for (const roomName in photos) {
+                // Restaurer photos générales
+                if (photos[roomName].general) {
+                    if (photos[roomName].general.avant) {
+                        const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-general-avant`);
+                        if (uploadDiv) {
+                            uploadDiv.classList.add('has-photo');
+                            let img = uploadDiv.querySelector('img');
+                            if (!img) { img = document.createElement('img'); uploadDiv.appendChild(img); }
+                            img.src = photos[roomName].general.avant;
+                        }
+                    }
+                    if (photos[roomName].general.apres) {
+                        const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-general-apres`);
+                        if (uploadDiv) {
+                            uploadDiv.classList.add('has-photo');
+                            let img = uploadDiv.querySelector('img');
+                            if (!img) { img = document.createElement('img'); uploadDiv.appendChild(img); }
+                            img.src = photos[roomName].general.apres;
+                        }
+                    }
+                }
+
+                // Restaurer photos des tâches
+                if (photos[roomName].tasks) {
+                    for (const taskName in photos[roomName].tasks) {
+                        const task = photos[roomName].tasks[taskName];
+                        for (const type in task) {
+                            if (type !== 'video' && task[type]) {
+                                const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-${slugify(taskName)}-${type}`);
+                                if (uploadDiv) {
+                                    uploadDiv.classList.add('has-photo');
+                                    let img = uploadDiv.querySelector('img');
+                                    if (!img) { img = document.createElement('img'); uploadDiv.appendChild(img); }
+                                    img.src = task[type];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         function updateRoomSelect() {
@@ -749,15 +856,12 @@
                                     <button class="remove-btn" onclick="removePhoto(event, '${safeRoomName}', '${safeTask}', 'apres')">×</button>
                                 </div>
                             </div>
-                            ${showVideo ? `<div class="photo-box">
-                                <label>Vidéo</label>
-                                <div class="photo-upload" id="upload-${slugify(roomName)}-${slugify(task)}-video">
-                                    <input type="file" accept="video/*" capture="environment" onchange="handleVideo('${safeRoomName}', '${safeTask}', this)">
-                                    <span class="icon">🎬</span>
-                                    <span class="text">Filmer</span>
-                                    <button class="remove-btn" onclick="removeVideo(event, '${safeRoomName}', '${safeTask}')">×</button>
-                                </div>
-                            </div>` : ''}
+                        </div>
+                        <div id="video-container-${slugify(roomName)}-${slugify(task)}" style="margin-top: 10px;"></div>
+                        <button class="add-video-btn" onclick="showVideoUpload('${safeRoomName}', '${safeTask}', 'task')" style="margin-top: 8px; padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
+                            🎬 Ajouter une vidéo
+                        </button>
+                    </div>
                 `;
 
                 // Ajouter les photos ouvert/fermé pour les équipements
@@ -818,16 +922,11 @@
                                         <button class="remove-btn" onclick="removeGeneralPhoto(event, '${safeRoomName}', 'apres')">×</button>
                                     </div>
                                 </div>
-                                ${showVideo ? `<div class="photo-box">
-                                    <label>Vidéo</label>
-                                    <div class="photo-upload" id="upload-${slugify(roomName)}-general-video">
-                                        <input type="file" accept="video/*" capture="environment" onchange="handleGeneralVideo('${safeRoomName}', this)">
-                                        <span class="icon">🎬</span>
-                                        <span class="text">Filmer</span>
-                                        <button class="remove-btn" onclick="removeGeneralVideo(event, '${safeRoomName}')">×</button>
-                                    </div>
-                                </div>` : ''}
                             </div>
+                            <div id="video-container-${slugify(roomName)}-general" style="margin-top: 10px;"></div>
+                            <button class="add-video-btn" onclick="showVideoUpload('${safeRoomName}', null, 'general')" style="margin-top: 8px; padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
+                                🎬 Ajouter une vidéo
+                            </button>
                         </div>
                         ${tasksHtml}
                     </div>
@@ -986,20 +1085,79 @@
             updateProgress();
         }
 
+        function showVideoUpload(roomName, taskName, type) {
+            const containerId = type === 'general'
+                ? `video-container-${slugify(roomName)}-general`
+                : `video-container-${slugify(roomName)}-${slugify(taskName)}`;
+
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            // Masquer le bouton "+ Ajouter vidéo"
+            const btn = container.previousElementSibling;
+            if (btn && btn.classList.contains('add-video-btn')) {
+                btn.style.display = 'none';
+            }
+
+            // Afficher le champ d'upload
+            container.innerHTML = `
+                <div style="border: 2px dashed #10b981; border-radius: 8px; padding: 12px; background: #f0fdf4; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="file"
+                               accept="video/*"
+                               capture="environment"
+                               onchange="${type === 'general' ? `handleGeneralVideo('${roomName.replace(/'/g, "\\'")}', this)` : `handleVideo('${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', this)`}"
+                               style="flex: 1; padding: 8px; border: 1px solid #10b981; border-radius: 4px;">
+                        <button onclick="cancelVideoUpload('${roomName.replace(/'/g, "\\'")}', '${taskName ? taskName.replace(/'/g, "\\'") : ''}', '${type}')"
+                                style="padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Annuler
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function cancelVideoUpload(roomName, taskName, type) {
+            const containerId = type === 'general'
+                ? `video-container-${slugify(roomName)}-general`
+                : `video-container-${slugify(roomName)}-${slugify(taskName)}`;
+
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '';
+                // Réafficher le bouton "+ Ajouter vidéo"
+                const btn = container.previousElementSibling;
+                if (btn && btn.classList.contains('add-video-btn')) {
+                    btn.style.display = 'block';
+                }
+            }
+        }
+
         async function handleVideo(roomName, taskName, input) {
             const file = input.files[0];
             if (!file) return;
 
+            const containerId = `video-container-${slugify(roomName)}-${slugify(taskName)}`;
+            const container = document.getElementById(containerId);
+
             // Afficher immédiatement la vidéo
-            const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-${slugify(taskName)}-video`);
-            uploadDiv.classList.add('has-photo');
-            let video = uploadDiv.querySelector('video');
-            if (!video) {
-                video = document.createElement('video');
-                video.controls = true;
-                uploadDiv.appendChild(video);
-            }
-            video.src = URL.createObjectURL(file);
+            container.innerHTML = `
+                <div style="border: 2px solid #10b981; border-radius: 8px; padding: 12px; background: #f0fdf4; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <strong style="color: #065f46;">🎬 Vidéo ajoutée</strong>
+                        <button onclick="removeVideoComplete('${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'task')"
+                                style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            ✕ Supprimer
+                        </button>
+                    </div>
+                    <video controls style="width: 100%; max-width: 400px; border-radius: 4px;">
+                        <source src="${URL.createObjectURL(file)}" type="${file.type}">
+                    </video>
+                    <div style="margin-top: 8px; font-size: 12px; color: #065f46;">
+                        📤 Upload en cours...
+                    </div>
+                </div>
+            `;
 
             // Upload vers Firebase Storage si en ligne
             if (isOnline) {
@@ -1016,9 +1174,21 @@
                     photos[roomName].tasks[taskName].video = videoUrl;
 
                     console.log(`✅ Vidéo uploadée: ${fileName}`);
+
+                    // Mettre à jour l'affichage
+                    const statusDiv = container.querySelector('div[style*="margin-top"]');
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '✅ Vidéo sauvegardée';
+                    }
+
                     await syncPhotosToFirestore();
                 } catch (error) {
                     console.error('Erreur upload vidéo:', error);
+                    const statusDiv = container.querySelector('div[style*="margin-top"]');
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '❌ Erreur upload';
+                        statusDiv.style.color = '#dc2626';
+                    }
                 }
             }
 
@@ -1030,16 +1200,27 @@
             const file = input.files[0];
             if (!file) return;
 
+            const containerId = `video-container-${slugify(roomName)}-general`;
+            const container = document.getElementById(containerId);
+
             // Afficher immédiatement la vidéo
-            const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-general-video`);
-            uploadDiv.classList.add('has-photo');
-            let video = uploadDiv.querySelector('video');
-            if (!video) {
-                video = document.createElement('video');
-                video.controls = true;
-                uploadDiv.appendChild(video);
-            }
-            video.src = URL.createObjectURL(file);
+            container.innerHTML = `
+                <div style="border: 2px solid #10b981; border-radius: 8px; padding: 12px; background: #f0fdf4; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <strong style="color: #065f46;">🎬 Vidéo ajoutée</strong>
+                        <button onclick="removeVideoComplete('${roomName.replace(/'/g, "\\'")}', null, 'general')"
+                                style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            ✕ Supprimer
+                        </button>
+                    </div>
+                    <video controls style="width: 100%; max-width: 400px; border-radius: 4px;">
+                        <source src="${URL.createObjectURL(file)}" type="${file.type}">
+                    </video>
+                    <div style="margin-top: 8px; font-size: 12px; color: #065f46;">
+                        📤 Upload en cours...
+                    </div>
+                </div>
+            `;
 
             // Upload vers Firebase Storage si en ligne
             if (isOnline) {
@@ -1053,9 +1234,21 @@
                     photos[roomName].general.video = videoUrl;
 
                     console.log(`✅ Vidéo uploadée: ${fileName}`);
+
+                    // Mettre à jour l'affichage
+                    const statusDiv = container.querySelector('div[style*="margin-top"]');
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '✅ Vidéo sauvegardée';
+                    }
+
                     await syncPhotosToFirestore();
                 } catch (error) {
                     console.error('Erreur upload vidéo:', error);
+                    const statusDiv = container.querySelector('div[style*="margin-top"]');
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '❌ Erreur upload';
+                        statusDiv.style.color = '#dc2626';
+                    }
                 }
             }
 
@@ -1063,32 +1256,35 @@
             updateProgress();
         }
 
-        function removeVideo(event, roomName, taskName) {
-            event.stopPropagation();
-            event.preventDefault();
-            if (photos[roomName].tasks[taskName]) {
-                photos[roomName].tasks[taskName].video = null;
-            }
-            const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-${slugify(taskName)}-video`);
-            uploadDiv.classList.remove('has-photo');
-            const video = uploadDiv.querySelector('video');
-            if (video) video.remove();
-            uploadDiv.querySelector('input').value = '';
-            updateSectionStatus(roomName, taskName);
-            updateProgress();
-        }
+        function removeVideoComplete(roomName, taskName, type) {
+            const containerId = type === 'general'
+                ? `video-container-${slugify(roomName)}-general`
+                : `video-container-${slugify(roomName)}-${slugify(taskName)}`;
 
-        function removeGeneralVideo(event, roomName) {
-            event.stopPropagation();
-            event.preventDefault();
-            photos[roomName].general.video = null;
-            const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-general-video`);
-            uploadDiv.classList.remove('has-photo');
-            const video = uploadDiv.querySelector('video');
-            if (video) video.remove();
-            uploadDiv.querySelector('input').value = '';
-            updateSectionStatus(roomName, 'general');
-            updateProgress();
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '';
+
+                // Réafficher le bouton "+ Ajouter vidéo"
+                const btn = container.previousElementSibling;
+                if (btn && btn.classList.contains('add-video-btn')) {
+                    btn.style.display = 'block';
+                }
+
+                // Supprimer la vidéo de l'objet photos
+                if (type === 'general') {
+                    photos[roomName].general.video = null;
+                    updateSectionStatus(roomName, 'general');
+                } else {
+                    if (photos[roomName].tasks[taskName]) {
+                        photos[roomName].tasks[taskName].video = null;
+                    }
+                    updateSectionStatus(roomName, taskName);
+                }
+
+                updateProgress();
+                syncPhotosToFirestore();
+            }
         }
 
         function compressImage(dataUrl, callback) {
