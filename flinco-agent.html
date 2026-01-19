@@ -749,6 +749,15 @@
                                     <button class="remove-btn" onclick="removePhoto(event, '${safeRoomName}', '${safeTask}', 'apres')">×</button>
                                 </div>
                             </div>
+                            ${showVideo ? `<div class="photo-box">
+                                <label>Vidéo</label>
+                                <div class="photo-upload" id="upload-${slugify(roomName)}-${slugify(task)}-video">
+                                    <input type="file" accept="video/*" capture="environment" onchange="handleVideo('${safeRoomName}', '${safeTask}', this)">
+                                    <span class="icon">🎬</span>
+                                    <span class="text">Filmer</span>
+                                    <button class="remove-btn" onclick="removeVideo(event, '${safeRoomName}', '${safeTask}')">×</button>
+                                </div>
+                            </div>` : ''}
                 `;
 
                 // Ajouter les photos ouvert/fermé pour les équipements
@@ -809,6 +818,15 @@
                                         <button class="remove-btn" onclick="removeGeneralPhoto(event, '${safeRoomName}', 'apres')">×</button>
                                     </div>
                                 </div>
+                                ${showVideo ? `<div class="photo-box">
+                                    <label>Vidéo</label>
+                                    <div class="photo-upload" id="upload-${slugify(roomName)}-general-video">
+                                        <input type="file" accept="video/*" capture="environment" onchange="handleGeneralVideo('${safeRoomName}', this)">
+                                        <span class="icon">🎬</span>
+                                        <span class="text">Filmer</span>
+                                        <button class="remove-btn" onclick="removeGeneralVideo(event, '${safeRoomName}')">×</button>
+                                    </div>
+                                </div>` : ''}
                             </div>
                         </div>
                         ${tasksHtml}
@@ -834,6 +852,10 @@
             const reader = new FileReader();
             reader.onload = async function(e) {
                 compressImage(e.target.result, async function(compressed) {
+                    // Sauvegarder automatiquement dans la galerie
+                    const filename = `FLINCO_${slugify(roomName)}_${slugify(taskName)}_${type}_${Date.now()}.jpg`;
+                    downloadToGallery(compressed, filename);
+
                     // Afficher immédiatement l'image
                     photos[roomName].tasks[taskName][type] = compressed;
                     const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-${slugify(taskName)}-${type}`);
@@ -880,6 +902,10 @@
             const reader = new FileReader();
             reader.onload = async function(e) {
                 compressImage(e.target.result, async function(compressed) {
+                    // Sauvegarder automatiquement dans la galerie
+                    const filename = `FLINCO_${slugify(roomName)}_general_${type}_${Date.now()}.jpg`;
+                    downloadToGallery(compressed, filename);
+
                     // Afficher immédiatement l'image
                     photos[roomName].general[type] = compressed;
                     const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-general-${type}`);
@@ -959,7 +985,112 @@
             updateSectionStatus(roomName, 'general');
             updateProgress();
         }
-        
+
+        async function handleVideo(roomName, taskName, input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Afficher immédiatement la vidéo
+            const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-${slugify(taskName)}-video`);
+            uploadDiv.classList.add('has-photo');
+            let video = uploadDiv.querySelector('video');
+            if (!video) {
+                video = document.createElement('video');
+                video.controls = true;
+                uploadDiv.appendChild(video);
+            }
+            video.src = URL.createObjectURL(file);
+
+            // Upload vers Firebase Storage si en ligne
+            if (isOnline) {
+                try {
+                    const fileName = `${reportId}/${slugify(roomName)}/${slugify(taskName)}_video_${Date.now()}.mp4`;
+                    const storageRef = storage.ref().child(`videos/${fileName}`);
+                    await storageRef.put(file);
+                    const videoUrl = await storageRef.getDownloadURL();
+
+                    // Stocker l'URL de la vidéo
+                    if (!photos[roomName].tasks[taskName]) {
+                        photos[roomName].tasks[taskName] = {};
+                    }
+                    photos[roomName].tasks[taskName].video = videoUrl;
+
+                    console.log(`✅ Vidéo uploadée: ${fileName}`);
+                    await syncPhotosToFirestore();
+                } catch (error) {
+                    console.error('Erreur upload vidéo:', error);
+                }
+            }
+
+            updateSectionStatus(roomName, taskName);
+            updateProgress();
+        }
+
+        async function handleGeneralVideo(roomName, input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Afficher immédiatement la vidéo
+            const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-general-video`);
+            uploadDiv.classList.add('has-photo');
+            let video = uploadDiv.querySelector('video');
+            if (!video) {
+                video = document.createElement('video');
+                video.controls = true;
+                uploadDiv.appendChild(video);
+            }
+            video.src = URL.createObjectURL(file);
+
+            // Upload vers Firebase Storage si en ligne
+            if (isOnline) {
+                try {
+                    const fileName = `${reportId}/${slugify(roomName)}/general_video_${Date.now()}.mp4`;
+                    const storageRef = storage.ref().child(`videos/${fileName}`);
+                    await storageRef.put(file);
+                    const videoUrl = await storageRef.getDownloadURL();
+
+                    // Stocker l'URL de la vidéo
+                    photos[roomName].general.video = videoUrl;
+
+                    console.log(`✅ Vidéo uploadée: ${fileName}`);
+                    await syncPhotosToFirestore();
+                } catch (error) {
+                    console.error('Erreur upload vidéo:', error);
+                }
+            }
+
+            updateSectionStatus(roomName, 'general');
+            updateProgress();
+        }
+
+        function removeVideo(event, roomName, taskName) {
+            event.stopPropagation();
+            event.preventDefault();
+            if (photos[roomName].tasks[taskName]) {
+                photos[roomName].tasks[taskName].video = null;
+            }
+            const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-${slugify(taskName)}-video`);
+            uploadDiv.classList.remove('has-photo');
+            const video = uploadDiv.querySelector('video');
+            if (video) video.remove();
+            uploadDiv.querySelector('input').value = '';
+            updateSectionStatus(roomName, taskName);
+            updateProgress();
+        }
+
+        function removeGeneralVideo(event, roomName) {
+            event.stopPropagation();
+            event.preventDefault();
+            photos[roomName].general.video = null;
+            const uploadDiv = document.getElementById(`upload-${slugify(roomName)}-general-video`);
+            uploadDiv.classList.remove('has-photo');
+            const video = uploadDiv.querySelector('video');
+            if (video) video.remove();
+            uploadDiv.querySelector('input').value = '';
+            updateSectionStatus(roomName, 'general');
+            updateProgress();
+        }
+
         function compressImage(dataUrl, callback) {
             const img = new Image();
             img.onload = function() {
@@ -977,7 +1108,47 @@
             };
             img.src = dataUrl;
         }
-        
+
+        function downloadToGallery(dataUrl, filename) {
+            try {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = filename;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                console.log(`💾 Photo sauvegardée: ${filename}`);
+            } catch (error) {
+                console.error('Erreur sauvegarde galerie:', error);
+            }
+        }
+
+        function getImageDimensions(dataUrl) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    resolve({ width: img.width, height: img.height });
+                };
+                img.onerror = reject;
+                img.src = dataUrl;
+            });
+        }
+
+        function calculatePdfImageSize(originalWidth, originalHeight, maxWidth = 75, maxHeight = 60) {
+            const aspectRatio = originalWidth / originalHeight;
+            let width = maxWidth;
+            let height = width / aspectRatio;
+
+            // Si la hauteur dépasse la hauteur max, recalculer à partir de la hauteur
+            if (height > maxHeight) {
+                height = maxHeight;
+                width = height * aspectRatio;
+            }
+
+            return { width, height };
+        }
+
         function updateSectionStatus(roomName, taskName) {
             const sectionId = taskName === 'general' ? `section-${slugify(roomName)}-general` : `section-${slugify(roomName)}-${slugify(taskName)}`;
             const section = document.getElementById(sectionId);
@@ -1189,101 +1360,62 @@
                         pdf.text('Après', 110, y);
                         y += 4;
 
-                        const imgW = 75, imgH = 55;
                         pdf.setDrawColor(200, 200, 200);
-                        pdf.rect(20, y, imgW, imgH);
+
+                        // Image Avant avec dimensions calculées
+                        let avantImgW = 75, avantImgH = 55;
                         if (photos[roomName].general.avant) {
                             try {
-                                console.log('Chargement image avant:', photos[roomName].general.avant);
-                                if (photos[roomName].general.avant.startsWith('http')) {
-                                    // Charger l'image via HTMLImageElement pour éviter les problèmes CORS
-                                    const avantBase64 = await new Promise((resolve, reject) => {
-                                        const img = new Image();
-                                        img.crossOrigin = 'anonymous';
+                                const dimensions = await getImageDimensions(photos[roomName].general.avant);
+                                const size = calculatePdfImageSize(dimensions.width, dimensions.height);
+                                avantImgW = size.width;
+                                avantImgH = size.height;
+                            } catch(e) {
+                                console.log('Utilisation dimensions par défaut pour avant');
+                            }
+                        }
 
-                                        const timeout = setTimeout(() => {
-                                            reject(new Error('Timeout chargement image avant'));
-                                        }, 10000);
-
-                                        img.onload = () => {
-                                            clearTimeout(timeout);
-                                            try {
-                                                const canvas = document.createElement('canvas');
-                                                canvas.width = img.width;
-                                                canvas.height = img.height;
-                                                const ctx = canvas.getContext('2d');
-                                                ctx.drawImage(img, 0, 0);
-                                                resolve(canvas.toDataURL('image/jpeg', 0.9));
-                                            } catch(e) {
-                                                reject(e);
-                                            }
-                                        };
-                                        img.onerror = (e) => {
-                                            clearTimeout(timeout);
-                                            reject(new Error('Erreur chargement image: ' + e));
-                                        };
-                                        img.src = photos[roomName].general.avant;
-                                    });
-                                    pdf.addImage(avantBase64, 'JPEG', 20, y, imgW, imgH);
-                                    console.log('✅ Image avant ajoutée');
-                                } else {
-                                    pdf.addImage(photos[roomName].general.avant, 'JPEG', 20, y, imgW, imgH);
-                                }
+                        pdf.rect(20, y, avantImgW, avantImgH);
+                        if (photos[roomName].general.avant) {
+                            try {
+                                pdf.addImage(photos[roomName].general.avant, 'JPEG', 20, y, avantImgW, avantImgH);
+                                console.log('✅ Image avant ajoutée');
                             } catch(e) {
                                 console.error('❌ Erreur général avant:', e);
-                                // Afficher un message d'erreur dans le PDF
                                 pdf.setFontSize(8);
                                 pdf.setTextColor(255, 0, 0);
-                                pdf.text('Image non disponible', 25, y + imgH/2);
+                                pdf.text('Image non disponible', 25, y + avantImgH/2);
                             }
                         }
-                        pdf.rect(105, y, imgW, imgH);
+
+                        // Image Après avec dimensions calculées
+                        let apresImgW = 75, apresImgH = 55;
                         if (photos[roomName].general.apres) {
                             try {
-                                console.log('Chargement image après:', photos[roomName].general.apres);
-                                if (photos[roomName].general.apres.startsWith('http')) {
-                                    // Charger l'image via HTMLImageElement pour éviter les problèmes CORS
-                                    const apresBase64 = await new Promise((resolve, reject) => {
-                                        const img = new Image();
-                                        img.crossOrigin = 'anonymous';
-
-                                        const timeout = setTimeout(() => {
-                                            reject(new Error('Timeout chargement image après'));
-                                        }, 10000);
-
-                                        img.onload = () => {
-                                            clearTimeout(timeout);
-                                            try {
-                                                const canvas = document.createElement('canvas');
-                                                canvas.width = img.width;
-                                                canvas.height = img.height;
-                                                const ctx = canvas.getContext('2d');
-                                                ctx.drawImage(img, 0, 0);
-                                                resolve(canvas.toDataURL('image/jpeg', 0.9));
-                                            } catch(e) {
-                                                reject(e);
-                                            }
-                                        };
-                                        img.onerror = (e) => {
-                                            clearTimeout(timeout);
-                                            reject(new Error('Erreur chargement image: ' + e));
-                                        };
-                                        img.src = photos[roomName].general.apres;
-                                    });
-                                    pdf.addImage(apresBase64, 'JPEG', 105, y, imgW, imgH);
-                                    console.log('✅ Image après ajoutée');
-                                } else {
-                                    pdf.addImage(photos[roomName].general.apres, 'JPEG', 105, y, imgW, imgH);
-                                }
+                                const dimensions = await getImageDimensions(photos[roomName].general.apres);
+                                const size = calculatePdfImageSize(dimensions.width, dimensions.height);
+                                apresImgW = size.width;
+                                apresImgH = size.height;
                             } catch(e) {
-                                console.error('❌ Erreur général après:', e);
-                                // Afficher un message d'erreur dans le PDF
-                                pdf.setFontSize(8);
-                                pdf.setTextColor(255, 0, 0);
-                                pdf.text('Image non disponible', 110, y + imgH/2);
+                                console.log('Utilisation dimensions par défaut pour après');
                             }
                         }
-                        y += imgH + 8;
+
+                        pdf.rect(105, y, apresImgW, apresImgH);
+                        if (photos[roomName].general.apres) {
+                            try {
+                                pdf.addImage(photos[roomName].general.apres, 'JPEG', 105, y, apresImgW, apresImgH);
+                                console.log('✅ Image après ajoutée');
+                            } catch(e) {
+                                console.error('❌ Erreur général après:', e);
+                                pdf.setFontSize(8);
+                                pdf.setTextColor(255, 0, 0);
+                                pdf.text('Image non disponible', 110, y + apresImgH/2);
+                            }
+                        }
+
+                        // Avancer en fonction de la hauteur maximale des deux images
+                        y += Math.max(avantImgH, apresImgH) + 8;
 
                         // Lien vers vidéo générale si elle existe
                         if (photos[roomName].general.video) {
@@ -1316,57 +1448,49 @@
                         pdf.text('Après', 110, y);
                         y += 4;
 
-                        const imgW = 75, imgH = 50;
                         pdf.setDrawColor(200, 200, 200);
-                        pdf.rect(20, y, imgW, imgH);
+
+                        // Calculer dimensions pour image avant
+                        let taskAvantImgW = 75, taskAvantImgH = 50;
                         if (task.avant) {
                             try {
-                                if (task.avant.startsWith('http')) {
-                                    const avantBase64 = await new Promise((resolve, reject) => {
-                                        const img = new Image();
-                                        img.crossOrigin = 'anonymous';
-                                        img.onload = () => {
-                                            const canvas = document.createElement('canvas');
-                                            canvas.width = img.width;
-                                            canvas.height = img.height;
-                                            const ctx = canvas.getContext('2d');
-                                            ctx.drawImage(img, 0, 0);
-                                            resolve(canvas.toDataURL('image/jpeg', 0.9));
-                                        };
-                                        img.onerror = reject;
-                                        img.src = task.avant;
-                                    });
-                                    pdf.addImage(avantBase64, 'JPEG', 20, y, imgW, imgH);
-                                } else {
-                                    pdf.addImage(task.avant, 'JPEG', 20, y, imgW, imgH);
-                                }
+                                const dimensions = await getImageDimensions(task.avant);
+                                const size = calculatePdfImageSize(dimensions.width, dimensions.height, 75, 50);
+                                taskAvantImgW = size.width;
+                                taskAvantImgH = size.height;
+                            } catch(e) {
+                                console.log('Utilisation dimensions par défaut pour avant tâche');
+                            }
+                        }
+
+                        pdf.rect(20, y, taskAvantImgW, taskAvantImgH);
+                        if (task.avant) {
+                            try {
+                                pdf.addImage(task.avant, 'JPEG', 20, y, taskAvantImgW, taskAvantImgH);
                             } catch(e) { console.error('Erreur image avant:', e); }
                         }
-                        pdf.rect(105, y, imgW, imgH);
+
+                        // Calculer dimensions pour image après
+                        let taskApresImgW = 75, taskApresImgH = 50;
                         if (task.apres) {
                             try {
-                                if (task.apres.startsWith('http')) {
-                                    const apresBase64 = await new Promise((resolve, reject) => {
-                                        const img = new Image();
-                                        img.crossOrigin = 'anonymous';
-                                        img.onload = () => {
-                                            const canvas = document.createElement('canvas');
-                                            canvas.width = img.width;
-                                            canvas.height = img.height;
-                                            const ctx = canvas.getContext('2d');
-                                            ctx.drawImage(img, 0, 0);
-                                            resolve(canvas.toDataURL('image/jpeg', 0.9));
-                                        };
-                                        img.onerror = reject;
-                                        img.src = task.apres;
-                                    });
-                                    pdf.addImage(apresBase64, 'JPEG', 105, y, imgW, imgH);
-                                } else {
-                                    pdf.addImage(task.apres, 'JPEG', 105, y, imgW, imgH);
-                                }
+                                const dimensions = await getImageDimensions(task.apres);
+                                const size = calculatePdfImageSize(dimensions.width, dimensions.height, 75, 50);
+                                taskApresImgW = size.width;
+                                taskApresImgH = size.height;
+                            } catch(e) {
+                                console.log('Utilisation dimensions par défaut pour après tâche');
+                            }
+                        }
+
+                        pdf.rect(105, y, taskApresImgW, taskApresImgH);
+                        if (task.apres) {
+                            try {
+                                pdf.addImage(task.apres, 'JPEG', 105, y, taskApresImgW, taskApresImgH);
                             } catch(e) { console.error('Erreur image après:', e); }
                         }
-                        y += imgH + 8;
+
+                        y += Math.max(taskAvantImgH, taskApresImgH) + 8;
 
                         // Lien vers vidéo si elle existe
                         if (task.video) {
@@ -1387,55 +1511,47 @@
                             pdf.text('Fermé', 110, y);
                             y += 4;
 
-                            pdf.rect(20, y, imgW, imgH);
+                            // Calculer dimensions pour image ouvert
+                            let ouvertImgW = 75, ouvertImgH = 50;
                             if (task.ouvert) {
                                 try {
-                                    if (task.ouvert.startsWith('http')) {
-                                        const ouvertBase64 = await new Promise((resolve, reject) => {
-                                            const img = new Image();
-                                            img.crossOrigin = 'anonymous';
-                                            img.onload = () => {
-                                                const canvas = document.createElement('canvas');
-                                                canvas.width = img.width;
-                                                canvas.height = img.height;
-                                                const ctx = canvas.getContext('2d');
-                                                ctx.drawImage(img, 0, 0);
-                                                resolve(canvas.toDataURL('image/jpeg', 0.9));
-                                            };
-                                            img.onerror = reject;
-                                            img.src = task.ouvert;
-                                        });
-                                        pdf.addImage(ouvertBase64, 'JPEG', 20, y, imgW, imgH);
-                                    } else {
-                                        pdf.addImage(task.ouvert, 'JPEG', 20, y, imgW, imgH);
-                                    }
+                                    const dimensions = await getImageDimensions(task.ouvert);
+                                    const size = calculatePdfImageSize(dimensions.width, dimensions.height, 75, 50);
+                                    ouvertImgW = size.width;
+                                    ouvertImgH = size.height;
+                                } catch(e) {
+                                    console.log('Utilisation dimensions par défaut pour ouvert');
+                                }
+                            }
+
+                            pdf.rect(20, y, ouvertImgW, ouvertImgH);
+                            if (task.ouvert) {
+                                try {
+                                    pdf.addImage(task.ouvert, 'JPEG', 20, y, ouvertImgW, ouvertImgH);
                                 } catch(e) { console.error('Erreur image ouvert:', e); }
                             }
-                            pdf.rect(105, y, imgW, imgH);
+
+                            // Calculer dimensions pour image fermé
+                            let fermeImgW = 75, fermeImgH = 50;
                             if (task.ferme) {
                                 try {
-                                    if (task.ferme.startsWith('http')) {
-                                        const fermeBase64 = await new Promise((resolve, reject) => {
-                                            const img = new Image();
-                                            img.crossOrigin = 'anonymous';
-                                            img.onload = () => {
-                                                const canvas = document.createElement('canvas');
-                                                canvas.width = img.width;
-                                                canvas.height = img.height;
-                                                const ctx = canvas.getContext('2d');
-                                                ctx.drawImage(img, 0, 0);
-                                                resolve(canvas.toDataURL('image/jpeg', 0.9));
-                                            };
-                                            img.onerror = reject;
-                                            img.src = task.ferme;
-                                        });
-                                        pdf.addImage(fermeBase64, 'JPEG', 105, y, imgW, imgH);
-                                    } else {
-                                        pdf.addImage(task.ferme, 'JPEG', 105, y, imgW, imgH);
-                                    }
+                                    const dimensions = await getImageDimensions(task.ferme);
+                                    const size = calculatePdfImageSize(dimensions.width, dimensions.height, 75, 50);
+                                    fermeImgW = size.width;
+                                    fermeImgH = size.height;
+                                } catch(e) {
+                                    console.log('Utilisation dimensions par défaut pour fermé');
+                                }
+                            }
+
+                            pdf.rect(105, y, fermeImgW, fermeImgH);
+                            if (task.ferme) {
+                                try {
+                                    pdf.addImage(task.ferme, 'JPEG', 105, y, fermeImgW, fermeImgH);
                                 } catch(e) { console.error('Erreur image fermé:', e); }
                             }
-                            y += imgH + 8;
+
+                            y += Math.max(ouvertImgH, fermeImgH) + 8;
                         }
 
                         y += 4; // Espacement entre tâches
