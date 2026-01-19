@@ -390,6 +390,7 @@
         
         let reportId = null;
         let reportData = null;
+        let photoMode = 'avant-apres'; // Par défaut: avant-apres, apres-only, avant-apres-video
         let photos = {};
         let isOnline = navigator.onLine;
         let autoSaveInterval = null;
@@ -541,6 +542,10 @@
                     showError('Rapport déjà terminé', 'Ce rapport a déjà été complété.');
                     return;
                 }
+
+                // Charger le mode photos (par défaut: avant-apres)
+                photoMode = reportData.photoMode || 'avant-apres';
+                console.log('📸 Mode photos:', photoMode);
 
                 // Initialiser la structure photos si nécessaire
                 if (!localData || !localData.photos) {
