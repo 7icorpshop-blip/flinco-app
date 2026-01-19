@@ -1233,9 +1233,20 @@
                                 }
                             } catch(e) { console.error('Erreur général après:', e); }
                         }
-                        y += imgH + 15;
+                        y += imgH + 8;
+
+                        // Lien vers vidéo générale si elle existe
+                        if (photos[roomName].general.video) {
+                            if (y > 265) { pdf.addPage(); y = 20; }
+                            pdf.setFontSize(10);
+                            pdf.setTextColor(16, 185, 129); // Couleur verte
+                            pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: photos[roomName].general.video });
+                            y += 10;
+                        } else {
+                            y += 7;
+                        }
                     }
-                    
+
                     for (const taskName in photos[roomName].tasks) {
                         const task = photos[roomName].tasks[taskName];
                         if (y > 210) { pdf.addPage(); y = 20; }
@@ -1306,6 +1317,15 @@
                             } catch(e) { console.error('Erreur image après:', e); }
                         }
                         y += imgH + 8;
+
+                        // Lien vers vidéo si elle existe
+                        if (task.video) {
+                            if (y > 265) { pdf.addPage(); y = 20; }
+                            pdf.setFontSize(10);
+                            pdf.setTextColor(16, 185, 129); // Couleur verte
+                            pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: task.video });
+                            y += 8;
+                        }
 
                         // Photos ouvert/fermé pour les équipements
                         if (task.ouvert !== undefined && task.ferme !== undefined) {

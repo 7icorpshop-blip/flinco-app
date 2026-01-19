@@ -533,7 +533,7 @@
 
         .task-photos-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 10px;
             margin-bottom: 16px;
         }
@@ -650,6 +650,7 @@
                             <option value="Électricité & Éclairage">Électricité & Éclairage</option>
                             <option value="Menuiseries">Menuiseries</option>
                             <option value="Mobilier">Mobilier</option>
+                            <option value="Joints & Réparations">Joints & Réparations</option>
                             <option value="Personnalisé">➕ Nouvelle catégorie</option>
                         </select>
                         <input type="text" id="customCategoryName" placeholder="Nom de la nouvelle catégorie..." style="flex: 1; padding: 12px 14px; background: var(--card); border: 2px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; display: none;">
@@ -687,8 +688,8 @@
             </div>
 
             <div class="section" id="photosSection" style="display: none;">
-                <div class="section-title">📸 Gestion des photos</div>
-                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">Ajoutez ou modifiez les photos du rapport. Les photos sont organisées par pièce et par tâche.</p>
+                <div class="section-title">📸 Gestion des photos et vidéos</div>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">Ajoutez ou modifiez les photos et vidéos du rapport. Les médias sont organisés par pièce et par tâche. Les vidéos sont utiles pour montrer les réparations ou équipements en fonctionnement.</p>
                 <div id="photosManagement"></div>
             </div>
 
@@ -870,6 +871,7 @@
                 'Nettoyage taches sol'
             ],
             'Murs': [
+                'Murs — Nettoyage général',
                 'Mur droit — Dépoussiérage',
                 'Mur droit — Nettoyage traces',
                 'Mur droit — Lessivage',
@@ -923,6 +925,15 @@
                 'Débarras mobilier',
                 'Placard — Nettoyage extérieur (fermé)',
                 'Placard — Nettoyage intérieur (ouvert)'
+            ],
+            'Joints & Réparations': [
+                'Réfection joints sol',
+                'Réfection joints mur',
+                'Réfection joints carrelage',
+                'Réfection joints sanitaires',
+                'Réfection joints évier',
+                'Rebouchage trous',
+                'Retouche peinture'
             ]
         };
 
@@ -2099,36 +2110,48 @@
             container.innerHTML = roomNames.map(roomName => {
                 // Initialiser la structure photos si elle n'existe pas
                 if (!reportPhotos[roomName]) {
-                    reportPhotos[roomName] = { general: { avant: null, apres: null }, tasks: {} };
+                    reportPhotos[roomName] = { general: { avant: null, apres: null, video: null }, tasks: {} };
                 }
 
                 // Générer l'HTML pour les photos générales
                 let generalPhotosHtml = `
                     <div style="margin-bottom: 16px;">
-                        <h5 style="font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 10px;">📷 Photos générales de la pièce</h5>
+                        <h5 style="font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 10px;">📷 Photos et vidéos générales de la pièce</h5>
                         <div class="task-photos-grid">
                             <div>
                                 <div class="photo-label">Avant</div>
                                 <div class="photo-upload-box ${reportPhotos[roomName].general.avant ? 'has-photo' : ''}" id="photo-${slugify(roomName)}-general-avant">
-                                    <input type="file" accept="image/*" onchange="handleAdminPhoto('${roomName.replace(/'/g, "\\'")}', 'general', 'avant', this)">
+                                    <input type="file" accept="image/*" onchange="handleAdminMedia('${roomName.replace(/'/g, "\\'")}', 'general', 'avant', this)">
                                     <div class="content">
                                         <div class="icon">📸</div>
                                         <div class="text">Ajouter photo</div>
                                     </div>
                                     ${reportPhotos[roomName].general.avant ? `<img src="${reportPhotos[roomName].general.avant}" alt="Avant">` : ''}
-                                    <button class="photo-remove-btn" onclick="removeAdminPhoto(event, '${roomName.replace(/'/g, "\\'")}', 'general', 'avant')">×</button>
+                                    <button class="photo-remove-btn" onclick="removeAdminMedia(event, '${roomName.replace(/'/g, "\\'")}', 'general', 'avant')">×</button>
                                 </div>
                             </div>
                             <div>
                                 <div class="photo-label">Après</div>
                                 <div class="photo-upload-box ${reportPhotos[roomName].general.apres ? 'has-photo' : ''}" id="photo-${slugify(roomName)}-general-apres">
-                                    <input type="file" accept="image/*" onchange="handleAdminPhoto('${roomName.replace(/'/g, "\\'")}', 'general', 'apres', this)">
+                                    <input type="file" accept="image/*" onchange="handleAdminMedia('${roomName.replace(/'/g, "\\'")}', 'general', 'apres', this)">
                                     <div class="content">
                                         <div class="icon">📸</div>
                                         <div class="text">Ajouter photo</div>
                                     </div>
                                     ${reportPhotos[roomName].general.apres ? `<img src="${reportPhotos[roomName].general.apres}" alt="Après">` : ''}
-                                    <button class="photo-remove-btn" onclick="removeAdminPhoto(event, '${roomName.replace(/'/g, "\\'")}', 'general', 'apres')">×</button>
+                                    <button class="photo-remove-btn" onclick="removeAdminMedia(event, '${roomName.replace(/'/g, "\\'")}', 'general', 'apres')">×</button>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="photo-label">Vidéo</div>
+                                <div class="photo-upload-box ${reportPhotos[roomName].general.video ? 'has-photo' : ''}" id="photo-${slugify(roomName)}-general-video">
+                                    <input type="file" accept="video/*" onchange="handleAdminMedia('${roomName.replace(/'/g, "\\'")}', 'general', 'video', this)">
+                                    <div class="content">
+                                        <div class="icon">🎬</div>
+                                        <div class="text">Ajouter vidéo</div>
+                                    </div>
+                                    ${reportPhotos[roomName].general.video ? `<video src="${reportPhotos[roomName].general.video}" controls style="position: absolute; width: 100%; height: 100%; object-fit: cover;"></video>` : ''}
+                                    <button class="photo-remove-btn" onclick="removeAdminMedia(event, '${roomName.replace(/'/g, "\\'")}', 'general', 'video')">×</button>
                                 </div>
                             </div>
                         </div>
@@ -2142,7 +2165,7 @@
                     tasksPhotosHtml = roomTasks.map(taskName => {
                         // Initialiser la structure pour cette tâche
                         if (!reportPhotos[roomName].tasks[taskName]) {
-                            reportPhotos[roomName].tasks[taskName] = { avant: null, apres: null };
+                            reportPhotos[roomName].tasks[taskName] = { avant: null, apres: null, video: null };
                         }
 
                         return `
@@ -2152,25 +2175,37 @@
                                     <div>
                                         <div class="photo-label">Avant</div>
                                         <div class="photo-upload-box ${reportPhotos[roomName].tasks[taskName].avant ? 'has-photo' : ''}" id="photo-${slugify(roomName)}-${slugify(taskName)}-avant">
-                                            <input type="file" accept="image/*" onchange="handleAdminPhoto('${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'avant', this)">
+                                            <input type="file" accept="image/*" onchange="handleAdminMedia('${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'avant', this)">
                                             <div class="content">
                                                 <div class="icon">📸</div>
                                                 <div class="text">Ajouter photo</div>
                                             </div>
                                             ${reportPhotos[roomName].tasks[taskName].avant ? `<img src="${reportPhotos[roomName].tasks[taskName].avant}" alt="Avant">` : ''}
-                                            <button class="photo-remove-btn" onclick="removeAdminPhoto(event, '${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'avant')">×</button>
+                                            <button class="photo-remove-btn" onclick="removeAdminMedia(event, '${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'avant')">×</button>
                                         </div>
                                     </div>
                                     <div>
                                         <div class="photo-label">Après</div>
                                         <div class="photo-upload-box ${reportPhotos[roomName].tasks[taskName].apres ? 'has-photo' : ''}" id="photo-${slugify(roomName)}-${slugify(taskName)}-apres">
-                                            <input type="file" accept="image/*" onchange="handleAdminPhoto('${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'apres', this)">
+                                            <input type="file" accept="image/*" onchange="handleAdminMedia('${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'apres', this)">
                                             <div class="content">
                                                 <div class="icon">📸</div>
                                                 <div class="text">Ajouter photo</div>
                                             </div>
                                             ${reportPhotos[roomName].tasks[taskName].apres ? `<img src="${reportPhotos[roomName].tasks[taskName].apres}" alt="Après">` : ''}
-                                            <button class="photo-remove-btn" onclick="removeAdminPhoto(event, '${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'apres')">×</button>
+                                            <button class="photo-remove-btn" onclick="removeAdminMedia(event, '${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'apres')">×</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="photo-label">Vidéo</div>
+                                        <div class="photo-upload-box ${reportPhotos[roomName].tasks[taskName].video ? 'has-photo' : ''}" id="photo-${slugify(roomName)}-${slugify(taskName)}-video">
+                                            <input type="file" accept="video/*" onchange="handleAdminMedia('${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'video', this)">
+                                            <div class="content">
+                                                <div class="icon">🎬</div>
+                                                <div class="text">Ajouter vidéo</div>
+                                            </div>
+                                            ${reportPhotos[roomName].tasks[taskName].video ? `<video src="${reportPhotos[roomName].tasks[taskName].video}" controls style="position: absolute; width: 100%; height: 100%; object-fit: cover;"></video>` : ''}
+                                            <button class="photo-remove-btn" onclick="removeAdminMedia(event, '${roomName.replace(/'/g, "\\'")}', '${taskName.replace(/'/g, "\\'")}', 'video')">×</button>
                                         </div>
                                     </div>
                                 </div>
@@ -2205,28 +2240,28 @@
                 .replace(/^-|-$/g, '');
         }
 
-        async function handleAdminPhoto(roomName, taskName, type, input) {
+        async function handleAdminMedia(roomName, taskName, type, input) {
             const file = input.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = async function(e) {
+            const isVideo = file.type.startsWith('video/');
+
+            if (isVideo) {
+                // Gérer l'upload de vidéo (pas de compression)
                 try {
-                    const compressed = await compressImageAdmin(e.target.result);
+                    const extension = file.name.split('.').pop();
+                    const fileName = `${editingReportId}/${slugify(roomName)}/${taskName === 'general' ? 'general' : slugify(taskName)}_${type}_${Date.now()}.${extension}`;
+                    const storageRef = storage.ref().child(`videos/${fileName}`);
 
-                    // Upload vers Firebase Storage
-                    const blob = await fetch(compressed).then(r => r.blob());
-                    const fileName = `${editingReportId}/${slugify(roomName)}/${taskName === 'general' ? 'general' : slugify(taskName)}_${type}_${Date.now()}.jpg`;
-                    const storageRef = storage.ref().child(`photos/${fileName}`);
-
-                    await storageRef.put(blob);
-                    const photoUrl = await storageRef.getDownloadURL();
+                    // Upload direct
+                    await storageRef.put(file);
+                    const videoUrl = await storageRef.getDownloadURL();
 
                     // Sauvegarder l'URL dans la structure
                     if (taskName === 'general') {
-                        reportPhotos[roomName].general[type] = photoUrl;
+                        reportPhotos[roomName].general[type] = videoUrl;
                     } else {
-                        reportPhotos[roomName].tasks[taskName][type] = photoUrl;
+                        reportPhotos[roomName].tasks[taskName][type] = videoUrl;
                     }
 
                     // Mettre à jour Firestore immédiatement
@@ -2238,20 +2273,58 @@
                     // Re-render l'interface
                     renderPhotosManagement();
 
-                    console.log(`✅ Photo uploadée: ${fileName}`);
+                    console.log(`✅ Vidéo uploadée: ${fileName}`);
                 } catch (error) {
-                    console.error('Erreur upload photo:', error);
-                    alert('Erreur lors de l\'upload de la photo: ' + error.message);
+                    console.error('Erreur upload vidéo:', error);
+                    alert('Erreur lors de l\'upload de la vidéo: ' + error.message);
                 }
-            };
-            reader.readAsDataURL(file);
+            } else {
+                // Gérer l'upload d'image (avec compression)
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const compressed = await compressImageAdmin(e.target.result);
+
+                        // Upload vers Firebase Storage
+                        const blob = await fetch(compressed).then(r => r.blob());
+                        const fileName = `${editingReportId}/${slugify(roomName)}/${taskName === 'general' ? 'general' : slugify(taskName)}_${type}_${Date.now()}.jpg`;
+                        const storageRef = storage.ref().child(`photos/${fileName}`);
+
+                        await storageRef.put(blob);
+                        const photoUrl = await storageRef.getDownloadURL();
+
+                        // Sauvegarder l'URL dans la structure
+                        if (taskName === 'general') {
+                            reportPhotos[roomName].general[type] = photoUrl;
+                        } else {
+                            reportPhotos[roomName].tasks[taskName][type] = photoUrl;
+                        }
+
+                        // Mettre à jour Firestore immédiatement
+                        await db.collection('reports').doc(editingReportId).update({
+                            photos: reportPhotos,
+                            lastPhotoUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        // Re-render l'interface
+                        renderPhotosManagement();
+
+                        console.log(`✅ Photo uploadée: ${fileName}`);
+                    } catch (error) {
+                        console.error('Erreur upload photo:', error);
+                        alert('Erreur lors de l\'upload de la photo: ' + error.message);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
         }
 
-        async function removeAdminPhoto(event, roomName, taskName, type) {
+        async function removeAdminMedia(event, roomName, taskName, type) {
             event.preventDefault();
             event.stopPropagation();
 
-            if (!confirm('Supprimer cette photo ?')) return;
+            const mediaType = type === 'video' ? 'vidéo' : 'photo';
+            if (!confirm(`Supprimer cette ${mediaType} ?`)) return;
 
             try {
                 // Retirer de la structure
