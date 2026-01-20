@@ -630,8 +630,13 @@
             }
 
             updateRoomSelect();
-            restoreVideosDisplay();
-            restorePhotosDisplay();
+
+            // Attendre que le DOM soit prêt avant de restaurer les vidéos
+            setTimeout(() => {
+                restoreVideosDisplay();
+                restorePhotosDisplay();
+            }, 100);
+
             updateProgress();
         }
 
@@ -1117,12 +1122,20 @@
         }
 
         function showVideoUpload(roomName, taskName, type) {
+            console.log('🎬 showVideoUpload appelé:', { roomName, taskName, type });
+
             const containerId = type === 'general'
                 ? `video-container-${slugify(roomName)}-general`
                 : `video-container-${slugify(roomName)}-${slugify(taskName)}`;
 
+            console.log('📦 Recherche container:', containerId);
             const container = document.getElementById(containerId);
-            if (!container) return;
+            console.log('📦 Container trouvé:', container);
+
+            if (!container) {
+                console.error('❌ Container introuvable pour', containerId);
+                return;
+            }
 
             // Masquer le bouton "+ Ajouter vidéo"
             const btn = container.previousElementSibling;
