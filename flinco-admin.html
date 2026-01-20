@@ -645,6 +645,13 @@
                     </select>
                     <p style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">💡 L'agent verra uniquement les champs sélectionnés. Vous pourrez toujours ajouter des médias manquants via l'édition du rapport.</p>
                 </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px;">
+                        <input type="checkbox" id="requireVideoMainRoom" style="width: 18px; height: 18px; margin-right: 10px; cursor: pointer;">
+                        <span>🎬 Vidéo obligatoire sur la vue générale des pièces principales</span>
+                    </label>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Si activé, l'agent devra obligatoirement ajouter une vidéo pour chaque vue générale de pièce.</p>
+                </div>
             </div>
 
             <div class="section">
@@ -2411,6 +2418,7 @@
                     rooms: rooms,
                     logoUrl: logoUrl,
                     photoMode: document.getElementById('photoMode').value || 'avant-apres',
+                    requireVideoMainRoom: document.getElementById('requireVideoMainRoom').checked || false,
                     status: 'pending',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     completedAt: null,
@@ -2928,6 +2936,7 @@
                 document.getElementById('agent').value = data.agent || '';
                 document.getElementById('agency').value = data.agency || '';
                 document.getElementById('photoMode').value = data.photoMode || 'avant-apres';
+                document.getElementById('requireVideoMainRoom').checked = data.requireVideoMainRoom || false;
 
                 // Charger les pièces et tâches
                 rooms = data.rooms || {};
@@ -3000,6 +3009,7 @@
                     rooms: rooms,
                     logoUrl: logoUrl,
                     photoMode: document.getElementById('photoMode').value || 'avant-apres',
+                    requireVideoMainRoom: document.getElementById('requireVideoMainRoom').checked || false,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 

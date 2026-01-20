@@ -391,10 +391,11 @@
         let reportId = null;
         let reportData = null;
         let photoMode = 'avant-apres'; // Par défaut: avant-apres, apres-only, avant-apres-video
+        let requireVideoMainRoom = false; // Vidéo obligatoire sur vue générale
         let photos = {};
         let isOnline = navigator.onLine;
         let autoSaveInterval = null;
-        
+
         // ==================== GESTION MODE HORS-LIGNE ====================
         function updateConnectionStatus() {
             isOnline = navigator.onLine;
@@ -528,6 +529,13 @@
                     }
 
                     reportData = doc.data();
+
+                    // IMPORTANT: Restaurer les photos depuis localStorage si disponibles
+                    // pour ne pas perdre le travail en cours lors d'un rechargement
+                    if (localData && localData.photos) {
+                        console.log('📸 Restauration des photos depuis localStorage');
+                        photos = localData.photos;
+                    }
                 } else if (localData) {
                     // Si hors-ligne et données locales disponibles
                     reportData = localData.reportData;
@@ -545,14 +553,20 @@
 
                 // Charger le mode photos (par défaut: avant-apres)
                 photoMode = reportData.photoMode || 'avant-apres';
+                requireVideoMainRoom = reportData.requireVideoMainRoom || false;
                 console.log('📸 Mode photos:', photoMode);
+                console.log('🎬 Vidéo obligatoire pièce principale:', requireVideoMainRoom);
 
-                // Initialiser la structure photos si nécessaire
-                if (!localData || !localData.photos) {
-                    for (const roomName in reportData.rooms) {
+                // Initialiser la structure photos pour les nouvelles pièces/tâches
+                // Ne pas écraser les photos existantes déjà sauvegardées
+                for (const roomName in reportData.rooms) {
+                    if (!photos[roomName]) {
                         photos[roomName] = { general: { avant: null, apres: null }, tasks: {} };
-                        if (reportData.rooms[roomName].tasks) {
-                            for (const task of reportData.rooms[roomName].tasks) {
+                    }
+                    if (reportData.rooms[roomName].tasks) {
+                        for (const task of reportData.rooms[roomName].tasks) {
+                            // Initialiser seulement si la tâche n'existe pas encore
+                            if (!photos[roomName].tasks[task]) {
                                 // Déterminer si c'est un équipement nécessitant des photos ouvertes/fermées
                                 const needsOpenClosed = /four|frigo|réfrigérateur|lave-vaisselle|lave vaisselle|hotte/i.test(task);
                                 if (needsOpenClosed) {
@@ -924,8 +938,8 @@
                                 </div>
                             </div>
                             <div id="video-container-${slugify(roomName)}-general" style="margin-top: 10px;"></div>
-                            <button class="add-video-btn" onclick="showVideoUpload('${safeRoomName}', null, 'general')" style="margin-top: 8px; padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
-                                🎬 Ajouter une vidéo
+                            <button class="add-video-btn" onclick="showVideoUpload('${safeRoomName}', null, 'general')" style="margin-top: 8px; padding: 6px 12px; background: ${requireVideoMainRoom ? '#ef4444' : '#10b981'}; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; ${requireVideoMainRoom ? 'font-weight: 600;' : ''}">
+                                🎬 ${requireVideoMainRoom ? 'Vidéo (OBLIGATOIRE)' : 'Ajouter une vidéo'}
                             </button>
                         </div>
                         ${tasksHtml}
@@ -1408,11 +1422,18 @@
         
         function updateProgress() {
             let total = 0, completed = 0;
+            let missingRequiredVideos = 0;
+
             for (const roomName in photos) {
                 // Photos générales
                 total += 2;
                 if (photos[roomName].general.avant) completed++;
                 if (photos[roomName].general.apres) completed++;
+
+                // Vérifier si vidéo obligatoire manquante
+                if (requireVideoMainRoom && !photos[roomName].general.video) {
+                    missingRequiredVideos++;
+                }
 
                 // Photos des tâches
                 for (const task in photos[roomName].tasks) {
@@ -1433,7 +1454,20 @@
             const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
             document.getElementById('progressText').textContent = percent + '%';
             document.getElementById('progressFill').style.width = percent + '%';
-            document.getElementById('generateBtn').disabled = percent < 50;
+
+            // Désactiver le bouton si progression < 50% OU si vidéos obligatoires manquantes
+            const canGenerate = percent >= 50 && missingRequiredVideos === 0;
+            document.getElementById('generateBtn').disabled = !canGenerate;
+
+            // Afficher un message si vidéos obligatoires manquantes
+            const generateBtn = document.getElementById('generateBtn');
+            if (missingRequiredVideos > 0) {
+                generateBtn.title = `${missingRequiredVideos} vidéo(s) obligatoire(s) manquante(s)`;
+            } else if (percent < 50) {
+                generateBtn.title = 'Complétez au moins 50% des tâches';
+            } else {
+                generateBtn.title = 'Générer et envoyer le rapport';
+            }
         }
         
         async function generateAndSavePDF() {
