@@ -636,10 +636,16 @@
         }
 
         function restoreVideosDisplay() {
+            console.log('🔄 Restauration des vidéos...');
+            console.log('Photos object:', photos);
+
             for (const roomName in photos) {
                 // Restaurer vidéo générale
                 if (photos[roomName].general && photos[roomName].general.video) {
+                    console.log(`✅ Vidéo générale trouvée pour ${roomName}:`, photos[roomName].general.video);
                     const container = document.getElementById(`video-container-${slugify(roomName)}-general`);
+                    console.log('Container trouvé:', container);
+
                     if (container) {
                         container.innerHTML = `
                             <div style="border: 2px solid #10b981; border-radius: 8px; padding: 12px; background: #f0fdf4; margin-bottom: 10px;">
@@ -655,11 +661,15 @@
                                 </video>
                             </div>
                         `;
+                        console.log('✅ Vidéo restaurée pour', roomName);
+
                         // Masquer le bouton "+ Ajouter vidéo"
                         const btn = container.previousElementSibling;
                         if (btn && btn.classList.contains('add-video-btn')) {
                             btn.style.display = 'none';
                         }
+                    } else {
+                        console.warn(`❌ Container introuvable pour ${roomName}`);
                     }
                 }
 
@@ -668,7 +678,9 @@
                     for (const taskName in photos[roomName].tasks) {
                         const task = photos[roomName].tasks[taskName];
                         if (task.video) {
+                            console.log(`✅ Vidéo tâche trouvée pour ${roomName}/${taskName}:`, task.video);
                             const container = document.getElementById(`video-container-${slugify(roomName)}-${slugify(taskName)}`);
+
                             if (container) {
                                 container.innerHTML = `
                                     <div style="border: 2px solid #10b981; border-radius: 8px; padding: 12px; background: #f0fdf4; margin-bottom: 10px;">
@@ -684,16 +696,21 @@
                                         </video>
                                     </div>
                                 `;
+                                console.log(`✅ Vidéo restaurée pour ${roomName}/${taskName}`);
+
                                 // Masquer le bouton "+ Ajouter vidéo"
                                 const btn = container.previousElementSibling;
                                 if (btn && btn.classList.contains('add-video-btn')) {
                                     btn.style.display = 'none';
                                 }
+                            } else {
+                                console.warn(`❌ Container introuvable pour ${roomName}/${taskName}`);
                             }
                         }
                     }
                 }
             }
+            console.log('✅ Restauration des vidéos terminée');
         }
 
         function restorePhotosDisplay() {
@@ -1188,6 +1205,7 @@
                     photos[roomName].tasks[taskName].video = videoUrl;
 
                     console.log(`✅ Vidéo uploadée: ${fileName}`);
+                    console.log('📸 Photos après upload:', photos);
 
                     // Mettre à jour l'affichage
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
@@ -1196,6 +1214,7 @@
                     }
 
                     await syncPhotosToFirestore();
+                    saveToLocalStorage(); // IMPORTANT: Sauvegarder localement !
                 } catch (error) {
                     console.error('Erreur upload vidéo:', error);
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
@@ -1208,6 +1227,7 @@
 
             updateSectionStatus(roomName, taskName);
             updateProgress();
+            saveToLocalStorage(); // Sauvegarder même si hors ligne
         }
 
         async function handleGeneralVideo(roomName, input) {
@@ -1248,6 +1268,7 @@
                     photos[roomName].general.video = videoUrl;
 
                     console.log(`✅ Vidéo uploadée: ${fileName}`);
+                    console.log('📸 Photos après upload général:', photos);
 
                     // Mettre à jour l'affichage
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
@@ -1256,6 +1277,7 @@
                     }
 
                     await syncPhotosToFirestore();
+                    saveToLocalStorage(); // IMPORTANT: Sauvegarder localement !
                 } catch (error) {
                     console.error('Erreur upload vidéo:', error);
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
@@ -1268,6 +1290,7 @@
 
             updateSectionStatus(roomName, 'general');
             updateProgress();
+            saveToLocalStorage(); // Sauvegarder même si hors ligne
         }
 
         function removeVideoComplete(roomName, taskName, type) {
@@ -1298,6 +1321,7 @@
 
                 updateProgress();
                 syncPhotosToFirestore();
+                saveToLocalStorage(); // IMPORTANT: Sauvegarder localement !
             }
         }
 
