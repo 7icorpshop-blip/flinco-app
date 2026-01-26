@@ -3,7 +3,7 @@
 # Script de test des webhooks FLINCO
 # Usage: ./test-webhook.sh [PROJECT_ID]
 
-PROJECT_ID=${1:-"votre-project-id"}
+PROJECT_ID=${1:-"flinco-v2"}
 BASE_URL="https://us-central1-${PROJECT_ID}.cloudfunctions.net"
 SECRET_KEY="FLINCO-SECRET-KEY-2024"
 
