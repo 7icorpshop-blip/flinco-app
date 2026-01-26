@@ -630,16 +630,27 @@
             }
 
             updateRoomSelect();
-            restoreVideosDisplay();
-            restorePhotosDisplay();
+
+            // Attendre que le DOM soit prêt avant de restaurer les vidéos
+            setTimeout(() => {
+                restoreVideosDisplay();
+                restorePhotosDisplay();
+            }, 100);
+
             updateProgress();
         }
 
         function restoreVideosDisplay() {
+            console.log('🔄 Restauration des vidéos...');
+            console.log('Photos object:', photos);
+
             for (const roomName in photos) {
                 // Restaurer vidéo générale
                 if (photos[roomName].general && photos[roomName].general.video) {
+                    console.log(`✅ Vidéo générale trouvée pour ${roomName}:`, photos[roomName].general.video);
                     const container = document.getElementById(`video-container-${slugify(roomName)}-general`);
+                    console.log('Container trouvé:', container);
+
                     if (container) {
                         container.innerHTML = `
                             <div style="border: 2px solid #10b981; border-radius: 8px; padding: 12px; background: #f0fdf4; margin-bottom: 10px;">
@@ -655,11 +666,15 @@
                                 </video>
                             </div>
                         `;
+                        console.log('✅ Vidéo restaurée pour', roomName);
+
                         // Masquer le bouton "+ Ajouter vidéo"
                         const btn = container.previousElementSibling;
                         if (btn && btn.classList.contains('add-video-btn')) {
                             btn.style.display = 'none';
                         }
+                    } else {
+                        console.warn(`❌ Container introuvable pour ${roomName}`);
                     }
                 }
 
@@ -668,7 +683,9 @@
                     for (const taskName in photos[roomName].tasks) {
                         const task = photos[roomName].tasks[taskName];
                         if (task.video) {
+                            console.log(`✅ Vidéo tâche trouvée pour ${roomName}/${taskName}:`, task.video);
                             const container = document.getElementById(`video-container-${slugify(roomName)}-${slugify(taskName)}`);
+
                             if (container) {
                                 container.innerHTML = `
                                     <div style="border: 2px solid #10b981; border-radius: 8px; padding: 12px; background: #f0fdf4; margin-bottom: 10px;">
@@ -684,16 +701,21 @@
                                         </video>
                                     </div>
                                 `;
+                                console.log(`✅ Vidéo restaurée pour ${roomName}/${taskName}`);
+
                                 // Masquer le bouton "+ Ajouter vidéo"
                                 const btn = container.previousElementSibling;
                                 if (btn && btn.classList.contains('add-video-btn')) {
                                     btn.style.display = 'none';
                                 }
+                            } else {
+                                console.warn(`❌ Container introuvable pour ${roomName}/${taskName}`);
                             }
                         }
                     }
                 }
             }
+            console.log('✅ Restauration des vidéos terminée');
         }
 
         function restorePhotosDisplay() {
@@ -1100,12 +1122,20 @@
         }
 
         function showVideoUpload(roomName, taskName, type) {
+            console.log('🎬 showVideoUpload appelé:', { roomName, taskName, type });
+
             const containerId = type === 'general'
                 ? `video-container-${slugify(roomName)}-general`
                 : `video-container-${slugify(roomName)}-${slugify(taskName)}`;
 
+            console.log('📦 Recherche container:', containerId);
             const container = document.getElementById(containerId);
-            if (!container) return;
+            console.log('📦 Container trouvé:', container);
+
+            if (!container) {
+                console.error('❌ Container introuvable pour', containerId);
+                return;
+            }
 
             // Masquer le bouton "+ Ajouter vidéo"
             const btn = container.previousElementSibling;
@@ -1188,6 +1218,7 @@
                     photos[roomName].tasks[taskName].video = videoUrl;
 
                     console.log(`✅ Vidéo uploadée: ${fileName}`);
+                    console.log('📸 Photos après upload:', photos);
 
                     // Mettre à jour l'affichage
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
@@ -1196,6 +1227,7 @@
                     }
 
                     await syncPhotosToFirestore();
+                    saveToLocalStorage(); // IMPORTANT: Sauvegarder localement !
                 } catch (error) {
                     console.error('Erreur upload vidéo:', error);
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
@@ -1208,6 +1240,7 @@
 
             updateSectionStatus(roomName, taskName);
             updateProgress();
+            saveToLocalStorage(); // Sauvegarder même si hors ligne
         }
 
         async function handleGeneralVideo(roomName, input) {
@@ -1248,6 +1281,7 @@
                     photos[roomName].general.video = videoUrl;
 
                     console.log(`✅ Vidéo uploadée: ${fileName}`);
+                    console.log('📸 Photos après upload général:', photos);
 
                     // Mettre à jour l'affichage
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
@@ -1256,6 +1290,7 @@
                     }
 
                     await syncPhotosToFirestore();
+                    saveToLocalStorage(); // IMPORTANT: Sauvegarder localement !
                 } catch (error) {
                     console.error('Erreur upload vidéo:', error);
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
@@ -1268,6 +1303,7 @@
 
             updateSectionStatus(roomName, 'general');
             updateProgress();
+            saveToLocalStorage(); // Sauvegarder même si hors ligne
         }
 
         function removeVideoComplete(roomName, taskName, type) {
@@ -1298,6 +1334,7 @@
 
                 updateProgress();
                 syncPhotosToFirestore();
+                saveToLocalStorage(); // IMPORTANT: Sauvegarder localement !
             }
         }
 
@@ -1469,7 +1506,46 @@
                 generateBtn.title = 'Générer et envoyer le rapport';
             }
         }
-        
+
+        async function sendReportToSite(reportId, devisNumber) {
+            try {
+                // URL de la Cloud Function (à adapter après déploiement)
+                const webhookUrl = 'https://us-central1-[VOTRE-PROJECT-ID].cloudfunctions.net/sendReportToSite';
+
+                // Clé secrète (doit correspondre à celle configurée dans les Cloud Functions)
+                const secretKey = 'FLINCO-SECRET-KEY-2024';
+
+                const payload = {
+                    reportId: reportId,
+                    devisNumber: devisNumber,
+                    secretKey: secretKey
+                };
+
+                console.log('📤 Envoi webhook au site:', payload);
+
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Webhook-Secret': secretKey
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Webhook failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('✅ Réponse webhook:', result);
+
+                return result;
+            } catch (error) {
+                console.error('❌ Erreur webhook:', error);
+                throw error;
+            }
+        }
+
         async function generateAndSavePDF() {
             showLoading('Génération du PDF...');
 
@@ -1816,6 +1892,16 @@
                         completedAt: firebase.firestore.FieldValue.serverTimestamp(),
                         pdfUrl: pdfUrl
                     });
+
+                    // Envoyer le rapport au portail client via webhook
+                    try {
+                        document.getElementById('loadingText').textContent = 'Envoi au portail client...';
+                        await sendReportToSite(reportId, reportData.quote);
+                        console.log('✅ Rapport envoyé au portail client');
+                    } catch (webhookError) {
+                        console.warn('⚠️ Erreur envoi webhook au site:', webhookError);
+                        // Ne pas bloquer même si le webhook échoue
+                    }
 
                     // Supprimer les données locales après synchronisation réussie
                     localStorage.removeItem('flinco_report_' + reportId);
