@@ -1689,8 +1689,13 @@
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 const w = 210, h = 297;
 
+                // Fond blanc
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(0, 0, w, h, 'F');
+
+                // Bannière supérieure avec dégradé (bleu foncé)
+                pdf.setFillColor(15, 52, 96);
+                pdf.rect(0, 0, w, 85, 'F');
 
                 // Ajouter le logo si disponible
                 if (reportData.logoUrl) {
@@ -1703,31 +1708,60 @@
                             reader.onloadend = () => resolve(reader.result);
                             reader.readAsDataURL(logoBlob);
                         });
-                        pdf.addImage(logoBase64, 'PNG', 15, 15, 30, 30);
+                        pdf.addImage(logoBase64, 'PNG', w/2 - 20, 20, 40, 40);
                     } catch(e) {
                         console.warn('Erreur ajout logo:', e);
+                        // Logo par défaut si pas de logo uploadé
+                        pdf.setFillColor(130, 172, 255);
+                        pdf.circle(w/2, 40, 22, 'F');
+                        pdf.setFontSize(28);
+                        pdf.setFont(undefined, 'bold');
+                        pdf.setTextColor(255, 255, 255);
+                        pdf.text('F', w/2, 47, { align: 'center' });
                     }
+                } else {
+                    // Logo par défaut si pas de logo uploadé
+                    pdf.setFillColor(130, 172, 255);
+                    pdf.circle(w/2, 40, 22, 'F');
+                    pdf.setFontSize(28);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.text('F', w/2, 47, { align: 'center' });
                 }
 
-                pdf.setFontSize(32);
+                // Titre FLINCO
+                pdf.setFontSize(36);
                 pdf.setFont(undefined, 'bold');
+                pdf.setTextColor(255, 255, 255);
+                pdf.text('FLINCO', w/2, 75, { align: 'center' });
+
+                // Sous-titre
+                pdf.setFontSize(11);
+                pdf.setFont(undefined, 'normal');
                 pdf.setTextColor(130, 172, 255);
-                pdf.text('FLINCO', w/2, 50, { align: 'center' });
-                
-                pdf.setFontSize(12);
-                pdf.setTextColor(15, 52, 96);
-                pdf.text('Nettoyage & Remise en État', w/2, 60, { align: 'center' });
-                
+                pdf.text('Nettoyage Professionnel & Remise en État', w/2, 100, { align: 'center' });
+
+                // Ligne de séparation
                 pdf.setDrawColor(130, 172, 255);
-                pdf.setLineWidth(1);
-                pdf.line(30, 75, w-30, 75);
-                
-                pdf.setFontSize(18);
+                pdf.setLineWidth(0.5);
+                pdf.line(40, 110, w-40, 110);
+
+                // Titre du rapport
+                pdf.setFontSize(20);
                 pdf.setFont(undefined, 'bold');
-                pdf.text('RAPPORT DE NETTOYAGE', w/2, 95, { align: 'center' });
-                
-                let y = 115;
-                const leftCol = 30, rightCol = 75;
+                pdf.setTextColor(15, 52, 96);
+                pdf.text('RAPPORT DE NETTOYAGE', w/2, 130, { align: 'center' });
+
+                // Informations du rapport dans un cadre
+                let y = 150;
+                const leftCol = 35, rightCol = 85;
+
+                // Cadre pour les informations
+                pdf.setFillColor(248, 250, 252);
+                pdf.setDrawColor(226, 232, 240);
+                pdf.setLineWidth(0.3);
+                pdf.roundedRect(25, 142, w-50, 80, 3, 3, 'FD');
+
                 pdf.setFontSize(11);
                 
                 pdf.setFont(undefined, 'bold');
@@ -1777,16 +1811,23 @@
                 for (const roomName in photos) {
                     pdf.addPage();
                     y = 20;
-                    
-                    pdf.setFontSize(16);
+
+                    // En-tête de page avec fond coloré
+                    pdf.setFillColor(15, 52, 96);
+                    pdf.rect(0, 0, w, 35, 'F');
+
+                    pdf.setFontSize(18);
                     pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(15, 52, 96);
-                    pdf.text(roomName, 20, y);
-                    
-                    pdf.setDrawColor(130, 172, 255);
-                    pdf.setLineWidth(0.5);
-                    pdf.line(20, y + 4, w - 20, y + 4);
-                    y += 18;
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.text(roomName, 20, 22);
+
+                    // Badge pour indiquer qu'il s'agit d'une pièce
+                    pdf.setFontSize(9);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.setTextColor(130, 172, 255);
+                    pdf.text('PIÈCE', w - 25, 22, { align: 'right' });
+
+                    y = 45;
                     
                     if (photos[roomName].general.avant || photos[roomName].general.apres) {
                         pdf.setFontSize(11);
@@ -1876,6 +1917,11 @@
                                 // Générer le QR code
                                 const qrCodeImage = await generateQRCode(photos[roomName].general.video, 128);
 
+                                // Créer une URL raccourcie pour affichage
+                                const displayUrl = photos[roomName].general.video.length > 60
+                                    ? photos[roomName].general.video.substring(0, 57) + '...'
+                                    : photos[roomName].general.video;
+
                                 // Dimensions
                                 const thumbnailWidth = 60;
                                 const thumbnailHeight = 45;
@@ -1894,45 +1940,70 @@
 
                                 // Texte explicatif à droite du QR code
                                 const textX = qrX + qrSize + 5;
-                                const textY = y + thumbnailHeight / 2 - 4;
+                                const textY = y + 7;
 
                                 pdf.setFontSize(8);
                                 pdf.setFont(undefined, 'bold');
                                 pdf.setTextColor(16, 185, 129);
                                 pdf.textWithLink('▶️ Voir la vidéo', textX, textY, { url: photos[roomName].general.video });
 
-                                pdf.setFontSize(7);
+                                pdf.setFontSize(6.5);
                                 pdf.setFont(undefined, 'normal');
                                 pdf.setTextColor(100, 100, 100);
                                 pdf.text('Cliquez sur l\'image', textX, textY + 5);
-                                pdf.text('ou scannez le QR', textX, textY + 10);
+                                pdf.text('ou scannez le QR', textX, textY + 9);
 
-                                y += thumbnailHeight + 10;
+                                // Ajouter l'URL visible en bas
+                                pdf.setFontSize(6);
+                                pdf.setTextColor(130, 172, 255);
+                                const urlY = y + thumbnailHeight + 3;
+                                pdf.textWithLink(displayUrl, 20, urlY, { url: photos[roomName].general.video });
+
+                                y += thumbnailHeight + 8;
                             } catch (error) {
                                 console.error('Erreur génération vignette vidéo:', error);
                                 // Fallback : afficher seulement le lien avec QR code
                                 try {
                                     const qrCodeImage = await generateQRCode(photos[roomName].general.video, 128);
                                     const qrSize = 20;
+
+                                    // QR à gauche
                                     pdf.addImage(qrCodeImage, 'PNG', 20, y, qrSize, qrSize);
 
+                                    // Texte à droite
                                     pdf.setFontSize(10);
                                     pdf.setTextColor(16, 185, 129);
                                     pdf.setFont(undefined, 'bold');
                                     pdf.textWithLink('▶️ Voir la vidéo', 45, y + 7, { url: photos[roomName].general.video });
 
-                                    pdf.setFontSize(8);
+                                    // URL visible
+                                    pdf.setFontSize(7);
                                     pdf.setFont(undefined, 'normal');
-                                    pdf.setTextColor(100, 100, 100);
-                                    pdf.text('Scannez le QR code', 45, y + 14);
+                                    pdf.setTextColor(130, 172, 255);
+                                    const displayUrl = photos[roomName].general.video.length > 50
+                                        ? photos[roomName].general.video.substring(0, 47) + '...'
+                                        : photos[roomName].general.video;
+                                    pdf.textWithLink(displayUrl, 45, y + 13, { url: photos[roomName].general.video });
 
-                                    y += qrSize + 8;
+                                    pdf.setFontSize(7);
+                                    pdf.setTextColor(100, 100, 100);
+                                    pdf.text('Scannez le QR code', 45, y + 18);
+
+                                    y += qrSize + 10;
                                 } catch (qrError) {
-                                    // Fallback ultime : lien simple
+                                    // Fallback ultime : lien simple avec URL
                                     pdf.setFontSize(10);
                                     pdf.setTextColor(16, 185, 129);
                                     pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: photos[roomName].general.video });
-                                    y += 10;
+
+                                    pdf.setFontSize(7);
+                                    pdf.setTextColor(130, 172, 255);
+                                    const displayUrl = photos[roomName].general.video.length > 80
+                                        ? photos[roomName].general.video.substring(0, 77) + '...'
+                                        : photos[roomName].general.video;
+                                    pdf.text(displayUrl, 20, y + 5);
+
+                                    y += 12;
                                 }
                             }
                         } else {
@@ -2021,6 +2092,11 @@
                                 // Générer le QR code
                                 const qrCodeImage = await generateQRCode(task.video, 128);
 
+                                // URL raccourcie
+                                const displayUrl = task.video.length > 55
+                                    ? task.video.substring(0, 52) + '...'
+                                    : task.video;
+
                                 // Dimensions (plus petit pour les tâches)
                                 const thumbnailWidth = 50;
                                 const thumbnailHeight = 38;
@@ -2039,18 +2115,24 @@
 
                                 // Texte explicatif à droite du QR code
                                 const textX = qrX + qrSize + 4;
-                                const textY = y + thumbnailHeight / 2 - 3;
+                                const textY = y + 6;
 
                                 pdf.setFontSize(7);
                                 pdf.setFont(undefined, 'bold');
                                 pdf.setTextColor(16, 185, 129);
                                 pdf.textWithLink('▶️ Voir la vidéo', textX, textY, { url: task.video });
 
-                                pdf.setFontSize(6.5);
+                                pdf.setFontSize(6);
                                 pdf.setFont(undefined, 'normal');
                                 pdf.setTextColor(100, 100, 100);
                                 pdf.text('Cliquez sur l\'image', textX, textY + 4);
                                 pdf.text('ou scannez le QR', textX, textY + 8);
+
+                                // Ajouter l'URL visible en bas
+                                pdf.setFontSize(6);
+                                pdf.setTextColor(130, 172, 255);
+                                const urlY = y + thumbnailHeight + 3;
+                                pdf.textWithLink(displayUrl, 20, urlY, { url: task.video });
 
                                 y += thumbnailHeight + 8;
                             } catch (error) {
@@ -2059,25 +2141,44 @@
                                 try {
                                     const qrCodeImage = await generateQRCode(task.video, 128);
                                     const qrSize = 20;
+
+                                    // QR à gauche
                                     pdf.addImage(qrCodeImage, 'PNG', 20, y, qrSize, qrSize);
 
-                                    pdf.setFontSize(10);
+                                    // Texte à droite
+                                    pdf.setFontSize(9);
                                     pdf.setTextColor(16, 185, 129);
                                     pdf.setFont(undefined, 'bold');
-                                    pdf.textWithLink('▶️ Voir la vidéo', 45, y + 7, { url: task.video });
+                                    pdf.textWithLink('▶️ Voir la vidéo', 45, y + 6, { url: task.video });
 
-                                    pdf.setFontSize(8);
+                                    // URL visible
+                                    pdf.setFontSize(6.5);
                                     pdf.setFont(undefined, 'normal');
-                                    pdf.setTextColor(100, 100, 100);
-                                    pdf.text('Scannez le QR code', 45, y + 14);
+                                    pdf.setTextColor(130, 172, 255);
+                                    const displayUrl = task.video.length > 45
+                                        ? task.video.substring(0, 42) + '...'
+                                        : task.video;
+                                    pdf.textWithLink(displayUrl, 45, y + 11, { url: task.video });
 
-                                    y += qrSize + 8;
+                                    pdf.setFontSize(6.5);
+                                    pdf.setTextColor(100, 100, 100);
+                                    pdf.text('Scannez le QR', 45, y + 16);
+
+                                    y += qrSize + 10;
                                 } catch (qrError) {
-                                    // Fallback ultime : lien simple
-                                    pdf.setFontSize(10);
+                                    // Fallback ultime : lien simple avec URL
+                                    pdf.setFontSize(9);
                                     pdf.setTextColor(16, 185, 129);
                                     pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: task.video });
-                                    y += 8;
+
+                                    pdf.setFontSize(6.5);
+                                    pdf.setTextColor(130, 172, 255);
+                                    const displayUrl = task.video.length > 75
+                                        ? task.video.substring(0, 72) + '...'
+                                        : task.video;
+                                    pdf.text(displayUrl, 20, y + 5);
+
+                                    y += 10;
                                 }
                             }
                         }
@@ -2142,9 +2243,32 @@
                 const pageCount = pdf.internal.getNumberOfPages();
                 for (let p = 1; p <= pageCount; p++) {
                     pdf.setPage(p);
-                    pdf.setFontSize(8);
+
+                    // Ligne de séparation en haut du pied de page
+                    pdf.setDrawColor(226, 232, 240);
+                    pdf.setLineWidth(0.2);
+                    pdf.line(20, h - 15, w - 20, h - 15);
+
+                    // Informations du pied de page
+                    pdf.setFontSize(7);
                     pdf.setTextColor(150, 150, 150);
-                    pdf.text('FLINCO - Page ' + p + '/' + pageCount, w/2, h - 8, { align: 'center' });
+                    pdf.setFont(undefined, 'normal');
+
+                    // Gauche : Nom de l'entreprise
+                    pdf.text('FLINCO - Nettoyage Professionnel', 20, h - 8);
+
+                    // Centre : Numéro de page
+                    pdf.setFont(undefined, 'bold');
+                    pdf.setTextColor(130, 172, 255);
+                    pdf.text('Page ' + p + ' / ' + pageCount, w/2, h - 8, { align: 'center' });
+
+                    // Droite : Site web
+                    pdf.setFont(undefined, 'normal');
+                    pdf.setTextColor(150, 150, 150);
+                    pdf.textWithLink('www.cleanbyflinco.com', w - 20, h - 8, {
+                        align: 'right',
+                        url: 'https://www.cleanbyflinco.com'
+                    });
                 }
                 
                 const fileName = `FLINCO_Rapport_${reportData.quote}_${reportData.date.replace(/-/g, '')}.pdf`;
