@@ -9,6 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -1396,6 +1397,45 @@
             return { width, height };
         }
 
+        // Générer un QR code pour une URL (retourne une image base64)
+        async function generateQRCode(url, size = 128) {
+            return new Promise((resolve, reject) => {
+                try {
+                    // Créer un élément div temporaire pour le QR code
+                    const tempDiv = document.createElement('div');
+                    tempDiv.style.position = 'absolute';
+                    tempDiv.style.left = '-9999px';
+                    document.body.appendChild(tempDiv);
+
+                    // Générer le QR code
+                    const qrcode = new QRCode(tempDiv, {
+                        text: url,
+                        width: size,
+                        height: size,
+                        colorDark: '#000000',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+
+                    // Attendre que le QR code soit généré
+                    setTimeout(() => {
+                        const canvas = tempDiv.querySelector('canvas');
+                        if (canvas) {
+                            const dataUrl = canvas.toDataURL('image/png');
+                            document.body.removeChild(tempDiv);
+                            resolve(dataUrl);
+                        } else {
+                            document.body.removeChild(tempDiv);
+                            reject(new Error('QR code generation failed'));
+                        }
+                    }, 100);
+                } catch (error) {
+                    console.error('Erreur génération QR code:', error);
+                    reject(error);
+                }
+            });
+        }
+
         function updateSectionStatus(roomName, taskName) {
             const sectionId = taskName === 'general' ? `section-${slugify(roomName)}-general` : `section-${slugify(roomName)}-${slugify(taskName)}`;
             const section = document.getElementById(sectionId);
@@ -1723,13 +1763,38 @@
                         // Avancer en fonction de la hauteur maximale des deux images
                         y += Math.max(avantImgH, apresImgH) + 8;
 
-                        // Lien vers vidéo générale si elle existe
+                        // Lien vers vidéo générale si elle existe (avec QR code)
                         if (photos[roomName].general.video) {
-                            if (y > 265) { pdf.addPage(); y = 20; }
-                            pdf.setFontSize(10);
-                            pdf.setTextColor(16, 185, 129); // Couleur verte
-                            pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: photos[roomName].general.video });
-                            y += 10;
+                            if (y > 245) { pdf.addPage(); y = 20; }
+
+                            try {
+                                // Générer le QR code pour la vidéo
+                                const qrCodeImage = await generateQRCode(photos[roomName].general.video, 128);
+
+                                // Ajouter le QR code à gauche
+                                const qrSize = 20;
+                                pdf.addImage(qrCodeImage, 'PNG', 20, y, qrSize, qrSize);
+
+                                // Ajouter le texte à côté du QR code
+                                pdf.setFontSize(10);
+                                pdf.setTextColor(16, 185, 129); // Couleur verte
+                                pdf.setFont(undefined, 'bold');
+                                pdf.textWithLink('▶️ Voir la vidéo', 45, y + 7, { url: photos[roomName].general.video });
+
+                                pdf.setFontSize(8);
+                                pdf.setFont(undefined, 'normal');
+                                pdf.setTextColor(100, 100, 100);
+                                pdf.text('Scannez le QR code avec votre smartphone', 45, y + 14);
+
+                                y += qrSize + 8;
+                            } catch (error) {
+                                console.error('Erreur génération QR code:', error);
+                                // Fallback : afficher seulement le lien
+                                pdf.setFontSize(10);
+                                pdf.setTextColor(16, 185, 129);
+                                pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: photos[roomName].general.video });
+                                y += 10;
+                            }
                         } else {
                             y += 7;
                         }
@@ -1798,13 +1863,38 @@
 
                         y += Math.max(taskAvantImgH, taskApresImgH) + 8;
 
-                        // Lien vers vidéo si elle existe
+                        // Lien vers vidéo si elle existe (avec QR code)
                         if (task.video) {
-                            if (y > 265) { pdf.addPage(); y = 20; }
-                            pdf.setFontSize(10);
-                            pdf.setTextColor(16, 185, 129); // Couleur verte
-                            pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: task.video });
-                            y += 8;
+                            if (y > 245) { pdf.addPage(); y = 20; }
+
+                            try {
+                                // Générer le QR code pour la vidéo
+                                const qrCodeImage = await generateQRCode(task.video, 128);
+
+                                // Ajouter le QR code à gauche
+                                const qrSize = 20;
+                                pdf.addImage(qrCodeImage, 'PNG', 20, y, qrSize, qrSize);
+
+                                // Ajouter le texte à côté du QR code
+                                pdf.setFontSize(10);
+                                pdf.setTextColor(16, 185, 129); // Couleur verte
+                                pdf.setFont(undefined, 'bold');
+                                pdf.textWithLink('▶️ Voir la vidéo', 45, y + 7, { url: task.video });
+
+                                pdf.setFontSize(8);
+                                pdf.setFont(undefined, 'normal');
+                                pdf.setTextColor(100, 100, 100);
+                                pdf.text('Scannez le QR code', 45, y + 14);
+
+                                y += qrSize + 8;
+                            } catch (error) {
+                                console.error('Erreur génération QR code:', error);
+                                // Fallback : afficher seulement le lien
+                                pdf.setFontSize(10);
+                                pdf.setTextColor(16, 185, 129);
+                                pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: task.video });
+                                y += 8;
+                            }
                         }
 
                         // Photos ouvert/fermé pour les équipements

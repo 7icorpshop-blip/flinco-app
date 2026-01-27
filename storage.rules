@@ -1,0 +1,36 @@
+rules_version = '2';
+
+// Règles de sécurité Firebase Storage pour FLINCO
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Photos - Lecture publique, écriture authentifiée uniquement
+    match /photos/{allPaths=**} {
+      allow read: if true; // ✅ Tout le monde peut voir les photos
+      allow write: if request.auth != null; // ✅ Seulement les utilisateurs connectés peuvent uploader
+    }
+
+    // Vidéos - Lecture publique, écriture authentifiée uniquement
+    match /videos/{allPaths=**} {
+      allow read: if true; // ✅ Tout le monde peut voir les vidéos
+      allow write: if request.auth != null; // ✅ Seulement les utilisateurs connectés peuvent uploader
+    }
+
+    // Rapports PDF - Lecture publique, écriture authentifiée uniquement
+    match /reports/{allPaths=**} {
+      allow read: if true; // ✅ Tout le monde peut voir les PDFs
+      allow write: if request.auth != null; // ✅ Seulement les utilisateurs connectés peuvent uploader
+    }
+
+    // Logos - Lecture publique, écriture admin uniquement
+    match /logos/{allPaths=**} {
+      allow read: if true; // ✅ Tout le monde peut voir les logos
+      allow write: if request.auth != null;
+    }
+
+    // Par défaut : refuser tout le reste
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
