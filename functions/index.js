@@ -299,8 +299,105 @@ exports.testWebhook = functions.https.onRequest((req, res) => {
             timestamp: new Date().toISOString(),
             endpoints: {
                 createReport: 'POST /createReportFromSite',
-                sendReport: 'POST /sendReportToSite'
+                sendReport: 'POST /sendReportToSite',
+                shortUrl: 'POST /createShortUrl',
+                redirect: 'GET /v/:shortId'
             }
         });
     });
+});
+
+/**
+ * URL SHORTENER: Créer une URL courte pour masquer Firebase Storage
+ *
+ * Crée une URL propre du type: https://cleanbyflinco.com/v/abc123
+ * au lieu de: https://firebasestorage.googleapis.com/v0/b/flinco-v2...
+ *
+ * POST /createShortUrl
+ * Body: { "url": "https://firebasestorage...", "type": "video" }
+ */
+exports.createShortUrl = functions.https.onRequest(async (req, res) => {
+    return cors(req, res, async () => {
+        try {
+            if (req.method !== 'POST') {
+                return res.status(405).json({ error: 'Method not allowed. Use POST.' });
+            }
+
+            const { url, type = 'video' } = req.body;
+
+            if (!url) {
+                return res.status(400).json({ error: 'URL is required' });
+            }
+
+            // Générer un ID court unique (6 caractères)
+            const shortId = Math.random().toString(36).substring(2, 8);
+
+            // Stocker dans Firestore
+            await db.collection('shortUrls').doc(shortId).set({
+                originalUrl: url,
+                type: type,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                clicks: 0
+            });
+
+            // Construire l'URL courte
+            const baseUrl = functions.config().app?.url || 'https://cleanbyflinco.com';
+            const shortUrl = `${baseUrl}/v/${shortId}`;
+
+            console.log(`✅ URL courte créée: ${shortId} → ${url.substring(0, 50)}...`);
+
+            return res.status(200).json({
+                success: true,
+                shortUrl: shortUrl,
+                shortId: shortId,
+                originalUrl: url
+            });
+
+        } catch (error) {
+            console.error('❌ Erreur création URL courte:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                message: error.message
+            });
+        }
+    });
+});
+
+/**
+ * URL REDIRECT: Rediriger une URL courte vers Firebase Storage
+ *
+ * GET /v/:shortId
+ * Redirige vers l'URL Firebase Storage correspondante
+ */
+exports.redirectShortUrl = functions.https.onRequest(async (req, res) => {
+    try {
+        const shortId = req.path.split('/').pop();
+
+        if (!shortId) {
+            return res.status(400).send('ID manquant');
+        }
+
+        // Récupérer l'URL depuis Firestore
+        const doc = await db.collection('shortUrls').doc(shortId).get();
+
+        if (!doc.exists) {
+            return res.status(404).send('URL introuvable');
+        }
+
+        const data = doc.data();
+
+        // Incrémenter le compteur de clics
+        await db.collection('shortUrls').doc(shortId).update({
+            clicks: admin.firestore.FieldValue.increment(1),
+            lastAccessedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Rediriger vers l'URL originale
+        console.log(`🔗 Redirection: ${shortId} → ${data.originalUrl.substring(0, 50)}...`);
+        return res.redirect(302, data.originalUrl);
+
+    } catch (error) {
+        console.error('❌ Erreur redirection:', error);
+        return res.status(500).send('Erreur serveur');
+    }
 });
