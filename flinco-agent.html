@@ -1729,143 +1729,122 @@
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(0, 0, w, h, 'F');
 
-                // Bannière supérieure avec couleur moderne (bleu profond)
-                pdf.setFillColor(10, 40, 75); // Bleu foncé professionnel #0a284b
-                pdf.rect(0, 0, w, 90, 'F');
+                // Bannière supérieure style site (bleu marine foncé)
+                pdf.setFillColor(30, 41, 59); // Bleu marine #1e293b (couleur exacte du site)
+                pdf.rect(0, 0, w, 100, 'F');
 
-                // Accent vert moderne en haut (symbolise propreté)
-                pdf.setFillColor(16, 185, 129); // Vert moderne #10b981
-                pdf.rect(0, 0, w, 4, 'F');
+                // Logo FLINCO professionnel (icône maison dans cercle bleu)
+                // Cercle bleu électrique
+                pdf.setFillColor(59, 130, 246); // Bleu électrique #3b82f6
+                pdf.circle(w/2, 40, 22, 'F');
 
-                // Ajouter le logo si disponible
-                if (reportData.logoUrl) {
-                    try {
-                        // Charger le logo depuis l'URL
-                        const logoImg = await fetch(reportData.logoUrl);
-                        const logoBlob = await logoImg.blob();
-                        const logoBase64 = await new Promise((resolve) => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => resolve(reader.result);
-                            reader.readAsDataURL(logoBlob);
-                        });
-                        pdf.addImage(logoBase64, 'PNG', w/2 - 22, 18, 44, 44);
-                    } catch(e) {
-                        console.warn('Erreur ajout logo:', e);
-                        // Logo par défaut professionnel si pas de logo uploadé
-                        // Cercle blanc avec contour vert
-                        pdf.setFillColor(255, 255, 255);
-                        pdf.circle(w/2, 40, 24, 'F');
-                        pdf.setDrawColor(16, 185, 129);
-                        pdf.setLineWidth(2);
-                        pdf.circle(w/2, 40, 24);
+                // Icône maison blanche stylisée
+                pdf.setFillColor(255, 255, 255);
+                // Toit (triangle)
+                pdf.setLineWidth(0);
+                pdf.setDrawColor(255, 255, 255);
+                const roofPoints = [
+                    { x: w/2, y: 27 },      // Sommet
+                    { x: w/2 - 13, y: 38 }, // Bas gauche
+                    { x: w/2 + 13, y: 38 }  // Bas droite
+                ];
+                pdf.lines([[roofPoints[1].x - roofPoints[0].x, roofPoints[1].y - roofPoints[0].y],
+                           [roofPoints[2].x - roofPoints[1].x, roofPoints[2].y - roofPoints[1].y],
+                           [roofPoints[0].x - roofPoints[2].x, roofPoints[0].y - roofPoints[2].y]],
+                           roofPoints[0].x, roofPoints[0].y, [1, 1], 'F');
 
-                        // Lettre F en bleu foncé avec design moderne
-                        pdf.setFontSize(32);
-                        pdf.setFont(undefined, 'bold');
-                        pdf.setTextColor(10, 40, 75);
-                        pdf.text('F', w/2, 48, { align: 'center' });
-                    }
-                } else {
-                    // Logo par défaut professionnel si pas de logo uploadé
-                    // Cercle blanc avec contour vert
-                    pdf.setFillColor(255, 255, 255);
-                    pdf.circle(w/2, 40, 24, 'F');
-                    pdf.setDrawColor(16, 185, 129);
-                    pdf.setLineWidth(2);
-                    pdf.circle(w/2, 40, 24);
+                // Corps de la maison
+                pdf.roundedRect(w/2 - 11, 38, 22, 17, 2, 2, 'F');
 
-                    // Lettre F en bleu foncé avec design moderne
-                    pdf.setFontSize(32);
-                    pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(10, 40, 75);
-                    pdf.text('F', w/2, 48, { align: 'center' });
-                }
+                // Porte
+                pdf.setFillColor(59, 130, 246);
+                pdf.roundedRect(w/2 - 5, 45, 10, 10, 1, 1, 'F');
 
-                // Titre FLINCO avec espacement lettres
-                pdf.setFontSize(38);
+                // Titre FLINCO moderne avec espacement
+                pdf.setFontSize(44);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(255, 255, 255);
-                pdf.text('FLINCO', w/2, 78, { align: 'center', charSpace: 2 });
+                pdf.text('FLINCO', w/2, 75, { align: 'center', charSpace: 4 });
 
-                // Sous-titre élégant
-                pdf.setFontSize(10);
+                // Sous-titre minimaliste style site
+                pdf.setFontSize(12);
                 pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(16, 185, 129); // Vert moderne
-                pdf.text('NETTOYAGE PROFESSIONNEL & REMISE EN ÉTAT', w/2, 105, { align: 'center', charSpace: 1 });
+                pdf.setTextColor(148, 163, 184); // Gris bleuté clair
+                pdf.text('Service professionnel de nettoyage et remise en état', w/2, 89, { align: 'center' });
 
-                // Titre du rapport avec fond
-                pdf.setFontSize(22);
+                // Titre du rapport moderne
+                pdf.setFontSize(24);
                 pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(10, 40, 75);
-                pdf.text('RAPPORT DE NETTOYAGE', w/2, 125, { align: 'center' });
+                pdf.setTextColor(30, 41, 59); // Bleu marine
+                pdf.text('RAPPORT DE NETTOYAGE', w/2, 118, { align: 'center' });
 
-                // Ligne décorative sous le titre (dégradé visuel)
-                pdf.setDrawColor(16, 185, 129);
-                pdf.setLineWidth(1.5);
-                pdf.line(w/2 - 35, 128, w/2 + 35, 128);
+                // Ligne décorative bleue
+                pdf.setDrawColor(59, 130, 246); // Bleu électrique
+                pdf.setLineWidth(2);
+                pdf.line(w/2 - 40, 122, w/2 + 40, 122);
 
-                // Informations du rapport dans un cadre moderne
-                let y = 148;
-                const leftCol = 35, rightCol = 88;
+                // Informations du rapport - Cadre moderne style site
+                let y = 145;
+                const leftCol = 40, rightCol = 95;
 
-                // Cadre élégant pour les informations
-                pdf.setFillColor(249, 250, 251); // Gris très clair
-                pdf.setDrawColor(16, 185, 129); // Bordure verte
-                pdf.setLineWidth(0.8);
-                pdf.roundedRect(25, 138, w-50, 85, 5, 5, 'FD');
+                // Cadre avec style site (fond blanc, bordure bleue)
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(59, 130, 246); // Bleu électrique
+                pdf.setLineWidth(1);
+                pdf.roundedRect(28, 132, w-56, 88, 4, 4, 'FD');
 
-                // Badge "INFORMATIONS" dans le coin
-                pdf.setFillColor(16, 185, 129);
-                pdf.roundedRect(30, 141, 35, 7, 2, 2, 'F');
+                // Badge "DÉTAILS" en bleu
+                pdf.setFillColor(59, 130, 246);
+                pdf.roundedRect(35, 135, 22, 8, 2, 2, 'F');
                 pdf.setFontSize(8);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(255, 255, 255);
-                pdf.text('INFORMATIONS', 32, 146);
+                pdf.text('DÉTAILS', 37, 140);
 
-                pdf.setFontSize(10);
+                pdf.setFontSize(11);
 
-                // Style des labels avec icônes
+                // Labels modernes sans icônes (style site épuré)
                 pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(10, 40, 75); // Bleu foncé
-                pdf.text('📋 N° Devis', leftCol, y);
+                pdf.setTextColor(30, 41, 59); // Bleu marine
+                pdf.text('N° Devis', leftCol, y);
                 pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(30, 30, 30);
+                pdf.setTextColor(71, 85, 105); // Gris foncé
                 pdf.text(reportData.quote || 'N/A', rightCol, y);
 
                 y += 12;
                 pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(10, 40, 75);
-                pdf.text('📅 Date', leftCol, y);
+                pdf.setTextColor(30, 41, 59);
+                pdf.text('Date', leftCol, y);
                 pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(30, 30, 30);
+                pdf.setTextColor(71, 85, 105);
                 pdf.text(formatDate(reportData.date), rightCol, y);
 
                 y += 12;
                 pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(10, 40, 75);
-                pdf.text('📍 Adresse', leftCol, y);
+                pdf.setTextColor(30, 41, 59);
+                pdf.text('Adresse', leftCol, y);
                 pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(30, 30, 30);
-                const addrLines = pdf.splitTextToSize(reportData.address, 105);
+                pdf.setTextColor(71, 85, 105);
+                const addrLines = pdf.splitTextToSize(reportData.address, 95);
                 pdf.text(addrLines, rightCol, y);
 
                 if (reportData.agent) {
                     y += addrLines.length * 6 + 6;
                     pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(10, 40, 75);
-                    pdf.text('👤 Agent', leftCol, y);
+                    pdf.setTextColor(30, 41, 59);
+                    pdf.text('Agent', leftCol, y);
                     pdf.setFont(undefined, 'normal');
-                    pdf.setTextColor(30, 30, 30);
+                    pdf.setTextColor(71, 85, 105);
                     pdf.text(reportData.agent, rightCol, y);
                 }
 
                 if (reportData.agency) {
                     y += 12;
                     pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(10, 40, 75);
-                    pdf.text('🏢 Agence', leftCol, y);
+                    pdf.setTextColor(30, 41, 59);
+                    pdf.text('Agence', leftCol, y);
                     pdf.setFont(undefined, 'normal');
-                    pdf.setTextColor(30, 30, 30);
+                    pdf.setTextColor(71, 85, 105);
                     pdf.text(reportData.agency, rightCol, y);
                 }
                 
@@ -1873,33 +1852,25 @@
                     pdf.addPage();
                     y = 20;
 
-                    // En-tête moderne avec accent vert
-                    pdf.setFillColor(10, 40, 75); // Bleu foncé
-                    pdf.rect(0, 0, w, 38, 'F');
+                    // En-tête style site (bleu marine foncé)
+                    pdf.setFillColor(30, 41, 59); // Bleu marine #1e293b
+                    pdf.rect(0, 0, w, 42, 'F');
 
-                    // Accent vert en haut
-                    pdf.setFillColor(16, 185, 129);
-                    pdf.rect(0, 0, w, 3, 'F');
-
-                    // Icône de pièce
-                    pdf.setFontSize(20);
-                    pdf.text('🏠', 20, 25);
-
-                    // Nom de la pièce
-                    pdf.setFontSize(19);
+                    // Nom de la pièce avec style épuré
+                    pdf.setFontSize(22);
                     pdf.setFont(undefined, 'bold');
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text(roomName.toUpperCase(), 35, 25);
+                    pdf.text(roomName, 20, 27);
 
-                    // Badge "PIÈCE" stylisé
-                    pdf.setFillColor(16, 185, 129);
-                    pdf.roundedRect(w - 38, 15, 28, 9, 2, 2, 'F');
-                    pdf.setFontSize(8);
+                    // Badge "PIÈCE" en bleu électrique
+                    pdf.setFillColor(59, 130, 246); // Bleu électrique
+                    pdf.roundedRect(w - 42, 17, 32, 10, 2, 2, 'F');
+                    pdf.setFontSize(9);
                     pdf.setFont(undefined, 'bold');
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text('PIÈCE', w - 24, 21, { align: 'center' });
+                    pdf.text('PIÈCE', w - 26, 24, { align: 'center' });
 
-                    y = 48;
+                    y = 52;
                     
                     if (photos[roomName].general.avant || photos[roomName].general.apres) {
                         pdf.setFontSize(11);
@@ -2320,28 +2291,28 @@
                 for (let p = 1; p <= pageCount; p++) {
                     pdf.setPage(p);
 
-                    // Ligne de séparation moderne en haut du pied de page
-                    pdf.setDrawColor(16, 185, 129); // Vert moderne
-                    pdf.setLineWidth(0.5);
-                    pdf.line(20, h - 16, w - 20, h - 16);
+                    // Ligne de séparation bleue style site
+                    pdf.setDrawColor(59, 130, 246); // Bleu électrique
+                    pdf.setLineWidth(0.8);
+                    pdf.line(20, h - 17, w - 20, h - 17);
 
-                    // Informations du pied de page
-                    pdf.setFontSize(7.5);
+                    // Informations du pied de page - Style épuré site
+                    pdf.setFontSize(8);
                     pdf.setFont(undefined, 'normal');
 
-                    // Gauche : Nom de l'entreprise avec icône
-                    pdf.setTextColor(10, 40, 75);
-                    pdf.text('✨ FLINCO - Nettoyage Professionnel', 20, h - 8);
+                    // Gauche : Nom de l'entreprise
+                    pdf.setTextColor(30, 41, 59); // Bleu marine
+                    pdf.text('FLINCO - Service Professionnel', 20, h - 9);
 
-                    // Centre : Numéro de page avec style
+                    // Centre : Numéro de page en bleu
                     pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(16, 185, 129);
-                    pdf.text('Page ' + p + ' / ' + pageCount, w/2, h - 8, { align: 'center' });
+                    pdf.setTextColor(59, 130, 246); // Bleu électrique
+                    pdf.text('Page ' + p + ' / ' + pageCount, w/2, h - 9, { align: 'center' });
 
-                    // Droite : Site web avec icône
+                    // Droite : Site web
                     pdf.setFont(undefined, 'normal');
-                    pdf.setTextColor(10, 40, 75);
-                    pdf.textWithLink('🌐 cleanbyflinco.com', w - 20, h - 8, {
+                    pdf.setTextColor(30, 41, 59);
+                    pdf.textWithLink('cleanbyflinco.com', w - 20, h - 9, {
                         align: 'right',
                         url: 'https://www.cleanbyflinco.com'
                     });
