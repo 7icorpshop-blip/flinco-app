@@ -1942,20 +1942,14 @@
                         // Avancer en fonction de la hauteur maximale des deux images
                         y += Math.max(avantImgH, apresImgH) + 8;
 
-                        // Vidéo générale si elle existe (URL courte uniquement)
+                        // Vidéo générale si elle existe (lien court)
                         if (photos[roomName].general.video) {
                             if (y > 260) { pdf.addPage(); y = 20; }
 
                             pdf.setFontSize(10);
                             pdf.setFont(undefined, 'bold');
                             pdf.setTextColor(59, 130, 246); // Bleu électrique
-                            pdf.text('🎬 Vidéo', 20, y);
-
-                            y += 6;
-                            pdf.setFontSize(9);
-                            pdf.setFont(undefined, 'normal');
-                            pdf.setTextColor(59, 130, 246);
-                            pdf.textWithLink('🔗 ' + photos[roomName].general.video, 20, y, { url: photos[roomName].general.video });
+                            pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: photos[roomName].general.video });
 
                             y += 10;
                         } else {
@@ -2026,20 +2020,14 @@
 
                         y += Math.max(taskAvantImgH, taskApresImgH) + 8;
 
-                        // Vidéo de la tâche si elle existe (URL courte uniquement)
+                        // Vidéo de la tâche si elle existe (lien court)
                         if (task.video) {
                             if (y > 260) { pdf.addPage(); y = 20; }
 
                             pdf.setFontSize(9);
                             pdf.setFont(undefined, 'bold');
                             pdf.setTextColor(59, 130, 246); // Bleu électrique
-                            pdf.text('🎬 Vidéo', 20, y);
-
-                            y += 6;
-                            pdf.setFontSize(8);
-                            pdf.setFont(undefined, 'normal');
-                            pdf.setTextColor(59, 130, 246);
-                            pdf.textWithLink('🔗 ' + task.video, 20, y, { url: task.video });
+                            pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: task.video });
 
                             y += 9;
                         }
