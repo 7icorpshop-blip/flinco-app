@@ -1942,115 +1942,22 @@
                         // Avancer en fonction de la hauteur maximale des deux images
                         y += Math.max(avantImgH, apresImgH) + 8;
 
-                        // Vignette vidéo générale si elle existe (avec QR code)
+                        // Vidéo générale si elle existe (URL courte uniquement)
                         if (photos[roomName].general.video) {
-                            if (y > 215) { pdf.addPage(); y = 20; }
+                            if (y > 260) { pdf.addPage(); y = 20; }
 
-                            try {
-                                // Titre "Vidéo"
-                                pdf.setFontSize(10);
-                                pdf.setFont(undefined, 'bold');
-                                pdf.setTextColor(16, 185, 129);
-                                pdf.text('🎬 Vidéo', 20, y);
-                                y += 5;
+                            pdf.setFontSize(10);
+                            pdf.setFont(undefined, 'bold');
+                            pdf.setTextColor(59, 130, 246); // Bleu électrique
+                            pdf.text('🎬 Vidéo', 20, y);
 
-                                // Extraire la vignette de la vidéo
-                                const thumbnail = await extractVideoThumbnail(photos[roomName].general.video, 400, 300);
+                            y += 6;
+                            pdf.setFontSize(9);
+                            pdf.setFont(undefined, 'normal');
+                            pdf.setTextColor(59, 130, 246);
+                            pdf.textWithLink('🔗 ' + photos[roomName].general.video, 20, y, { url: photos[roomName].general.video });
 
-                                // Générer le QR code
-                                const qrCodeImage = await generateQRCode(photos[roomName].general.video, 128);
-
-                                // URL courte (déjà créée, du type cleanbyflinco.com/v/abc123)
-                                const displayUrl = photos[roomName].general.video;
-
-                                // Dimensions
-                                const thumbnailWidth = 60;
-                                const thumbnailHeight = 45;
-                                const qrSize = 25;
-
-                                // Ajouter la vignette à gauche (cliquable)
-                                pdf.setDrawColor(16, 185, 129);
-                                pdf.setLineWidth(0.5);
-                                pdf.rect(20, y, thumbnailWidth, thumbnailHeight);
-                                pdf.addImage(thumbnail, 'JPEG', 20, y, thumbnailWidth, thumbnailHeight);
-                                pdf.link(20, y, thumbnailWidth, thumbnailHeight, { url: photos[roomName].general.video });
-
-                                // Ajouter le QR code à droite
-                                const qrX = 20 + thumbnailWidth + 8;
-                                pdf.addImage(qrCodeImage, 'PNG', qrX, y + (thumbnailHeight - qrSize) / 2, qrSize, qrSize);
-
-                                // Texte explicatif à droite du QR code
-                                const textX = qrX + qrSize + 5;
-                                const textY = y + 7;
-
-                                pdf.setFontSize(8);
-                                pdf.setFont(undefined, 'bold');
-                                pdf.setTextColor(16, 185, 129);
-                                pdf.textWithLink('▶️ Voir la vidéo', textX, textY, { url: photos[roomName].general.video });
-
-                                pdf.setFontSize(6.5);
-                                pdf.setFont(undefined, 'normal');
-                                pdf.setTextColor(100, 100, 100);
-                                pdf.text('Cliquez sur l\'image', textX, textY + 5);
-                                pdf.text('ou scannez le QR', textX, textY + 9);
-
-                                // Ajouter l'URL visible en bas avec style
-                                const urlY = y + thumbnailHeight + 3;
-                                pdf.setFontSize(7);
-                                pdf.setFont(undefined, 'bold');
-                                pdf.setTextColor(16, 185, 129); // Vert moderne
-                                pdf.text('🔗', 20, urlY);
-                                pdf.setFont(undefined, 'normal');
-                                pdf.setTextColor(10, 40, 75); // Bleu foncé
-                                pdf.textWithLink(displayUrl, 25, urlY, { url: photos[roomName].general.video });
-
-                                y += thumbnailHeight + 8;
-                            } catch (error) {
-                                console.error('Erreur génération vignette vidéo:', error);
-                                // Fallback : afficher seulement le lien avec QR code
-                                try {
-                                    const qrCodeImage = await generateQRCode(photos[roomName].general.video, 128);
-                                    const qrSize = 20;
-
-                                    // QR à gauche
-                                    pdf.addImage(qrCodeImage, 'PNG', 20, y, qrSize, qrSize);
-
-                                    // Texte à droite
-                                    pdf.setFontSize(10);
-                                    pdf.setTextColor(16, 185, 129);
-                                    pdf.setFont(undefined, 'bold');
-                                    pdf.textWithLink('▶️ Voir la vidéo', 45, y + 7, { url: photos[roomName].general.video });
-
-                                    // URL visible
-                                    pdf.setFontSize(7);
-                                    pdf.setFont(undefined, 'normal');
-                                    pdf.setTextColor(130, 172, 255);
-                                    const displayUrl = photos[roomName].general.video.length > 50
-                                        ? photos[roomName].general.video.substring(0, 47) + '...'
-                                        : photos[roomName].general.video;
-                                    pdf.textWithLink(displayUrl, 45, y + 13, { url: photos[roomName].general.video });
-
-                                    pdf.setFontSize(7);
-                                    pdf.setTextColor(100, 100, 100);
-                                    pdf.text('Scannez le QR code', 45, y + 18);
-
-                                    y += qrSize + 10;
-                                } catch (qrError) {
-                                    // Fallback ultime : lien simple avec URL
-                                    pdf.setFontSize(10);
-                                    pdf.setTextColor(16, 185, 129);
-                                    pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: photos[roomName].general.video });
-
-                                    pdf.setFontSize(7);
-                                    pdf.setTextColor(130, 172, 255);
-                                    const displayUrl = photos[roomName].general.video.length > 80
-                                        ? photos[roomName].general.video.substring(0, 77) + '...'
-                                        : photos[roomName].general.video;
-                                    pdf.text(displayUrl, 20, y + 5);
-
-                                    y += 12;
-                                }
-                            }
+                            y += 10;
                         } else {
                             y += 7;
                         }
@@ -2119,115 +2026,22 @@
 
                         y += Math.max(taskAvantImgH, taskApresImgH) + 8;
 
-                        // Vignette vidéo de la tâche si elle existe (avec QR code)
+                        // Vidéo de la tâche si elle existe (URL courte uniquement)
                         if (task.video) {
-                            if (y > 215) { pdf.addPage(); y = 20; }
+                            if (y > 260) { pdf.addPage(); y = 20; }
 
-                            try {
-                                // Titre "Vidéo"
-                                pdf.setFontSize(9);
-                                pdf.setFont(undefined, 'bold');
-                                pdf.setTextColor(16, 185, 129);
-                                pdf.text('🎬 Vidéo', 20, y);
-                                y += 4;
+                            pdf.setFontSize(9);
+                            pdf.setFont(undefined, 'bold');
+                            pdf.setTextColor(59, 130, 246); // Bleu électrique
+                            pdf.text('🎬 Vidéo', 20, y);
 
-                                // Extraire la vignette de la vidéo
-                                const thumbnail = await extractVideoThumbnail(task.video, 400, 300);
+                            y += 6;
+                            pdf.setFontSize(8);
+                            pdf.setFont(undefined, 'normal');
+                            pdf.setTextColor(59, 130, 246);
+                            pdf.textWithLink('🔗 ' + task.video, 20, y, { url: task.video });
 
-                                // Générer le QR code
-                                const qrCodeImage = await generateQRCode(task.video, 128);
-
-                                // URL courte (déjà créée, du type cleanbyflinco.com/v/abc123)
-                                const displayUrl = task.video;
-
-                                // Dimensions (plus petit pour les tâches)
-                                const thumbnailWidth = 50;
-                                const thumbnailHeight = 38;
-                                const qrSize = 22;
-
-                                // Ajouter la vignette à gauche (cliquable)
-                                pdf.setDrawColor(16, 185, 129);
-                                pdf.setLineWidth(0.5);
-                                pdf.rect(20, y, thumbnailWidth, thumbnailHeight);
-                                pdf.addImage(thumbnail, 'JPEG', 20, y, thumbnailWidth, thumbnailHeight);
-                                pdf.link(20, y, thumbnailWidth, thumbnailHeight, { url: task.video });
-
-                                // Ajouter le QR code à droite
-                                const qrX = 20 + thumbnailWidth + 6;
-                                pdf.addImage(qrCodeImage, 'PNG', qrX, y + (thumbnailHeight - qrSize) / 2, qrSize, qrSize);
-
-                                // Texte explicatif à droite du QR code
-                                const textX = qrX + qrSize + 4;
-                                const textY = y + 6;
-
-                                pdf.setFontSize(7);
-                                pdf.setFont(undefined, 'bold');
-                                pdf.setTextColor(16, 185, 129);
-                                pdf.textWithLink('▶️ Voir la vidéo', textX, textY, { url: task.video });
-
-                                pdf.setFontSize(6);
-                                pdf.setFont(undefined, 'normal');
-                                pdf.setTextColor(100, 100, 100);
-                                pdf.text('Cliquez sur l\'image', textX, textY + 4);
-                                pdf.text('ou scannez le QR', textX, textY + 8);
-
-                                // Ajouter l'URL visible en bas avec style
-                                const urlY = y + thumbnailHeight + 3;
-                                pdf.setFontSize(6.5);
-                                pdf.setFont(undefined, 'bold');
-                                pdf.setTextColor(16, 185, 129); // Vert moderne
-                                pdf.text('🔗', 20, urlY);
-                                pdf.setFont(undefined, 'normal');
-                                pdf.setTextColor(10, 40, 75); // Bleu foncé
-                                pdf.textWithLink(displayUrl, 24, urlY, { url: task.video });
-
-                                y += thumbnailHeight + 8;
-                            } catch (error) {
-                                console.error('Erreur génération vignette vidéo:', error);
-                                // Fallback : afficher seulement le lien avec QR code
-                                try {
-                                    const qrCodeImage = await generateQRCode(task.video, 128);
-                                    const qrSize = 20;
-
-                                    // QR à gauche
-                                    pdf.addImage(qrCodeImage, 'PNG', 20, y, qrSize, qrSize);
-
-                                    // Texte à droite
-                                    pdf.setFontSize(9);
-                                    pdf.setTextColor(16, 185, 129);
-                                    pdf.setFont(undefined, 'bold');
-                                    pdf.textWithLink('▶️ Voir la vidéo', 45, y + 6, { url: task.video });
-
-                                    // URL visible
-                                    pdf.setFontSize(6.5);
-                                    pdf.setFont(undefined, 'normal');
-                                    pdf.setTextColor(130, 172, 255);
-                                    const displayUrl = task.video.length > 45
-                                        ? task.video.substring(0, 42) + '...'
-                                        : task.video;
-                                    pdf.textWithLink(displayUrl, 45, y + 11, { url: task.video });
-
-                                    pdf.setFontSize(6.5);
-                                    pdf.setTextColor(100, 100, 100);
-                                    pdf.text('Scannez le QR', 45, y + 16);
-
-                                    y += qrSize + 10;
-                                } catch (qrError) {
-                                    // Fallback ultime : lien simple avec URL
-                                    pdf.setFontSize(9);
-                                    pdf.setTextColor(16, 185, 129);
-                                    pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: task.video });
-
-                                    pdf.setFontSize(6.5);
-                                    pdf.setTextColor(130, 172, 255);
-                                    const displayUrl = task.video.length > 75
-                                        ? task.video.substring(0, 72) + '...'
-                                        : task.video;
-                                    pdf.text(displayUrl, 20, y + 5);
-
-                                    y += 10;
-                                }
-                            }
+                            y += 9;
                         }
 
                         // Photos ouvert/fermé pour les équipements
