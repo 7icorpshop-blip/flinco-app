@@ -531,11 +531,14 @@
 
                     reportData = doc.data();
 
-                    // IMPORTANT: Restaurer les photos depuis localStorage si disponibles
-                    // pour ne pas perdre le travail en cours lors d'un rechargement
+                    // IMPORTANT: Restaurer les photos depuis localStorage OU Firestore
+                    // localStorage a la priorité (données les plus récentes)
                     if (localData && localData.photos) {
                         console.log('📸 Restauration des photos depuis localStorage');
                         photos = localData.photos;
+                    } else if (reportData.photos) {
+                        console.log('📸 Restauration des photos depuis Firestore');
+                        photos = reportData.photos;
                     }
                 } else if (localData) {
                     // Si hors-ligne et données locales disponibles
