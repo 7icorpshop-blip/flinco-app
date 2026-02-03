@@ -8,49 +8,43 @@ service firebase.storage {
     // ==================== PHOTOS ====================
     // Les agents uploadent des photos via un lien unique (pas d'auth)
     // Protection : taille max 10MB, formats images uniquement
-    match /photos/{reportId}/{roomName}/{fileName} {
+    match /photos/{allPaths=**} {
       allow read: if true; // ✅ Lecture publique (pour liens courts et PDFs)
       allow write: if
         // Validation taille fichier (10 MB max)
         request.resource.size < 10 * 1024 * 1024
         // Validation type de fichier (images uniquement)
-        && request.resource.contentType.matches('image/.*')
-        // Validation structure du nom de fichier
-        && fileName.matches('.*\\.(jpg|jpeg|png|webp)$');
+        && request.resource.contentType.matches('image/.*');
     }
 
     // ==================== VIDÉOS ====================
     // Vidéos des rapports de nettoyage
     // Protection : taille max 100MB, formats vidéo uniquement
-    match /videos/{reportId}/{roomName}/{fileName} {
+    match /videos/{allPaths=**} {
       allow read: if true; // ✅ Lecture publique (pour liens courts)
       allow write: if
         // Validation taille fichier (100 MB max pour vidéos)
         request.resource.size < 100 * 1024 * 1024
         // Validation type de fichier (vidéos uniquement)
-        && request.resource.contentType.matches('video/.*')
-        // Validation extension
-        && fileName.matches('.*\\.(mp4|mov|avi|webm)$');
+        && request.resource.contentType.matches('video/.*');
     }
 
     // ==================== RAPPORTS PDF ====================
     // PDFs générés à la fin des rapports
     // Protection : taille max 50MB, PDF uniquement
-    match /reports/{reportId}/{fileName} {
+    match /reports/{allPaths=**} {
       allow read: if true; // ✅ Lecture publique (téléchargement depuis admin)
       allow write: if
         // Validation taille (50 MB max)
         request.resource.size < 50 * 1024 * 1024
         // Validation type PDF
-        && request.resource.contentType == 'application/pdf'
-        // Validation extension
-        && fileName.matches('.*\\.pdf$');
+        && request.resource.contentType == 'application/pdf';
     }
 
     // ==================== LOGOS ====================
     // Logos de l'entreprise (rarement modifiés)
     // Protection : lecture publique, écriture authentifiée uniquement
-    match /logos/{fileName} {
+    match /logos/{allPaths=**} {
       allow read: if true; // ✅ Lecture publique
       allow write: if
         // Seulement si authentifié (admin)
@@ -63,7 +57,7 @@ service firebase.storage {
 
     // ==================== DEVIS ====================
     // Fichiers devis uploadés par l'admin
-    match /quotes/{fileName} {
+    match /quotes/{allPaths=**} {
       allow read: if true; // ✅ Lecture publique
       allow write: if
         // Seulement si authentifié (admin)
