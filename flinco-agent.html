@@ -1776,7 +1776,16 @@
                 pdf.setLineWidth(0.5);
                 pdf.line(40, 115, w-40, 115);
 
-                // Titre principal "État des lieux en date du..."
+                // Définir le titre du rapport selon le type (même mapping que pages pièces)
+                const reportTitles = {
+                    'nettoyage-remise-etat': 'RAPPORT DE NETTOYAGE ET REMISE EN ÉTAT',
+                    'debarras': 'RAPPORT DE DÉBARRAS',
+                    'remise-etat': 'RAPPORT DE REMISE EN ÉTAT',
+                    'nettoyage': 'RAPPORT DE NETTOYAGE'
+                };
+                const mainReportTitle = reportTitles[reportData.reportType] || 'RAPPORT DE NETTOYAGE ET REMISE EN ÉTAT';
+
+                // Titre principal avec type de rapport + date
                 pdf.setFontSize(14);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(40, 40, 40);
@@ -1787,7 +1796,13 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                pdf.text(`Etat des lieux entrant en date du ${completionDate}`, w/2, 130, { align: 'center' });
+                pdf.text(mainReportTitle, w/2, 125, { align: 'center' });
+
+                // Date en dessous
+                pdf.setFontSize(11);
+                pdf.setFont(undefined, 'normal');
+                pdf.setTextColor(80, 80, 80);
+                pdf.text(`en date du ${completionDate}`, w/2, 135, { align: 'center' });
 
                 // Informations centrées style minimaliste
                 let y = 150;
