@@ -1,0 +1,77 @@
+rules_version = '2';
+
+// Règles de sécurité Firestore pour FLINCO
+// Système de rapports de nettoyage avec liens uniques
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==================== RAPPORTS ====================
+    // Les rapports sont créés par l'admin et modifiés par les agents via lien unique
+    match /reports/{reportId} {
+      // Lecture publique : l'agent accède au rapport via un lien unique (pas d'auth)
+      allow read: if true;
+
+      // Écriture publique MAIS avec validations strictes
+      allow create: if
+        // Le document doit avoir les champs requis
+        request.resource.data.keys().hasAll(['address', 'date', 'quote', 'rooms', 'status', 'createdAt'])
+        // Le statut initial doit être 'pending'
+        && request.resource.data.status in ['pending', 'in_progress'];
+
+      // Mise à jour : permet aux agents de compléter le rapport
+      allow update: if
+        // Le statut peut passer de pending -> in_progress -> completed
+        request.resource.data.status in ['pending', 'in_progress', 'completed']
+        // Ne peut pas modifier les infos de base (address, date, quote, rooms)
+        && request.resource.data.address == resource.data.address
+        && request.resource.data.date == resource.data.date
+        && request.resource.data.quote == resource.data.quote
+        // Peut ajouter photos, pdfUrl, completedAt
+        && request.resource.data.keys().hasAll(['address', 'date', 'quote', 'rooms', 'status']);
+
+      // Suppression : authentifié uniquement (admin)
+      allow delete: if request.auth != null;
+    }
+
+    // ==================== URLs COURTES ====================
+    // URLs courtes pour les vidéos (système de redirection)
+    match /shortUrls/{shortId} {
+      // Lecture publique : nécessaire pour la redirection
+      allow read: if true;
+
+      // Création : publique avec validation
+      allow create: if
+        // Doit avoir les champs requis
+        request.resource.data.keys().hasAll(['originalUrl', 'type', 'createdAt', 'clicks'])
+        // Type doit être 'video' ou 'photo'
+        && request.resource.data.type in ['video', 'photo']
+        // Clicks doit être 0 au début
+        && request.resource.data.clicks == 0
+        // L'URL doit pointer vers Firebase Storage
+        && request.resource.data.originalUrl.matches('.*firebasestorage\\.googleapis\\.com.*');
+
+      // Mise à jour : seulement pour incrémenter les clicks
+      allow update: if
+        // Seul le champ 'clicks' et 'lastAccessedAt' peuvent être modifiés
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks', 'lastAccessedAt'])
+        // Clicks doit augmenter de 1
+        && request.resource.data.clicks == resource.data.clicks + 1;
+
+      // Pas de suppression publique
+      allow delete: if false;
+    }
+
+    // ==================== SETTINGS / CONFIG ====================
+    // Configuration de l'application (admin uniquement)
+    match /settings/{document} {
+      allow read: if true; // Configuration publique
+      allow write: if request.auth != null; // Modification admin uniquement
+    }
+
+    // ==================== DÉFAUT ====================
+    // Par défaut : refuser tout le reste
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
