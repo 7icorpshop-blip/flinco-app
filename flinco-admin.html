@@ -624,6 +624,16 @@
                 <div class="section-title">📸 Configuration des médias</div>
                 <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Choisissez quels types de médias l'agent devra fournir lors de l'intervention.</p>
                 <div class="form-group">
+                    <label>Type de rapport</label>
+                    <select id="reportType" style="padding: 12px 16px; background: var(--card); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit; width: 100%;">
+                        <option value="nettoyage-remise-etat" selected>🧹 Rapport de nettoyage et remise en état</option>
+                        <option value="debarras">📦 Rapport de débarras</option>
+                        <option value="remise-etat">🔧 Rapport de remise en état</option>
+                        <option value="nettoyage">✨ Rapport de nettoyage</option>
+                    </select>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">💡 Ce titre apparaîtra sur la page de couverture du PDF.</p>
+                </div>
+                <div class="form-group">
                     <label>Mode de capture des photos/vidéos</label>
                     <select id="photoMode" style="padding: 12px 16px; background: var(--card); border: 2px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit; width: 100%;">
                         <option value="avant-apres-video">📸 Avant + Après + 🎬 Vidéo (Complet)</option>
@@ -2366,6 +2376,7 @@
                     agency: document.getElementById('agency').value || '',
                     rooms: rooms,
                     logoUrl: logoUrl,
+                    reportType: document.getElementById('reportType').value || 'nettoyage-remise-etat',
                     photoMode: document.getElementById('photoMode').value || 'avant-apres',
                     requireVideoMainRoom: document.getElementById('requireVideoMainRoom').checked || false,
                     status: 'pending',
@@ -2884,6 +2895,7 @@
                 document.getElementById('address').value = data.address || '';
                 document.getElementById('agent').value = data.agent || '';
                 document.getElementById('agency').value = data.agency || '';
+                document.getElementById('reportType').value = data.reportType || 'nettoyage-remise-etat';
                 document.getElementById('photoMode').value = data.photoMode || 'avant-apres';
                 document.getElementById('requireVideoMainRoom').checked = data.requireVideoMainRoom || false;
 
@@ -2957,6 +2969,7 @@
                     agency: document.getElementById('agency').value || '',
                     rooms: rooms,
                     logoUrl: logoUrl,
+                    reportType: document.getElementById('reportType').value || 'nettoyage-remise-etat',
                     photoMode: document.getElementById('photoMode').value || 'avant-apres',
                     requireVideoMainRoom: document.getElementById('requireVideoMainRoom').checked || false,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
