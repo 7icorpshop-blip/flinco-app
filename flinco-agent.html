@@ -558,8 +558,15 @@
                 // Charger le mode photos (par défaut: avant-apres)
                 photoMode = reportData.photoMode || 'avant-apres';
                 requireVideoMainRoom = reportData.requireVideoMainRoom || false;
+
+                // Valeur par défaut pour reportType (compatibilité anciens rapports)
+                if (!reportData.reportType) {
+                    reportData.reportType = 'nettoyage-remise-etat';
+                }
+
                 console.log('📸 Mode photos:', photoMode);
                 console.log('🎬 Vidéo obligatoire pièce principale:', requireVideoMainRoom);
+                console.log('📄 Type de rapport:', reportData.reportType);
 
                 // Initialiser la structure photos pour les nouvelles pièces/tâches
                 // Ne pas écraser les photos existantes déjà sauvegardées
@@ -1728,6 +1735,15 @@
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 const w = 210, h = 297;
 
+                // Définir les titres de rapport (utilisés plusieurs fois)
+                const reportTitles = {
+                    'nettoyage-remise-etat': 'RAPPORT DE NETTOYAGE ET REMISE EN ÉTAT',
+                    'debarras': 'RAPPORT DE DÉBARRAS',
+                    'remise-etat': 'RAPPORT DE REMISE EN ÉTAT',
+                    'nettoyage': 'RAPPORT DE NETTOYAGE'
+                };
+                const reportTitle = reportTitles[reportData.reportType] || 'RAPPORT DE NETTOYAGE ET REMISE EN ÉTAT';
+
                 // ============ PAGE 1 : COUVERTURE STYLE FLAT CHECKER ============
                 // Fond blanc épuré
                 pdf.setFillColor(255, 255, 255);
@@ -1776,15 +1792,6 @@
                 pdf.setLineWidth(0.5);
                 pdf.line(40, 115, w-40, 115);
 
-                // Définir le titre du rapport selon le type (même mapping que pages pièces)
-                const reportTitles = {
-                    'nettoyage-remise-etat': 'RAPPORT DE NETTOYAGE ET REMISE EN ÉTAT',
-                    'debarras': 'RAPPORT DE DÉBARRAS',
-                    'remise-etat': 'RAPPORT DE REMISE EN ÉTAT',
-                    'nettoyage': 'RAPPORT DE NETTOYAGE'
-                };
-                const mainReportTitle = reportTitles[reportData.reportType] || 'RAPPORT DE NETTOYAGE ET REMISE EN ÉTAT';
-
                 // Titre principal avec type de rapport + date
                 pdf.setFontSize(14);
                 pdf.setFont(undefined, 'bold');
@@ -1796,7 +1803,7 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                pdf.text(mainReportTitle, w/2, 125, { align: 'center' });
+                pdf.text(reportTitle, w/2, 125, { align: 'center' });
 
                 // Date en dessous
                 pdf.setFontSize(11);
@@ -1833,17 +1840,8 @@
                     pdf.setFont(undefined, 'normal');
                     pdf.text(`Propriétaire : ${reportData.agency}`, w/2, y, { align: 'center' });
                 }
-                
-                // ============ PAGES SUIVANTES : PIÈCES STYLE EXPERT EDL ============
-                // Définir le titre du rapport selon le type
-                const reportTitles = {
-                    'nettoyage-remise-etat': 'RAPPORT DE NETTOYAGE ET REMISE EN ÉTAT',
-                    'debarras': 'RAPPORT DE DÉBARRAS',
-                    'remise-etat': 'RAPPORT DE REMISE EN ÉTAT',
-                    'nettoyage': 'RAPPORT DE NETTOYAGE'
-                };
-                const reportTitle = reportTitles[reportData.reportType] || 'RAPPORT DE NETTOYAGE ET REMISE EN ÉTAT';
 
+                // ============ PAGES SUIVANTES : PIÈCES STYLE EXPERT EDL ============
                 for (const roomName in photos) {
                     pdf.addPage();
                     y = 20;
