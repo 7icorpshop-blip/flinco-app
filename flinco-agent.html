@@ -1728,237 +1728,205 @@
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 const w = 210, h = 297;
 
-                // Fond blanc pur
+                // ============ PAGE 1 : COUVERTURE STYLE FLAT CHECKER ============
+                // Fond blanc épuré
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(0, 0, w, h, 'F');
 
-                // Bannière supérieure style site (bleu marine foncé)
-                pdf.setFillColor(30, 41, 59); // Bleu marine #1e293b (couleur exacte du site)
-                pdf.rect(0, 0, w, 100, 'F');
+                // Logo FLINCO carré centré en haut (style Flat Checker)
+                const logoSize = 50;
+                const logoX = (w - logoSize) / 2;
+                const logoY = 40;
 
-                // Logo FLINCO professionnel (icône maison dans cercle bleu)
-                // Cercle bleu électrique
-                pdf.setFillColor(59, 130, 246); // Bleu électrique #3b82f6
-                pdf.circle(w/2, 40, 22, 'F');
+                // Carré bleu marine avec logo maison
+                pdf.setFillColor(45, 62, 80); // Bleu marine foncé
+                pdf.roundedRect(logoX, logoY, logoSize, logoSize, 3, 3, 'F');
 
-                // Icône maison blanche stylisée
+                // Icône maison blanche dans le carré
                 pdf.setFillColor(255, 255, 255);
-                // Toit (triangle)
-                pdf.setLineWidth(0);
-                pdf.setDrawColor(255, 255, 255);
+                // Toit
+                const houseScale = 0.8;
+                const houseCenterX = w/2;
+                const houseCenterY = logoY + 25;
                 const roofPoints = [
-                    { x: w/2, y: 27 },      // Sommet
-                    { x: w/2 - 13, y: 38 }, // Bas gauche
-                    { x: w/2 + 13, y: 38 }  // Bas droite
+                    { x: houseCenterX, y: houseCenterY - 8*houseScale },
+                    { x: houseCenterX - 12*houseScale, y: houseCenterY + 2*houseScale },
+                    { x: houseCenterX + 12*houseScale, y: houseCenterY + 2*houseScale }
                 ];
+                pdf.setLineWidth(0);
                 pdf.lines([[roofPoints[1].x - roofPoints[0].x, roofPoints[1].y - roofPoints[0].y],
                            [roofPoints[2].x - roofPoints[1].x, roofPoints[2].y - roofPoints[1].y],
                            [roofPoints[0].x - roofPoints[2].x, roofPoints[0].y - roofPoints[2].y]],
                            roofPoints[0].x, roofPoints[0].y, [1, 1], 'F');
-
-                // Corps de la maison
-                pdf.roundedRect(w/2 - 11, 38, 22, 17, 2, 2, 'F');
-
+                // Corps maison
+                pdf.roundedRect(houseCenterX - 9*houseScale, houseCenterY + 2*houseScale, 18*houseScale, 14*houseScale, 2, 2, 'F');
                 // Porte
-                pdf.setFillColor(59, 130, 246);
-                pdf.roundedRect(w/2 - 5, 45, 10, 10, 1, 1, 'F');
+                pdf.setFillColor(45, 62, 80);
+                pdf.roundedRect(houseCenterX - 4*houseScale, houseCenterY + 8*houseScale, 8*houseScale, 8*houseScale, 1, 1, 'F');
 
-                // Titre FLINCO moderne avec espacement
-                pdf.setFontSize(44);
-                pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(255, 255, 255);
-                pdf.text('FLINCO', w/2, 75, { align: 'center', charSpace: 4 });
-
-                // Sous-titre minimaliste style site
-                pdf.setFontSize(12);
-                pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(148, 163, 184); // Gris bleuté clair
-                pdf.text('Service professionnel de nettoyage et remise en état', w/2, 89, { align: 'center' });
-
-                // Titre du rapport moderne
-                pdf.setFontSize(24);
-                pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(30, 41, 59); // Bleu marine
-                pdf.text('RAPPORT DE NETTOYAGE', w/2, 118, { align: 'center' });
-
-                // Ligne décorative bleue
-                pdf.setDrawColor(59, 130, 246); // Bleu électrique
-                pdf.setLineWidth(2);
-                pdf.line(w/2 - 40, 122, w/2 + 40, 122);
-
-                // Informations du rapport - Cadre moderne style site
-                let y = 145;
-                const leftCol = 40, rightCol = 95;
-
-                // Cadre avec style site (fond blanc, bordure bleue)
-                pdf.setFillColor(255, 255, 255);
-                pdf.setDrawColor(59, 130, 246); // Bleu électrique
-                pdf.setLineWidth(1);
-                pdf.roundedRect(28, 132, w-56, 88, 4, 4, 'FD');
-
-                // Badge "DÉTAILS" en bleu
-                pdf.setFillColor(59, 130, 246);
-                pdf.roundedRect(35, 135, 22, 8, 2, 2, 'F');
-                pdf.setFontSize(8);
-                pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(255, 255, 255);
-                pdf.text('DÉTAILS', 37, 140);
-
+                // Nom du rapport centré dessous
                 pdf.setFontSize(11);
-
-                // Labels modernes sans icônes (style site épuré)
-                pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(30, 41, 59); // Bleu marine
-                pdf.text('N° Devis', leftCol, y);
                 pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(71, 85, 105); // Gris foncé
-                pdf.text(reportData.quote || 'N/A', rightCol, y);
+                pdf.setTextColor(80, 80, 80);
+                const reportTitle = `Rapport_${reportData.quote || 'N/A'}_${formatDate(reportData.date).replace(/\//g, '')}`;
+                pdf.text(reportTitle, w/2, 100, { align: 'center' });
 
-                y += 12;
+                // Ligne horizontale séparatrice
+                pdf.setDrawColor(200, 200, 200);
+                pdf.setLineWidth(0.5);
+                pdf.line(40, 115, w-40, 115);
+
+                // Titre principal "État des lieux en date du..."
+                pdf.setFontSize(14);
                 pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(30, 41, 59);
-                pdf.text('Date', leftCol, y);
-                pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(71, 85, 105);
-                pdf.text(formatDate(reportData.date), rightCol, y);
+                pdf.setTextColor(40, 40, 40);
+                const completionDate = new Date().toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                pdf.text(`Etat des lieux entrant en date du ${completionDate}`, w/2, 130, { align: 'center' });
 
-                y += 12;
+                // Informations centrées style minimaliste
+                let y = 150;
+                pdf.setFontSize(12);
                 pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(30, 41, 59);
-                pdf.text('Adresse', leftCol, y);
+                pdf.setTextColor(60, 60, 60);
+
+                // Technicien
+                const technicianName = reportData.agent || 'FLINCO';
+                pdf.text(technicianName, w/2, y, { align: 'center' });
+                y += 15;
+
+                // Adresse (centrée)
+                pdf.setFontSize(11);
                 pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(71, 85, 105);
-                const addrLines = pdf.splitTextToSize(reportData.address, 95);
-                pdf.text(addrLines, rightCol, y);
+                pdf.setTextColor(80, 80, 80);
+                const addrLines = pdf.splitTextToSize(reportData.address, 140);
+                addrLines.forEach(line => {
+                    pdf.text(line, w/2, y, { align: 'center' });
+                    y += 6;
+                });
 
-                if (reportData.agent) {
-                    y += addrLines.length * 6 + 6;
-                    pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(30, 41, 59);
-                    pdf.text('Agent', leftCol, y);
-                    pdf.setFont(undefined, 'normal');
-                    pdf.setTextColor(71, 85, 105);
-                    pdf.text(reportData.agent, rightCol, y);
-                }
+                y += 10;
 
+                // Propriétaire (si présent)
                 if (reportData.agency) {
-                    y += 12;
-                    pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(30, 41, 59);
-                    pdf.text('Agence', leftCol, y);
+                    pdf.setFontSize(11);
                     pdf.setFont(undefined, 'normal');
-                    pdf.setTextColor(71, 85, 105);
-                    pdf.text(reportData.agency, rightCol, y);
+                    pdf.text(`Propriétaire : ${reportData.agency}`, w/2, y, { align: 'center' });
                 }
                 
+                // ============ PAGES SUIVANTES : PIÈCES STYLE EXPERT EDL ============
                 for (const roomName in photos) {
                     pdf.addPage();
                     y = 20;
 
-                    // En-tête style site (bleu marine foncé)
-                    pdf.setFillColor(30, 41, 59); // Bleu marine #1e293b
-                    pdf.rect(0, 0, w, 42, 'F');
+                    // En-tête avec bordure style Expert EDL
+                    pdf.setDrawColor(100, 100, 100);
+                    pdf.setLineWidth(1);
+                    pdf.rect(15, 15, w-30, 25);
 
-                    // Nom de la pièce avec style épuré
-                    pdf.setFontSize(22);
+                    // Titre du rapport dans l'en-tête
+                    pdf.setFontSize(12);
                     pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(255, 255, 255);
-                    pdf.text(roomName, 20, 27);
+                    pdf.setTextColor(40, 40, 40);
+                    pdf.text('CONSTAT D\'ETAT DES LIEUX', w/2, 23, { align: 'center' });
 
-                    // Badge "PIÈCE" en bleu électrique
-                    pdf.setFillColor(59, 130, 246); // Bleu électrique
-                    pdf.roundedRect(w - 42, 17, 32, 10, 2, 2, 'F');
+                    // Date et technicien dans l'en-tête
                     pdf.setFontSize(9);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.text(`Date: ${formatDate(reportData.date)}`, 20, 33);
+                    pdf.text(`Technicien : ${reportData.agent || 'FLINCO'}`, w - 20, 33, { align: 'right' });
+
+                    y = 48;
+
+                    // Photos Avant/Après en haut (style vignettes Expert EDL)
+                    const vignSize = 65;
+                    const vignY = y;
+                    if (photos[roomName].general.avant) {
+                        try {
+                            pdf.addImage(photos[roomName].general.avant, 'JPEG', 25, vignY, vignSize, vignSize*0.75);
+                        } catch(e) { console.error('Erreur vignette avant'); }
+                    } else {
+                        pdf.rect(25, vignY, vignSize, vignSize*0.75);
+                    }
+
+                    if (photos[roomName].general.apres) {
+                        try {
+                            pdf.addImage(photos[roomName].general.apres, 'JPEG', w - 25 - vignSize, vignY, vignSize, vignSize*0.75);
+                        } catch(e) { console.error('Erreur vignette après'); }
+                    } else {
+                        pdf.rect(w - 25 - vignSize, vignY, vignSize, vignSize*0.75);
+                    }
+
+                    y += vignSize*0.75 + 8;
+
+                    // Section "Informations sur le bien" avec fond magenta style Expert EDL
+                    pdf.setFillColor(210, 44, 130); // Magenta Expert EDL
+                    pdf.rect(15, y, w-30, 10, 'F');
+
+                    // Icône info (cercle avec i)
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.circle(25, y+5, 4, 'F');
+                    pdf.setFontSize(10);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.setTextColor(210, 44, 130);
+                    pdf.text('i', 25, y+7, { align: 'center' });
+
+                    // Texte de la section
+                    pdf.setFontSize(12);
                     pdf.setFont(undefined, 'bold');
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text('PIÈCE', w - 26, 24, { align: 'center' });
+                    pdf.text(`Informations sur la pièce - ${roomName}`, 35, y+7);
 
-                    y = 52;
+                    y += 15;
+
+                    // Cadre avec bordure pour les informations
+                    pdf.setDrawColor(100, 100, 100);
+                    pdf.setLineWidth(0.5);
+                    pdf.rect(15, y, w-30, 20);
+
+                    pdf.setFontSize(9);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text(`Type de pièce : ${roomName}`, 20, y+8);
+                    pdf.text(`Adresse : ${reportData.address}`, 20, y+15);
+
+                    y += 28;
                     
-                    if (photos[roomName].general.avant || photos[roomName].general.apres) {
-                        pdf.setFontSize(11);
+                    // Vidéo générale si elle existe
+                    if (photos[roomName].general.video) {
+                        pdf.setFontSize(10);
                         pdf.setFont(undefined, 'bold');
-                        pdf.setTextColor(100, 100, 100);
-                        pdf.text('Vue générale', 20, y);
-                        y += 6;
-
-                        pdf.setFontSize(9);
-                        pdf.setFont(undefined, 'normal');
-                        pdf.text('Avant', 25, y);
-                        pdf.text('Après', 110, y);
-                        y += 4;
-
-                        pdf.setDrawColor(200, 200, 200);
-
-                        // Image Avant avec dimensions calculées
-                        let avantImgW = 75, avantImgH = 55;
-                        if (photos[roomName].general.avant) {
-                            try {
-                                const dimensions = await getImageDimensions(photos[roomName].general.avant);
-                                const size = calculatePdfImageSize(dimensions.width, dimensions.height);
-                                avantImgW = size.width;
-                                avantImgH = size.height;
-                            } catch(e) {
-                                console.log('Utilisation dimensions par défaut pour avant');
-                            }
-                        }
-
-                        pdf.rect(20, y, avantImgW, avantImgH);
-                        if (photos[roomName].general.avant) {
-                            try {
-                                pdf.addImage(photos[roomName].general.avant, 'JPEG', 20, y, avantImgW, avantImgH);
-                                console.log('✅ Image avant ajoutée');
-                            } catch(e) {
-                                console.error('❌ Erreur général avant:', e);
-                                pdf.setFontSize(8);
-                                pdf.setTextColor(255, 0, 0);
-                                pdf.text('Image non disponible', 25, y + avantImgH/2);
-                            }
-                        }
-
-                        // Image Après avec dimensions calculées
-                        let apresImgW = 75, apresImgH = 55;
-                        if (photos[roomName].general.apres) {
-                            try {
-                                const dimensions = await getImageDimensions(photos[roomName].general.apres);
-                                const size = calculatePdfImageSize(dimensions.width, dimensions.height);
-                                apresImgW = size.width;
-                                apresImgH = size.height;
-                            } catch(e) {
-                                console.log('Utilisation dimensions par défaut pour après');
-                            }
-                        }
-
-                        pdf.rect(105, y, apresImgW, apresImgH);
-                        if (photos[roomName].general.apres) {
-                            try {
-                                pdf.addImage(photos[roomName].general.apres, 'JPEG', 105, y, apresImgW, apresImgH);
-                                console.log('✅ Image après ajoutée');
-                            } catch(e) {
-                                console.error('❌ Erreur général après:', e);
-                                pdf.setFontSize(8);
-                                pdf.setTextColor(255, 0, 0);
-                                pdf.text('Image non disponible', 110, y + apresImgH/2);
-                            }
-                        }
-
-                        // Avancer en fonction de la hauteur maximale des deux images
-                        y += Math.max(avantImgH, apresImgH) + 8;
-
-                        // Vidéo générale si elle existe (lien court)
-                        if (photos[roomName].general.video) {
-                            if (y > 260) { pdf.addPage(); y = 20; }
-
-                            pdf.setFontSize(10);
-                            pdf.setFont(undefined, 'bold');
-                            pdf.setTextColor(59, 130, 246); // Bleu électrique
-                            pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: photos[roomName].general.video });
-
-                            y += 10;
-                        } else {
-                            y += 7;
-                        }
+                        pdf.setTextColor(59, 130, 246); // Bleu électrique
+                        pdf.textWithLink('▶️ Voir la vidéo de la pièce', 20, y, { url: photos[roomName].general.video });
+                        y += 15;
+                    } else {
+                        y += 5;
                     }
+
+                    // Section "Détails des tâches" style Expert EDL
+                    pdf.setFillColor(210, 44, 130); // Magenta Expert EDL
+                    pdf.rect(15, y, w-30, 10, 'F');
+
+                    // Icône document
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.circle(25, y+5, 4, 'F');
+                    pdf.setFontSize(10);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.setTextColor(210, 44, 130);
+                    pdf.text('=', 25, y+7, { align: 'center' });
+
+                    // Texte de la section
+                    pdf.setFontSize(12);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.text('Détails des tâches', 35, y+7);
+
+                    y += 15;
 
                     for (const taskName in photos[roomName].tasks) {
                         const task = photos[roomName].tasks[taskName];
