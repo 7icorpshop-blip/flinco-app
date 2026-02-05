@@ -1867,28 +1867,7 @@
 
                     y = 48;
 
-                    // Photos Avant/Après en haut (style vignettes Expert EDL)
-                    const vignSize = 65;
-                    const vignY = y;
-                    if (photos[roomName].general.avant) {
-                        try {
-                            pdf.addImage(photos[roomName].general.avant, 'JPEG', 25, vignY, vignSize, vignSize*0.75);
-                        } catch(e) { console.error('Erreur vignette avant'); }
-                    } else {
-                        pdf.rect(25, vignY, vignSize, vignSize*0.75);
-                    }
-
-                    if (photos[roomName].general.apres) {
-                        try {
-                            pdf.addImage(photos[roomName].general.apres, 'JPEG', w - 25 - vignSize, vignY, vignSize, vignSize*0.75);
-                        } catch(e) { console.error('Erreur vignette après'); }
-                    } else {
-                        pdf.rect(w - 25 - vignSize, vignY, vignSize, vignSize*0.75);
-                    }
-
-                    y += vignSize*0.75 + 8;
-
-                    // Section "Informations sur le bien" avec fond bleu FLINCO
+                    // Section "Informations sur la pièce" avec fond bleu FLINCO
                     pdf.setFillColor(30, 41, 59); // Bleu marine FLINCO #1e293b
                     pdf.rect(15, y, w-30, 10, 'F');
 
@@ -1920,7 +1899,7 @@
                     pdf.text(`Adresse : ${reportData.address}`, 20, y+15);
 
                     y += 28;
-                    
+
                     // Vidéo générale si elle existe
                     if (photos[roomName].general.video) {
                         pdf.setFontSize(10);
@@ -1931,6 +1910,27 @@
                     } else {
                         y += 5;
                     }
+
+                    // Photos Avant/Après (style vignettes Expert EDL)
+                    const vignSize = 65;
+                    const vignY = y;
+                    if (photos[roomName].general.avant) {
+                        try {
+                            pdf.addImage(photos[roomName].general.avant, 'JPEG', 25, vignY, vignSize, vignSize*0.75);
+                        } catch(e) { console.error('Erreur vignette avant'); }
+                    } else {
+                        pdf.rect(25, vignY, vignSize, vignSize*0.75);
+                    }
+
+                    if (photos[roomName].general.apres) {
+                        try {
+                            pdf.addImage(photos[roomName].general.apres, 'JPEG', w - 25 - vignSize, vignY, vignSize, vignSize*0.75);
+                        } catch(e) { console.error('Erreur vignette après'); }
+                    } else {
+                        pdf.rect(w - 25 - vignSize, vignY, vignSize, vignSize*0.75);
+                    }
+
+                    y += vignSize*0.75 + 8;
 
                     // Section "Détails des tâches" style Expert EDL
                     pdf.setFillColor(30, 41, 59); // Bleu marine FLINCO #1e293b
