@@ -355,6 +355,12 @@
 
         <div id="roomsContainer"></div>
     </div>
+
+    <div style="background: var(--card); border-radius: 12px; padding: 16px; margin: 0 0 80px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+        <h3 style="font-size: 14px; font-weight: 600; color: var(--primary); margin-bottom: 8px;">💬 Commentaires / Problèmes rencontrés</h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Signaler un problème ou laisser un commentaire pour l'administrateur</p>
+        <textarea id="agentComment" placeholder="Ex: Tache persistante dans la cuisine, accès difficile au local technique..." oninput="saveComment()" style="width: 100%; min-height: 90px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; background: var(--bg); color: var(--text); box-sizing: border-box;"></textarea>
+    </div>
     
     <div class="bottom-bar">
         <button class="btn" id="generateBtn" onclick="generateAndSavePDF()" disabled>
@@ -416,6 +422,24 @@
             }
         }
 
+        function cleanOldLocalStorage() {
+            const MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 jours
+            const now = Date.now();
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('flinco_report_')) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        if (data && data.timestamp && (now - data.timestamp) > MAX_AGE) {
+                            localStorage.removeItem(key);
+                        }
+                    } catch(e) {
+                        localStorage.removeItem(key);
+                    }
+                }
+            });
+        }
+        cleanOldLocalStorage();
+
         function saveToLocalStorage() {
             if (!reportId) return;
 
@@ -428,10 +452,23 @@
 
             try {
                 localStorage.setItem('flinco_report_' + reportId, JSON.stringify(localData));
-                console.log('✅ Données sauvegardées localement');
             } catch (e) {
-                console.warn('⚠️ Erreur sauvegarde locale:', e);
             }
+        }
+
+        function saveComment() {
+            const comment = document.getElementById('agentComment') ? document.getElementById('agentComment').value : '';
+            if (reportData) reportData.agentComment = comment;
+            saveToLocalStorage();
+            // Sync to Firestore (debounced)
+            clearTimeout(window._commentSaveTimer);
+            window._commentSaveTimer = setTimeout(async () => {
+                if (isOnline && reportId) {
+                    try {
+                        await db.collection('reports').doc(reportId).update({ agentComment: comment });
+                    } catch(e) {}
+                }
+            }, 1500);
         }
 
         function loadFromLocalStorage() {
@@ -440,11 +477,9 @@
             try {
                 const data = localStorage.getItem('flinco_report_' + reportId);
                 if (data) {
-                    console.log('📦 Données locales trouvées');
                     return JSON.parse(data);
                 }
             } catch (e) {
-                console.warn('⚠️ Erreur chargement local:', e);
             }
 
             return null;
@@ -453,11 +488,9 @@
         async function syncLocalDataIfNeeded() {
             // Cette fonction sera appelée quand la connexion revient
             // pour synchroniser les données locales avec Firebase
-            console.log('🔄 Vérification de la synchronisation...');
 
             const localData = loadFromLocalStorage();
             if (!localData || !localData.readyToSync || !localData.pdfBase64) {
-                console.log('Rien à synchroniser');
                 return;
             }
 
@@ -486,7 +519,6 @@
                 document.getElementById('successOverlay').classList.add('active');
 
             } catch (error) {
-                console.error('Erreur de synchronisation:', error);
                 hideLoading();
                 alert('⚠️ Erreur lors de la synchronisation. Nous réessaierons automatiquement.');
             }
@@ -537,16 +569,22 @@
                     // IMPORTANT: Restaurer les photos depuis localStorage OU Firestore
                     // localStorage a la priorité (données les plus récentes)
                     if (localData && localData.photos) {
-                        console.log('📸 Restauration des photos depuis localStorage');
                         photos = localData.photos;
                     } else if (reportData.photos) {
-                        console.log('📸 Restauration des photos depuis Firestore');
                         photos = reportData.photos;
                     }
+
+                    // Restaurer le commentaire agent
+                    const savedComment = (localData && localData.reportData && localData.reportData.agentComment) || reportData.agentComment || '';
+                    if (reportData) reportData.agentComment = savedComment;
+                    const commentEl = document.getElementById('agentComment');
+                    if (commentEl) commentEl.value = savedComment;
                 } else if (localData) {
                     // Si hors-ligne et données locales disponibles
                     reportData = localData.reportData;
                     photos = localData.photos;
+                    const commentEl = document.getElementById('agentComment');
+                    if (commentEl) commentEl.value = (reportData && reportData.agentComment) || '';
                 } else {
                     // Hors-ligne et pas de données locales
                     showError('Mode hors-ligne', 'Vous devez charger ce rapport en ligne au moins une fois avant de l\'utiliser hors-ligne.');
@@ -567,9 +605,6 @@
                     reportData.reportType = 'nettoyage-remise-etat';
                 }
 
-                console.log('📸 Mode photos:', photoMode);
-                console.log('🎬 Vidéo obligatoire pièce principale:', requireVideoMainRoom);
-                console.log('📄 Type de rapport:', reportData.reportType);
 
                 // Initialiser la structure photos pour les nouvelles pièces/tâches
                 // Ne pas écraser les photos existantes déjà sauvegardées
@@ -655,15 +690,11 @@
         }
 
         function restoreVideosDisplay() {
-            console.log('🔄 Restauration des vidéos...');
-            console.log('Photos object:', photos);
 
             for (const roomName in photos) {
                 // Restaurer vidéo générale
                 if (photos[roomName].general && photos[roomName].general.video) {
-                    console.log(`✅ Vidéo générale trouvée pour ${roomName}:`, photos[roomName].general.video);
                     const container = document.getElementById(`video-container-${slugify(roomName)}-general`);
-                    console.log('Container trouvé:', container);
 
                     if (container) {
                         container.innerHTML = `
@@ -680,7 +711,6 @@
                                 </video>
                             </div>
                         `;
-                        console.log('✅ Vidéo restaurée pour', roomName);
 
                         // Masquer le bouton "+ Ajouter vidéo"
                         const btn = container.previousElementSibling;
@@ -688,7 +718,6 @@
                             btn.style.display = 'none';
                         }
                     } else {
-                        console.warn(`❌ Container introuvable pour ${roomName}`);
                     }
                 }
 
@@ -697,7 +726,6 @@
                     for (const taskName in photos[roomName].tasks) {
                         const task = photos[roomName].tasks[taskName];
                         if (task.video) {
-                            console.log(`✅ Vidéo tâche trouvée pour ${roomName}/${taskName}:`, task.video);
                             const container = document.getElementById(`video-container-${slugify(roomName)}-${slugify(taskName)}`);
 
                             if (container) {
@@ -715,7 +743,6 @@
                                         </video>
                                     </div>
                                 `;
-                                console.log(`✅ Vidéo restaurée pour ${roomName}/${taskName}`);
 
                                 // Masquer le bouton "+ Ajouter vidéo"
                                 const btn = container.previousElementSibling;
@@ -723,13 +750,11 @@
                                     btn.style.display = 'none';
                                 }
                             } else {
-                                console.warn(`❌ Container introuvable pour ${roomName}/${taskName}`);
                             }
                         }
                     }
                 }
             }
-            console.log('✅ Restauration des vidéos terminée');
         }
 
         function restorePhotosDisplay() {
@@ -811,7 +836,6 @@
                     rooms: reportData.rooms
                 });
             } catch (error) {
-                console.error('Erreur sync:', error);
             }
 
             // Réafficher
@@ -863,7 +887,6 @@
                     rooms: reportData.rooms
                 });
             } catch (error) {
-                console.error('Erreur sync:', error);
             }
 
             // Réafficher
@@ -1014,26 +1037,25 @@
                     img.src = compressed;
 
                     // Upload automatique vers Firebase Storage si en ligne
+                    const syncBadge = document.createElement('div');
+                    syncBadge.style.cssText = 'position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.6);color:white;font-size:10px;padding:2px 5px;border-radius:4px;';
+                    syncBadge.textContent = isOnline ? '☁️ sync...' : '💾 local';
+                    uploadDiv.style.position = 'relative';
+                    uploadDiv.appendChild(syncBadge);
+
                     if (isOnline) {
                         try {
-                            // Convertir base64 en blob
                             const blob = await fetch(compressed).then(r => r.blob());
                             const fileName = `${reportId}/${slugify(roomName)}/${slugify(taskName)}_${type}_${Date.now()}.jpg`;
                             const storageRef = storage.ref().child(`photos/${fileName}`);
-
-                            // Uploader
                             await storageRef.put(blob);
-                            const photoUrl = await storageRef.getDownloadURL();
-
-                            // GARDER le base64 pour la génération PDF (pas de remplacement par l'URL)
-                            // photos[roomName].tasks[taskName][type] reste en base64
-
-                            console.log(`✅ Photo uploadée: ${fileName}`);
-
-                            // Sauvegarder dans Firestore
+                            await storageRef.getDownloadURL();
                             await syncPhotosToFirestore();
+                            syncBadge.textContent = '✅';
+                            setTimeout(() => syncBadge.remove(), 2000);
                         } catch (error) {
-                            console.error('Erreur upload photo:', error);
+                            syncBadge.textContent = '⚠️ erreur';
+                            syncBadge.style.background = 'rgba(220,38,38,0.8)';
                         }
                     }
 
@@ -1064,6 +1086,12 @@
                     img.src = compressed;
 
                     // Upload automatique vers Firebase Storage si en ligne
+                    const syncBadgeG = document.createElement('div');
+                    syncBadgeG.style.cssText = 'position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.6);color:white;font-size:10px;padding:2px 5px;border-radius:4px;';
+                    syncBadgeG.textContent = isOnline ? '☁️ sync...' : '💾 local';
+                    uploadDiv.style.position = 'relative';
+                    uploadDiv.appendChild(syncBadgeG);
+
                     if (isOnline) {
                         try {
                             // Convertir base64 en blob
@@ -1079,12 +1107,13 @@
                             // photos[roomName].general[type] reste en base64
                             // photos[roomName].general[type] = photoUrl;
 
-                            console.log(`✅ Photo uploadée: ${fileName}`);
 
-                            // Sauvegarder dans Firestore
                             await syncPhotosToFirestore();
+                            syncBadgeG.textContent = '✅';
+                            setTimeout(() => syncBadgeG.remove(), 2000);
                         } catch (error) {
-                            console.error('Erreur upload photo:', error);
+                            syncBadgeG.textContent = '⚠️ erreur';
+                            syncBadgeG.style.background = 'rgba(220,38,38,0.8)';
                         }
                     }
 
@@ -1103,9 +1132,7 @@
                     photos: photos,
                     lastPhotoUpdate: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                console.log('✅ Photos synchronisées avec Firestore');
             } catch (error) {
-                console.error('Erreur sync Firestore:', error);
             }
         }
         
@@ -1136,18 +1163,14 @@
         }
 
         function showVideoUpload(roomName, taskName, type) {
-            console.log('🎬 showVideoUpload appelé:', { roomName, taskName, type });
 
             const containerId = type === 'general'
                 ? `video-container-${slugify(roomName)}-general`
                 : `video-container-${slugify(roomName)}-${slugify(taskName)}`;
 
-            console.log('📦 Recherche container:', containerId);
             const container = document.getElementById(containerId);
-            console.log('📦 Container trouvé:', container);
 
             if (!container) {
-                console.error('❌ Container introuvable pour', containerId);
                 return;
             }
 
@@ -1235,8 +1258,6 @@
                     photos[roomName].tasks[taskName].video = videoUrl;
                     photos[roomName].tasks[taskName].firebaseUrl = firebaseUrl; // Garder l'URL Firebase en backup
 
-                    console.log(`✅ Vidéo uploadée: ${fileName}`);
-                    console.log('📸 Photos après upload:', photos);
 
                     // Mettre à jour l'affichage
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
@@ -1247,7 +1268,6 @@
                     await syncPhotosToFirestore();
                     saveToLocalStorage(); // IMPORTANT: Sauvegarder localement !
                 } catch (error) {
-                    console.error('Erreur upload vidéo:', error);
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
                     if (statusDiv) {
                         statusDiv.innerHTML = '❌ Erreur upload';
@@ -1302,8 +1322,6 @@
                     photos[roomName].general.video = videoUrl;
                     photos[roomName].general.firebaseUrl = firebaseUrl; // Garder l'URL Firebase en backup
 
-                    console.log(`✅ Vidéo uploadée: ${fileName}`);
-                    console.log('📸 Photos après upload général:', photos);
 
                     // Mettre à jour l'affichage
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
@@ -1314,7 +1332,6 @@
                     await syncPhotosToFirestore();
                     saveToLocalStorage(); // IMPORTANT: Sauvegarder localement !
                 } catch (error) {
-                    console.error('Erreur upload vidéo:', error);
                     const statusDiv = container.querySelector('div[style*="margin-top"]');
                     if (statusDiv) {
                         statusDiv.innerHTML = '❌ Erreur upload';
@@ -1387,9 +1404,7 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                console.log(`💾 Photo sauvegardée: ${filename}`);
             } catch (error) {
-                console.error('Erreur sauvegarde galerie:', error);
             }
         }
 
@@ -1451,7 +1466,6 @@
                         }
                     }, 100);
                 } catch (error) {
-                    console.error('Erreur génération QR code:', error);
                     reject(error);
                 }
             });
@@ -1546,7 +1560,6 @@
                     // Charger la vidéo
                     video.load();
                 } catch (error) {
-                    console.error('Erreur extraction vignette:', error);
                     reject(error);
                 }
             });
@@ -1682,10 +1695,8 @@
                 }
 
                 const result = await response.json();
-                console.log('✅ URL courte créée:', result.shortUrl);
                 return result.shortUrl;
             } catch (error) {
-                console.error('⚠️ Erreur création URL courte, utilisation URL Firebase:', error);
                 // Fallback: retourner l'URL Firebase si erreur
                 return firebaseUrl;
             }
@@ -1705,7 +1716,6 @@
                     secretKey: secretKey
                 };
 
-                console.log('📤 Envoi webhook au site:', payload);
 
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
@@ -1721,11 +1731,9 @@
                 }
 
                 const result = await response.json();
-                console.log('✅ Réponse webhook:', result);
 
                 return result;
             } catch (error) {
-                console.error('❌ Erreur webhook:', error);
                 throw error;
             }
         }
@@ -1852,6 +1860,30 @@
                     pdf.text('Référence :', w/2 + 5, infoY - 8);
                     pdf.setFont(undefined, 'normal');
                     pdf.text(reportData.quote, w/2 + 33, infoY - 8);
+                }
+
+                // -- Commentaires / Problèmes rencontrés --
+                const agentComment = document.getElementById('agentComment') ? document.getElementById('agentComment').value.trim() : (reportData.agentComment || '');
+                if (agentComment) {
+                    const commentY = infoY + 14;
+                    pdf.setFillColor(255, 251, 235); // fond jaune très clair
+                    pdf.setDrawColor(217, 119, 6);   // bordure orange
+                    pdf.setLineWidth(0.5);
+                    const commentLines = pdf.splitTextToSize(agentComment, infoW - 16);
+                    const commentH = 14 + commentLines.length * 5;
+                    pdf.roundedRect(infoX, commentY, infoW, commentH, 3, 3, 'FD');
+
+                    // Titre bloc commentaire
+                    pdf.setFontSize(9);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.setTextColor(180, 83, 9);
+                    pdf.text('⚠ COMMENTAIRES / PROBLÈMES RENCONTRÉS', infoX + 8, commentY + 7);
+
+                    // Texte du commentaire
+                    pdf.setFontSize(9);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.setTextColor(80, 60, 0);
+                    pdf.text(commentLines, infoX + 8, commentY + 13);
                 }
 
                 // ============ PAGES SUIVANTES : PIÈCES ============
@@ -2144,9 +2176,7 @@
                     try {
                         document.getElementById('loadingText').textContent = 'Envoi au portail client...';
                         await sendReportToSite(reportId, reportData.quote);
-                        console.log('✅ Rapport envoyé au portail client');
                     } catch (webhookError) {
-                        console.warn('⚠️ Erreur envoi webhook au site:', webhookError);
                         // Ne pas bloquer même si le webhook échoue
                     }
 
@@ -2171,7 +2201,6 @@
                 }
 
             } catch (error) {
-                console.error('Erreur:', error);
                 hideLoading();
                 alert('Erreur: ' + error.message);
             }
