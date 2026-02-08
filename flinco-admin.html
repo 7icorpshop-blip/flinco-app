@@ -1906,7 +1906,6 @@
                     });
                     renderCustomTasksList();
                 } catch (e) {
-                    console.error('Erreur lors du chargement des tâches personnalisées:', e);
                 }
             }
         }
@@ -1919,7 +1918,6 @@
                 try {
                     Object.assign(customTasksData, JSON.parse(saved));
                 } catch (e) {
-                    console.error('Erreur:', e);
                 }
             }
             localStorage.setItem('flincoCustomTasks', JSON.stringify(customTasksData));
@@ -1969,7 +1967,6 @@
                 try {
                     customTasksData = JSON.parse(saved);
                 } catch (e) {
-                    console.error('Erreur:', e);
                 }
             }
 
@@ -2026,7 +2023,6 @@
                         localStorage.setItem('flincoCustomTasks', JSON.stringify(customTasksData));
                     }
                 } catch (e) {
-                    console.error('Erreur:', e);
                 }
             }
 
@@ -2072,7 +2068,6 @@
                     `;
                 }).join('');
             } catch (e) {
-                console.error('Erreur lors du rendu des tâches personnalisées:', e);
             }
         }
 
@@ -2253,9 +2248,7 @@
                     // Re-render l'interface
                     renderPhotosManagement();
 
-                    console.log(`✅ Vidéo uploadée: ${fileName}`);
                 } catch (error) {
-                    console.error('Erreur upload vidéo:', error);
                     alert('Erreur lors de l\'upload de la vidéo: ' + error.message);
                 }
             } else {
@@ -2289,9 +2282,7 @@
                         // Re-render l'interface
                         renderPhotosManagement();
 
-                        console.log(`✅ Photo uploadée: ${fileName}`);
                     } catch (error) {
-                        console.error('Erreur upload photo:', error);
                         alert('Erreur lors de l\'upload de la photo: ' + error.message);
                     }
                 };
@@ -2323,9 +2314,7 @@
                 // Re-render l'interface
                 renderPhotosManagement();
 
-                console.log('✅ Photo supprimée');
             } catch (error) {
-                console.error('Erreur suppression photo:', error);
                 alert('Erreur lors de la suppression: ' + error.message);
             }
         }
@@ -2393,7 +2382,6 @@
                 document.getElementById('generatedLink').value = agentUrl;
                 document.getElementById('linkResult').classList.add('show');
             } catch (error) {
-                console.error('Erreur:', error);
                 alert('Erreur lors de la création: ' + error.message);
             }
 
@@ -2641,6 +2629,12 @@
                                 <button class="btn btn-danger" onclick="deleteReport('${report.id}')">🗑️</button>
                             </div>
                         </div>
+                        ${report.agentComment ? `
+                            <div style="background: rgba(251, 191, 36, 0.1); border-left: 3px solid #d97706; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;">
+                                <div style="font-size: 11px; color: #d97706; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">⚠️ Commentaire technicien</div>
+                                <div style="font-size: 13px; color: var(--text); white-space: pre-wrap;">${report.agentComment}</div>
+                            </div>
+                        ` : ''}
                         ${hasNotes ? `
                             <div style="background: rgba(130, 172, 255, 0.1); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;">
                                 <div style="font-size: 11px; color: var(--accent); font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">📌 Note interne</div>
@@ -2984,7 +2978,6 @@
                 showTab('list');
 
             } catch (error) {
-                console.error('Erreur:', error);
                 alert('Erreur lors de la mise à jour: ' + error.message);
             }
 
