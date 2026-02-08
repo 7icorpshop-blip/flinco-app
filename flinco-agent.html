@@ -1784,8 +1784,8 @@
                 pdf.setFontSize(11);
                 pdf.setFont(undefined, 'normal');
                 pdf.setTextColor(80, 80, 80);
-                const reportTitle = `Rapport_${reportData.quote || 'N/A'}_${formatDate(reportData.date).replace(/\//g, '')}`;
-                pdf.text(reportTitle, w/2, 100, { align: 'center' });
+                const reportFileName = `Rapport_${reportData.quote || 'N/A'}_${formatDate(reportData.date).replace(/\//g, '')}`;
+                pdf.text(reportFileName, w/2, 100, { align: 'center' });
 
                 // Ligne horizontale séparatrice
                 pdf.setDrawColor(200, 200, 200);
