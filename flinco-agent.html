@@ -1747,349 +1747,375 @@
                 };
                 const reportTitle = reportTitles[reportData.reportType] || 'RAPPORT DE NETTOYAGE ET REMISE EN ÉTAT';
 
-                // ============ PAGE 1 : COUVERTURE STYLE FLAT CHECKER ============
-                // Fond blanc épuré
+                // ============ PAGE 1 : COUVERTURE PROFESSIONNELLE ============
+
+                const BLEU_MARINE = [30, 41, 59];
+                const BLEU_ELEC = [59, 130, 246];
+                const GRIS_CLAIR = [248, 249, 250];
+                const GRIS_MED = [200, 200, 200];
+                const NOIR_TEXTE = [30, 30, 30];
+
+                // -- Fond blanc --
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(0, 0, w, h, 'F');
 
-                // Logo FLINCO centré en haut
-                const logoSize = 60;
-                const logoX = (w - logoSize) / 2;
-                const logoY = 35;
+                // -- Bande bleue marine en haut --
+                pdf.setFillColor(...BLEU_MARINE);
+                pdf.rect(0, 0, w, 35, 'F');
 
-                // Affichage du vrai logo FLINCO
+                // Nom entreprise dans la bande
+                pdf.setFontSize(22);
+                pdf.setFont(undefined, 'bold');
+                pdf.setTextColor(255, 255, 255);
+                pdf.text('FLINCO', w/2, 22, { align: 'center' });
+
+                // Sous-titre dans la bande
+                pdf.setFontSize(9);
+                pdf.setFont(undefined, 'normal');
+                pdf.setTextColor(180, 200, 230);
+                pdf.text('Service Professionnel', w/2, 30, { align: 'center' });
+
+                // -- Logo FLINCO centré --
+                const logoSize = 70;
+                const logoX = (w - logoSize) / 2;
+                const logoY = 42;
                 pdf.addImage(FLINCO_LOGO_B64, 'PNG', logoX, logoY, logoSize, logoSize);
 
-                // Nom du rapport centré dessous
-                pdf.setFontSize(11);
-                pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(80, 80, 80);
-                const reportFileName = `Rapport_${reportData.quote || 'N/A'}_${formatDate(reportData.date).replace(/\//g, '')}`;
-                pdf.text(reportFileName, w/2, 100, { align: 'center' });
+                // -- Ligne séparatrice bleue électrique --
+                pdf.setDrawColor(...BLEU_ELEC);
+                pdf.setLineWidth(1.5);
+                pdf.line(50, 120, w-50, 120);
 
-                // Ligne horizontale séparatrice
-                pdf.setDrawColor(200, 200, 200);
-                pdf.setLineWidth(0.5);
-                pdf.line(40, 115, w-40, 115);
-
-                // Titre principal avec type de rapport + date
-                pdf.setFontSize(14);
+                // -- Titre du rapport --
+                pdf.setFontSize(15);
                 pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(40, 40, 40);
+                pdf.setTextColor(...BLEU_MARINE);
+                pdf.text(reportTitle, w/2, 132, { align: 'center' });
+
+                // Date
                 const completionDate = new Date().toLocaleDateString('fr-FR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
                 });
-                pdf.text(reportTitle, w/2, 125, { align: 'center' });
-
-                // Date en dessous
-                pdf.setFontSize(11);
+                pdf.setFontSize(10);
                 pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(80, 80, 80);
-                pdf.text(`en date du ${completionDate}`, w/2, 135, { align: 'center' });
+                pdf.setTextColor(100, 100, 100);
+                pdf.text('en date du ' + completionDate, w/2, 140, { align: 'center' });
 
-                // Informations centrées style minimaliste
-                let y = 150;
-                pdf.setFontSize(12);
+                // -- Bloc informations avec fond gris clair --
+                const infoX = 30, infoW = w - 60;
+                let infoY = 152;
+                pdf.setFillColor(...GRIS_CLAIR);
+                pdf.setDrawColor(...GRIS_MED);
+                pdf.setLineWidth(0.5);
+                pdf.roundedRect(infoX, infoY, infoW, 70, 4, 4, 'FD');
+
+                // Titre bloc info
+                pdf.setFillColor(...BLEU_ELEC);
+                pdf.roundedRect(infoX, infoY, infoW, 10, 4, 4, 'F');
+                pdf.rect(infoX, infoY + 5, infoW, 5, 'F'); // carré bas pour masquer arrondi bas
+                pdf.setFontSize(10);
                 pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(60, 60, 60);
+                pdf.setTextColor(255, 255, 255);
+                pdf.text('INFORMATIONS DU RAPPORT', w/2, infoY + 7, { align: 'center' });
+
+                infoY += 16;
+                pdf.setFontSize(10);
+                pdf.setTextColor(...NOIR_TEXTE);
+
+                // Adresse
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Adresse :', infoX + 8, infoY);
+                pdf.setFont(undefined, 'normal');
+                const addrLines = pdf.splitTextToSize(reportData.address || 'Non renseignée', infoW - 50);
+                pdf.text(addrLines, infoX + 8, infoY + 6);
+                infoY += 6 + addrLines.length * 5 + 4;
 
                 // Technicien
-                const technicianName = reportData.agent || 'FLINCO';
-                pdf.text(technicianName, w/2, y, { align: 'center' });
-                y += 15;
-
-                // Adresse (centrée)
-                pdf.setFontSize(11);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Technicien :', infoX + 8, infoY);
                 pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(80, 80, 80);
-                const addrLines = pdf.splitTextToSize(reportData.address, 140);
-                addrLines.forEach(line => {
-                    pdf.text(line, w/2, y, { align: 'center' });
-                    y += 6;
-                });
+                pdf.text(reportData.agent || 'FLINCO', infoX + 38, infoY);
+                infoY += 8;
 
-                y += 10;
-
-                // Propriétaire (si présent)
+                // Agence / Propriétaire
                 if (reportData.agency) {
-                    pdf.setFontSize(11);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Propriétaire :', infoX + 8, infoY);
                     pdf.setFont(undefined, 'normal');
-                    pdf.text(`Propriétaire : ${reportData.agency}`, w/2, y, { align: 'center' });
+                    pdf.text(reportData.agency, infoX + 42, infoY);
                 }
 
-                // ============ PAGES SUIVANTES : PIÈCES STYLE EXPERT EDL ============
+                // Référence devis
+                if (reportData.quote) {
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Référence :', w/2 + 5, infoY - 8);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.text(reportData.quote, w/2 + 33, infoY - 8);
+                }
+
+                // ============ PAGES SUIVANTES : PIÈCES ============
                 for (const roomName in photos) {
                     pdf.addPage();
-                    y = 20;
+                    let y = 0;
 
-                    // En-tête avec bordure style Expert EDL
-                    pdf.setDrawColor(100, 100, 100);
-                    pdf.setLineWidth(1);
-                    pdf.rect(15, 15, w-30, 25);
+                    // -- En-tête de page avec mini logo --
+                    pdf.setFillColor(...BLEU_MARINE);
+                    pdf.rect(0, 0, w, 18, 'F');
 
-                    // Titre du rapport dans l'en-tête
-                    pdf.setFontSize(12);
-                    pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(40, 40, 40);
-                    pdf.text(reportTitle, w/2, 23, { align: 'center' });
+                    // Mini logo dans l'en-tête
+                    pdf.addImage(FLINCO_LOGO_B64, 'PNG', 3, 1, 16, 16);
 
-                    // Date et technicien dans l'en-tête
+                    // Titre rapport dans l'en-tête
                     pdf.setFontSize(9);
-                    pdf.setFont(undefined, 'normal');
-                    pdf.text(`Date: ${formatDate(reportData.date)}`, 20, 33);
-                    pdf.text(`Technicien : ${reportData.agent || 'FLINCO'}`, w - 20, 33, { align: 'right' });
-
-                    y = 48;
-
-                    // Section "Informations sur la pièce" avec fond bleu FLINCO
-                    pdf.setFillColor(30, 41, 59); // Bleu marine FLINCO #1e293b
-                    pdf.rect(15, y, w-30, 10, 'F');
-
-                    // Icône info (cercle avec i)
-                    pdf.setFillColor(59, 130, 246); // Bleu électrique FLINCO #3b82f6
-                    pdf.circle(25, y+5, 4, 'F');
-                    pdf.setFontSize(10);
-                    pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(255, 255, 255); // Texte blanc dans le cercle bleu
-                    pdf.text('i', 25, y+7, { align: 'center' });
-
-                    // Texte de la section
-                    pdf.setFontSize(12);
                     pdf.setFont(undefined, 'bold');
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text(`Informations sur la pièce - ${roomName}`, 35, y+7);
+                    pdf.text(reportTitle, w/2, 10, { align: 'center' });
 
-                    y += 15;
-
-                    // Cadre avec bordure pour les informations
-                    pdf.setDrawColor(100, 100, 100);
-                    pdf.setLineWidth(0.5);
-                    pdf.rect(15, y, w-30, 20);
-
-                    pdf.setFontSize(9);
+                    // Date + Technicien à droite
+                    pdf.setFontSize(7);
                     pdf.setFont(undefined, 'normal');
-                    pdf.setTextColor(0, 0, 0);
-                    pdf.text(`Type de pièce : ${roomName}`, 20, y+8);
-                    pdf.text(`Adresse : ${reportData.address}`, 20, y+15);
+                    pdf.setTextColor(180, 200, 230);
+                    pdf.text(formatDate(reportData.date) + ' | ' + (reportData.agent || 'FLINCO'), w - 5, 10, { align: 'right' });
 
-                    y += 28;
+                    y = 25;
+
+                    // -- Titre de la pièce (fond bleu marine) --
+                    pdf.setFillColor(...BLEU_MARINE);
+                    pdf.roundedRect(15, y, w-30, 10, 2, 2, 'F');
+                    pdf.setFontSize(11);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.text('📋  ' + roomName.toUpperCase(), w/2, y + 7, { align: 'center' });
+                    y += 14;
+
+                    // -- Info pièce (fond gris très clair) --
+                    pdf.setFillColor(...GRIS_CLAIR);
+                    pdf.setDrawColor(...GRIS_MED);
+                    pdf.setLineWidth(0.3);
+                    pdf.roundedRect(15, y, w-30, 12, 2, 2, 'FD');
+                    pdf.setFontSize(8);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.setTextColor(80, 80, 80);
+                    pdf.text('Adresse : ' + (reportData.address || ''), 20, y + 5);
+                    pdf.text('Réf : ' + (reportData.quote || 'N/A'), 20, y + 10);
+                    y += 16;
 
                     // Vidéo générale si elle existe
                     if (photos[roomName].general.video) {
-                        pdf.setFontSize(10);
+                        pdf.setFontSize(9);
                         pdf.setFont(undefined, 'bold');
-                        pdf.setTextColor(59, 130, 246); // Bleu électrique
-                        pdf.textWithLink('▶️ Voir la vidéo de la pièce', 20, y, { url: photos[roomName].general.video });
-                        y += 15;
-                    } else {
-                        y += 5;
+                        pdf.setTextColor(...BLEU_ELEC);
+                        pdf.textWithLink('▶ Voir la vidéo de la pièce', 20, y + 4, { url: photos[roomName].general.video });
+                        y += 10;
                     }
 
-                    // Photos Avant/Après (style vignettes Expert EDL)
-                    const vignSize = 65;
-                    const vignY = y;
-                    if (photos[roomName].general.avant) {
-                        try {
-                            pdf.addImage(photos[roomName].general.avant, 'JPEG', 25, vignY, vignSize, vignSize*0.75);
-                        } catch(e) { console.error('Erreur vignette avant'); }
-                    } else {
-                        pdf.rect(25, vignY, vignSize, vignSize*0.75);
-                    }
+                    // -- Labels AVANT / APRÈS --
+                    const vignSize = 63;
+                    const vignY = y + 6;
 
-                    if (photos[roomName].general.apres) {
-                        try {
-                            pdf.addImage(photos[roomName].general.apres, 'JPEG', w - 25 - vignSize, vignY, vignSize, vignSize*0.75);
-                        } catch(e) { console.error('Erreur vignette après'); }
-                    } else {
-                        pdf.rect(w - 25 - vignSize, vignY, vignSize, vignSize*0.75);
-                    }
-
-                    y += vignSize*0.75 + 8;
-
-                    // Section "Détails des tâches" style Expert EDL
-                    pdf.setFillColor(30, 41, 59); // Bleu marine FLINCO #1e293b
-                    pdf.rect(15, y, w-30, 10, 'F');
-
-                    // Icône document
-                    pdf.setFillColor(59, 130, 246); // Bleu électrique FLINCO #3b82f6
-                    pdf.circle(25, y+5, 4, 'F');
-                    pdf.setFontSize(10);
+                    // Label AVANT
+                    pdf.setFillColor(254, 226, 226); // rouge doux
+                    pdf.roundedRect(25, y, vignSize, 7, 2, 2, 'F');
+                    pdf.setFontSize(8);
                     pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(255, 255, 255); // Texte blanc dans le cercle bleu
-                    pdf.text('=', 25, y+7, { align: 'center' });
+                    pdf.setTextColor(185, 28, 28);
+                    pdf.text('AVANT', 25 + vignSize/2, y + 5, { align: 'center' });
 
-                    // Texte de la section
-                    pdf.setFontSize(12);
+                    // Label APRÈS
+                    pdf.setFillColor(220, 252, 231); // vert doux
+                    pdf.roundedRect(w - 25 - vignSize, y, vignSize, 7, 2, 2, 'F');
+                    pdf.setFontSize(8);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.setTextColor(21, 128, 61);
+                    pdf.text('APRÈS', (w - 25 - vignSize) + vignSize/2, y + 5, { align: 'center' });
+
+                    // Photos Avant/Après
+                    pdf.setDrawColor(...GRIS_MED);
+                    pdf.setLineWidth(0.3);
+                    if (photos[roomName].general.avant) {
+                        try { pdf.addImage(photos[roomName].general.avant, 'JPEG', 25, vignY, vignSize, vignSize*0.75); }
+                        catch(e) { pdf.rect(25, vignY, vignSize, vignSize*0.75); }
+                    } else {
+                        pdf.setFillColor(245, 245, 245);
+                        pdf.rect(25, vignY, vignSize, vignSize*0.75, 'FD');
+                    }
+                    if (photos[roomName].general.apres) {
+                        try { pdf.addImage(photos[roomName].general.apres, 'JPEG', w - 25 - vignSize, vignY, vignSize, vignSize*0.75); }
+                        catch(e) { pdf.rect(w - 25 - vignSize, vignY, vignSize, vignSize*0.75); }
+                    } else {
+                        pdf.setFillColor(245, 245, 245);
+                        pdf.rect(w - 25 - vignSize, vignY, vignSize, vignSize*0.75, 'FD');
+                    }
+
+                    y += 7 + vignSize*0.75 + 6;
+
+                    // -- Section Détails des tâches --
+                    pdf.setFillColor(...BLEU_MARINE);
+                    pdf.roundedRect(15, y, w-30, 10, 2, 2, 'F');
+                    pdf.setFontSize(11);
                     pdf.setFont(undefined, 'bold');
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text('Détails des tâches', 35, y+7);
-
-                    y += 15;
+                    pdf.text('📌  Détails des tâches', w/2, y + 7, { align: 'center' });
+                    y += 14;
 
                     for (const taskName in photos[roomName].tasks) {
                         const task = photos[roomName].tasks[taskName];
-                        if (y > 210) { pdf.addPage(); y = 20; }
+                        if (y > 240) { pdf.addPage(); y = 25; }
 
-                        pdf.setFontSize(10);
-                        pdf.setFont(undefined, 'bold');
-                        pdf.setTextColor(15, 52, 96);
-                        const taskLines = pdf.splitTextToSize('• ' + taskName, 170);
-                        pdf.text(taskLines, 20, y);
-                        y += taskLines.length * 5 + 3;
-
-                        // Photos avant/après
+                        // Nom de la tâche avec fond gris très léger
+                        pdf.setFillColor(240, 242, 245);
+                        pdf.roundedRect(15, y, w-30, 8, 1, 1, 'F');
                         pdf.setFontSize(9);
-                        pdf.setFont(undefined, 'normal');
-                        pdf.setTextColor(100, 100, 100);
-                        pdf.text('Avant', 25, y);
-                        pdf.text('Après', 110, y);
-                        y += 4;
+                        pdf.setFont(undefined, 'bold');
+                        pdf.setTextColor(...BLEU_MARINE);
+                        const taskLines = pdf.splitTextToSize('• ' + taskName, w-40);
+                        pdf.text(taskLines, 20, y + 6);
+                        y += 8 + taskLines.length * 2 + 3;
 
-                        pdf.setDrawColor(200, 200, 200);
+                        // Labels AVANT/APRÈS tâche
+                        const imgW = 75, imgH = 50;
+                        // Label avant tâche
+                        pdf.setFillColor(254, 226, 226);
+                        pdf.roundedRect(20, y, imgW, 6, 1, 1, 'F');
+                        pdf.setFontSize(7);
+                        pdf.setFont(undefined, 'bold');
+                        pdf.setTextColor(185, 28, 28);
+                        pdf.text('AVANT', 20 + imgW/2, y + 4.5, { align: 'center' });
+
+                        // Label après tâche
+                        pdf.setFillColor(220, 252, 231);
+                        pdf.roundedRect(105, y, imgW, 6, 1, 1, 'F');
+                        pdf.setFontSize(7);
+                        pdf.setFont(undefined, 'bold');
+                        pdf.setTextColor(21, 128, 61);
+                        pdf.text('APRÈS', 105 + imgW/2, y + 4.5, { align: 'center' });
+
+                        y += 7;
 
                         // Calculer dimensions pour image avant
-                        let taskAvantImgW = 75, taskAvantImgH = 50;
+                        let taskAvantImgW = imgW, taskAvantImgH = imgH;
                         if (task.avant) {
                             try {
                                 const dimensions = await getImageDimensions(task.avant);
-                                const size = calculatePdfImageSize(dimensions.width, dimensions.height, 75, 50);
-                                taskAvantImgW = size.width;
-                                taskAvantImgH = size.height;
-                            } catch(e) {
-                                console.log('Utilisation dimensions par défaut pour avant tâche');
-                            }
+                                const size = calculatePdfImageSize(dimensions.width, dimensions.height, imgW, imgH);
+                                taskAvantImgW = size.width; taskAvantImgH = size.height;
+                            } catch(e) {}
                         }
 
-                        pdf.rect(20, y, taskAvantImgW, taskAvantImgH);
+                        pdf.setDrawColor(...GRIS_MED);
+                        pdf.setLineWidth(0.3);
                         if (task.avant) {
-                            try {
-                                pdf.addImage(task.avant, 'JPEG', 20, y, taskAvantImgW, taskAvantImgH);
-                            } catch(e) { console.error('Erreur image avant:', e); }
+                            try { pdf.addImage(task.avant, 'JPEG', 20, y, taskAvantImgW, taskAvantImgH); }
+                            catch(e) { pdf.rect(20, y, taskAvantImgW, taskAvantImgH); }
+                        } else {
+                            pdf.setFillColor(245, 245, 245);
+                            pdf.rect(20, y, imgW, imgH, 'FD');
                         }
 
                         // Calculer dimensions pour image après
-                        let taskApresImgW = 75, taskApresImgH = 50;
+                        let taskApresImgW = imgW, taskApresImgH = imgH;
                         if (task.apres) {
                             try {
                                 const dimensions = await getImageDimensions(task.apres);
-                                const size = calculatePdfImageSize(dimensions.width, dimensions.height, 75, 50);
-                                taskApresImgW = size.width;
-                                taskApresImgH = size.height;
-                            } catch(e) {
-                                console.log('Utilisation dimensions par défaut pour après tâche');
-                            }
+                                const size = calculatePdfImageSize(dimensions.width, dimensions.height, imgW, imgH);
+                                taskApresImgW = size.width; taskApresImgH = size.height;
+                            } catch(e) {}
                         }
 
-                        pdf.rect(105, y, taskApresImgW, taskApresImgH);
                         if (task.apres) {
-                            try {
-                                pdf.addImage(task.apres, 'JPEG', 105, y, taskApresImgW, taskApresImgH);
-                            } catch(e) { console.error('Erreur image après:', e); }
+                            try { pdf.addImage(task.apres, 'JPEG', 105, y, taskApresImgW, taskApresImgH); }
+                            catch(e) { pdf.rect(105, y, taskApresImgW, taskApresImgH); }
+                        } else {
+                            pdf.setFillColor(245, 245, 245);
+                            pdf.rect(105, y, imgW, imgH, 'FD');
                         }
 
-                        y += Math.max(taskAvantImgH, taskApresImgH) + 8;
+                        y += Math.max(taskAvantImgH, taskApresImgH) + 4;
 
-                        // Vidéo de la tâche si elle existe (lien court)
+                        // Vidéo de la tâche
                         if (task.video) {
-                            if (y > 260) { pdf.addPage(); y = 20; }
-
-                            pdf.setFontSize(9);
+                            if (y > 260) { pdf.addPage(); y = 25; }
+                            pdf.setFontSize(8);
                             pdf.setFont(undefined, 'bold');
-                            pdf.setTextColor(59, 130, 246); // Bleu électrique
-                            pdf.textWithLink('▶️ Voir la vidéo', 20, y, { url: task.video });
-
-                            y += 9;
+                            pdf.setTextColor(...BLEU_ELEC);
+                            pdf.textWithLink('▶ Voir la vidéo', 20, y, { url: task.video });
+                            y += 7;
                         }
 
-                        // Photos ouvert/fermé pour les équipements
+                        // Photos ouvert/fermé
                         if (task.ouvert !== undefined && task.ferme !== undefined) {
-                            if (y > 210) { pdf.addPage(); y = 20; }
-
-                            pdf.setFontSize(9);
+                            if (y > 210) { pdf.addPage(); y = 25; }
+                            pdf.setFontSize(7);
+                            pdf.setFont(undefined, 'normal');
                             pdf.setTextColor(100, 100, 100);
-                            pdf.text('Ouvert', 25, y);
-                            pdf.text('Fermé', 110, y);
+                            pdf.text('Ouvert', 20 + imgW/2, y, { align: 'center' });
+                            pdf.text('Fermé', 105 + imgW/2, y, { align: 'center' });
                             y += 4;
 
-                            // Calculer dimensions pour image ouvert
-                            let ouvertImgW = 75, ouvertImgH = 50;
+                            let ouvertImgW = imgW, ouvertImgH = imgH;
                             if (task.ouvert) {
                                 try {
                                     const dimensions = await getImageDimensions(task.ouvert);
-                                    const size = calculatePdfImageSize(dimensions.width, dimensions.height, 75, 50);
-                                    ouvertImgW = size.width;
-                                    ouvertImgH = size.height;
-                                } catch(e) {
-                                    console.log('Utilisation dimensions par défaut pour ouvert');
-                                }
+                                    const size = calculatePdfImageSize(dimensions.width, dimensions.height, imgW, imgH);
+                                    ouvertImgW = size.width; ouvertImgH = size.height;
+                                } catch(e) {}
                             }
-
                             pdf.rect(20, y, ouvertImgW, ouvertImgH);
                             if (task.ouvert) {
-                                try {
-                                    pdf.addImage(task.ouvert, 'JPEG', 20, y, ouvertImgW, ouvertImgH);
-                                } catch(e) { console.error('Erreur image ouvert:', e); }
+                                try { pdf.addImage(task.ouvert, 'JPEG', 20, y, ouvertImgW, ouvertImgH); }
+                                catch(e) {}
                             }
 
-                            // Calculer dimensions pour image fermé
-                            let fermeImgW = 75, fermeImgH = 50;
+                            let fermeImgW = imgW, fermeImgH = imgH;
                             if (task.ferme) {
                                 try {
                                     const dimensions = await getImageDimensions(task.ferme);
-                                    const size = calculatePdfImageSize(dimensions.width, dimensions.height, 75, 50);
-                                    fermeImgW = size.width;
-                                    fermeImgH = size.height;
-                                } catch(e) {
-                                    console.log('Utilisation dimensions par défaut pour fermé');
-                                }
+                                    const size = calculatePdfImageSize(dimensions.width, dimensions.height, imgW, imgH);
+                                    fermeImgW = size.width; fermeImgH = size.height;
+                                } catch(e) {}
                             }
-
                             pdf.rect(105, y, fermeImgW, fermeImgH);
                             if (task.ferme) {
-                                try {
-                                    pdf.addImage(task.ferme, 'JPEG', 105, y, fermeImgW, fermeImgH);
-                                } catch(e) { console.error('Erreur image fermé:', e); }
+                                try { pdf.addImage(task.ferme, 'JPEG', 105, y, fermeImgW, fermeImgH); }
+                                catch(e) {}
                             }
-
-                            y += Math.max(ouvertImgH, fermeImgH) + 8;
+                            y += Math.max(ouvertImgH, fermeImgH) + 4;
                         }
 
-                        y += 4; // Espacement entre tâches
+                        // Séparateur entre tâches
+                        pdf.setDrawColor(230, 230, 230);
+                        pdf.setLineWidth(0.3);
+                        pdf.line(15, y + 2, w-15, y + 2);
+                        y += 8;
                     }
                 }
-                
+
+                // -- Pied de page sur toutes les pages --
                 const pageCount = pdf.internal.getNumberOfPages();
                 for (let p = 1; p <= pageCount; p++) {
                     pdf.setPage(p);
 
-                    // Ligne de séparation bleue style site
-                    pdf.setDrawColor(59, 130, 246); // Bleu électrique
+                    // Ligne bleue électrique
+                    pdf.setDrawColor(...BLEU_ELEC);
                     pdf.setLineWidth(0.8);
-                    pdf.line(20, h - 17, w - 20, h - 17);
+                    pdf.line(15, h - 17, w - 15, h - 17);
 
-                    // Informations du pied de page - Style épuré site
-                    pdf.setFontSize(8);
-                    pdf.setFont(undefined, 'normal');
-
-                    // Gauche : Nom de l'entreprise
-                    pdf.setTextColor(30, 41, 59); // Bleu marine
-                    pdf.text('FLINCO - Service Professionnel', 20, h - 9);
-
-                    // Centre : Numéro de page en bleu
+                    // Gauche : entreprise
+                    pdf.setFontSize(7);
                     pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(59, 130, 246); // Bleu électrique
-                    pdf.text('Page ' + p + ' / ' + pageCount, w/2, h - 9, { align: 'center' });
+                    pdf.setTextColor(...BLEU_MARINE);
+                    pdf.text('FLINCO — Service Professionnel', 15, h - 10);
 
-                    // Droite : Site web
+                    // Centre : numéro de page
                     pdf.setFont(undefined, 'normal');
-                    pdf.setTextColor(30, 41, 59);
-                    pdf.textWithLink('cleanbyflinco.com', w - 20, h - 9, {
-                        align: 'right',
-                        url: 'https://www.cleanbyflinco.com'
+                    pdf.setTextColor(...BLEU_ELEC);
+                    pdf.text('Page ' + p + ' / ' + pageCount, w/2, h - 10, { align: 'center' });
+
+                    // Droite : site web
+                    pdf.setTextColor(...BLEU_MARINE);
+                    pdf.textWithLink('cleanbyflinco.com', w - 15, h - 10, {
+                        align: 'right', url: 'https://www.cleanbyflinco.com'
                     });
                 }
                 
