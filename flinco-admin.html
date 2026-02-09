@@ -618,6 +618,13 @@
                         <input type="text" id="agency" placeholder="Ex: Century 21">
                     </div>
                 </div>
+                <div class="form-row single">
+                    <div class="form-group">
+                        <label>Contexte de l'intervention</label>
+                        <textarea id="context" placeholder="Ex: Fin de bail, appartement occupé 5 ans, cuisine et salle de bain à traiter en priorité..." style="min-height: 70px;"></textarea>
+                        <p style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">💡 Ce contexte sera visible par le technicien et apparaîtra dans le PDF.</p>
+                    </div>
+                </div>
             </div>
 
             <div class="section">
@@ -2363,6 +2370,7 @@
                     address: address,
                     agent: document.getElementById('agent').value || '',
                     agency: document.getElementById('agency').value || '',
+                    context: document.getElementById('context').value || '',
                     rooms: rooms,
                     logoUrl: logoUrl,
                     reportType: document.getElementById('reportType').value || 'nettoyage-remise-etat',
@@ -2889,6 +2897,7 @@
                 document.getElementById('address').value = data.address || '';
                 document.getElementById('agent').value = data.agent || '';
                 document.getElementById('agency').value = data.agency || '';
+                document.getElementById('context').value = data.context || '';
                 document.getElementById('reportType').value = data.reportType || 'nettoyage-remise-etat';
                 document.getElementById('photoMode').value = data.photoMode || 'avant-apres';
                 document.getElementById('requireVideoMainRoom').checked = data.requireVideoMainRoom || false;
@@ -2961,6 +2970,7 @@
                     address: address,
                     agent: document.getElementById('agent').value || '',
                     agency: document.getElementById('agency').value || '',
+                    context: document.getElementById('context').value || '',
                     rooms: rooms,
                     logoUrl: logoUrl,
                     reportType: document.getElementById('reportType').value || 'nettoyage-remise-etat',

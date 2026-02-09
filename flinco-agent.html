@@ -339,6 +339,11 @@
             </div>
         </div>
 
+        <div id="contextBox" style="display: none; background: rgba(33, 150, 243, 0.08); border-left: 3px solid #2196f3; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+            <div style="font-size: 11px; color: #2196f3; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">📋 Contexte de l'intervention</div>
+            <div id="contextText" style="font-size: 13px; color: var(--text); line-height: 1.5; white-space: pre-wrap;"></div>
+        </div>
+
         <div style="background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
             <h3 style="font-size: 14px; font-weight: 600; color: var(--primary); margin-bottom: 12px;">➕ Ajouter des éléments</h3>
             <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Élément manquant ? Ajoutez-le ici</p>
@@ -668,6 +673,16 @@
             document.getElementById('missionAddress').textContent = reportData.address;
             document.getElementById('missionDate').textContent = '📅 ' + formatDate(reportData.date);
             document.getElementById('missionQuote').textContent = '📝 ' + reportData.quote;
+
+            // Afficher le contexte si présent
+            const contextBox = document.getElementById('contextBox');
+            const contextText = document.getElementById('contextText');
+            if (reportData.context && reportData.context.trim()) {
+                contextText.textContent = reportData.context;
+                contextBox.style.display = 'block';
+            } else {
+                contextBox.style.display = 'none';
+            }
 
             const container = document.getElementById('roomsContainer');
             container.innerHTML = '';
@@ -1757,8 +1772,8 @@
 
                 // ============ PAGE 1 : COUVERTURE PROFESSIONNELLE ============
 
-                const BLEU_MARINE = [30, 41, 59];
-                const BLEU_ELEC = [59, 130, 246];
+                const BLEU_MARINE = [26, 77, 143];  // Bleu FLINCO marine #1a4d8f
+                const BLEU_ELEC = [33, 150, 243];   // Bleu FLINCO électrique #2196f3
                 const GRIS_CLAIR = [248, 249, 250];
                 const GRIS_MED = [200, 200, 200];
                 const NOIR_TEXTE = [30, 30, 30];
@@ -1849,7 +1864,7 @@
                 // Agence / Propriétaire
                 if (reportData.agency) {
                     pdf.setFont(undefined, 'bold');
-                    pdf.text('Propriétaire :', infoX + 8, infoY);
+                    pdf.text('Agence :', infoX + 8, infoY);
                     pdf.setFont(undefined, 'normal');
                     pdf.text(reportData.agency, infoX + 42, infoY);
                 }
@@ -1886,6 +1901,30 @@
                     pdf.text(commentLines, infoX + 8, commentY + 13);
                 }
 
+                // -- Contexte de l'intervention --
+                const contextText = (reportData.context || '').trim();
+                if (contextText) {
+                    const contextY = agentComment ? (infoY + 14 + (14 + pdf.splitTextToSize(agentComment, infoW - 16).length * 5) + 8) : (infoY + 14);
+                    pdf.setFillColor(220, 237, 253); // fond bleu très clair
+                    pdf.setDrawColor(...BLEU_ELEC);
+                    pdf.setLineWidth(0.5);
+                    const contextLines = pdf.splitTextToSize(contextText, infoW - 16);
+                    const contextH = 14 + contextLines.length * 5;
+                    pdf.roundedRect(infoX, contextY, infoW, contextH, 3, 3, 'FD');
+
+                    // Titre bloc contexte
+                    pdf.setFontSize(9);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.setTextColor(...BLEU_ELEC);
+                    pdf.text('CONTEXTE DE L\'INTERVENTION', infoX + 8, contextY + 7);
+
+                    // Texte du contexte
+                    pdf.setFontSize(9);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.setTextColor(30, 58, 138);
+                    pdf.text(contextLines, infoX + 8, contextY + 13);
+                }
+
                 // ============ PAGES SUIVANTES : PIÈCES ============
                 for (const roomName in photos) {
                     pdf.addPage();
@@ -1893,7 +1932,7 @@
 
                     // -- En-tête de page avec mini logo --
                     pdf.setFillColor(...BLEU_MARINE);
-                    pdf.rect(0, 0, w, 18, 'F');
+                    pdf.rect(0, 0, w, 23, 'F');
 
                     // Mini logo dans l'en-tête
                     pdf.addImage(FLINCO_LOGO_B64, 'PNG', 3, 1, 16, 16);
@@ -1902,15 +1941,21 @@
                     pdf.setFontSize(9);
                     pdf.setFont(undefined, 'bold');
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text(reportTitle, w/2, 10, { align: 'center' });
+                    pdf.text(reportTitle, w/2, 8, { align: 'center' });
+
+                    // Adresse centrée sous le titre
+                    pdf.setFontSize(7);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.setTextColor(200, 210, 230);
+                    const shortAddr = (reportData.address || '').substring(0, 80);
+                    pdf.text(shortAddr, w/2, 14, { align: 'center' });
 
                     // Date + Technicien à droite
                     pdf.setFontSize(7);
-                    pdf.setFont(undefined, 'normal');
                     pdf.setTextColor(180, 200, 230);
-                    pdf.text(formatDate(reportData.date) + ' | ' + (reportData.agent || 'FLINCO'), w - 5, 10, { align: 'right' });
+                    pdf.text(formatDate(reportData.date) + ' | ' + (reportData.agent || 'FLINCO'), w - 5, 20, { align: 'right' });
 
-                    y = 25;
+                    y = 28;
 
                     // -- Titre de la pièce (fond bleu marine) --
                     pdf.setFillColor(...BLEU_MARINE);
@@ -1918,7 +1963,7 @@
                     pdf.setFontSize(11);
                     pdf.setFont(undefined, 'bold');
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text('📋  ' + roomName.toUpperCase(), w/2, y + 7, { align: 'center' });
+                    pdf.text(roomName.toUpperCase(), w/2, y + 7, { align: 'center' });
                     y += 14;
 
                     // -- Info pièce (fond gris très clair) --
@@ -1943,7 +1988,8 @@
                     }
 
                     // -- Labels AVANT / APRÈS --
-                    const vignSize = 63;
+                    const vignSize = 75;  // Taille fixe pour uniformité
+                    const vignH = 56;  // Ratio 4:3
                     const vignY = y + 6;
 
                     // Label AVANT
@@ -1966,21 +2012,21 @@
                     pdf.setDrawColor(...GRIS_MED);
                     pdf.setLineWidth(0.3);
                     if (photos[roomName].general.avant) {
-                        try { pdf.addImage(photos[roomName].general.avant, 'JPEG', 25, vignY, vignSize, vignSize*0.75); }
+                        try { pdf.addImage(photos[roomName].general.avant, 'JPEG', 25, vignY, vignSize, vignH, undefined, 'FAST'); }
                         catch(e) { pdf.rect(25, vignY, vignSize, vignSize*0.75); }
                     } else {
                         pdf.setFillColor(245, 245, 245);
-                        pdf.rect(25, vignY, vignSize, vignSize*0.75, 'FD');
+                        pdf.rect(25, vignY, vignSize, vignH, 'FD');
                     }
                     if (photos[roomName].general.apres) {
-                        try { pdf.addImage(photos[roomName].general.apres, 'JPEG', w - 25 - vignSize, vignY, vignSize, vignSize*0.75); }
+                        try { pdf.addImage(photos[roomName].general.apres, 'JPEG', w - 25 - vignSize, vignY, vignSize, vignH, undefined, 'FAST'); }
                         catch(e) { pdf.rect(w - 25 - vignSize, vignY, vignSize, vignSize*0.75); }
                     } else {
                         pdf.setFillColor(245, 245, 245);
-                        pdf.rect(w - 25 - vignSize, vignY, vignSize, vignSize*0.75, 'FD');
+                        pdf.rect(w - 25 - vignSize, vignY, vignSize, vignH, 'FD');
                     }
 
-                    y += 7 + vignSize*0.75 + 6;
+                    y += 7 + vignH + 6;
 
                     // -- Section Détails des tâches --
                     pdf.setFillColor(...BLEU_MARINE);
@@ -1988,7 +2034,7 @@
                     pdf.setFontSize(11);
                     pdf.setFont(undefined, 'bold');
                     pdf.setTextColor(255, 255, 255);
-                    pdf.text('📌  Détails des tâches', w/2, y + 7, { align: 'center' });
+                    pdf.text('DETAILS DES TACHES', w/2, y + 7, { align: 'center' });
                     y += 14;
 
                     for (const taskName in photos[roomName].tasks) {
@@ -2025,15 +2071,9 @@
 
                         y += 7;
 
-                        // Calculer dimensions pour image avant
-                        let taskAvantImgW = imgW, taskAvantImgH = imgH;
-                        if (task.avant) {
-                            try {
-                                const dimensions = await getImageDimensions(task.avant);
-                                const size = calculatePdfImageSize(dimensions.width, dimensions.height, imgW, imgH);
-                                taskAvantImgW = size.width; taskAvantImgH = size.height;
-                            } catch(e) {}
-                        }
+                        // Taille fixe pour uniformité
+                        const taskAvantImgW = imgW;
+                        const taskAvantImgH = imgH;
 
                         pdf.setDrawColor(...GRIS_MED);
                         pdf.setLineWidth(0.3);
@@ -2045,15 +2085,9 @@
                             pdf.rect(20, y, imgW, imgH, 'FD');
                         }
 
-                        // Calculer dimensions pour image après
-                        let taskApresImgW = imgW, taskApresImgH = imgH;
-                        if (task.apres) {
-                            try {
-                                const dimensions = await getImageDimensions(task.apres);
-                                const size = calculatePdfImageSize(dimensions.width, dimensions.height, imgW, imgH);
-                                taskApresImgW = size.width; taskApresImgH = size.height;
-                            } catch(e) {}
-                        }
+                        // Taille fixe pour uniformité
+                        const taskApresImgW = imgW;
+                        const taskApresImgH = imgH;
 
                         if (task.apres) {
                             try { pdf.addImage(task.apres, 'JPEG', 105, y, taskApresImgW, taskApresImgH); }
@@ -2063,7 +2097,7 @@
                             pdf.rect(105, y, imgW, imgH, 'FD');
                         }
 
-                        y += Math.max(taskAvantImgH, taskApresImgH) + 4;
+                        y += imgH + 4;
 
                         // Vidéo de la tâche
                         if (task.video) {
@@ -2085,34 +2119,22 @@
                             pdf.text('Fermé', 105 + imgW/2, y, { align: 'center' });
                             y += 4;
 
-                            let ouvertImgW = imgW, ouvertImgH = imgH;
-                            if (task.ouvert) {
-                                try {
-                                    const dimensions = await getImageDimensions(task.ouvert);
-                                    const size = calculatePdfImageSize(dimensions.width, dimensions.height, imgW, imgH);
-                                    ouvertImgW = size.width; ouvertImgH = size.height;
-                                } catch(e) {}
-                            }
+                            const ouvertImgW = imgW;
+                            const ouvertImgH = imgH;
                             pdf.rect(20, y, ouvertImgW, ouvertImgH);
                             if (task.ouvert) {
                                 try { pdf.addImage(task.ouvert, 'JPEG', 20, y, ouvertImgW, ouvertImgH); }
                                 catch(e) {}
                             }
 
-                            let fermeImgW = imgW, fermeImgH = imgH;
-                            if (task.ferme) {
-                                try {
-                                    const dimensions = await getImageDimensions(task.ferme);
-                                    const size = calculatePdfImageSize(dimensions.width, dimensions.height, imgW, imgH);
-                                    fermeImgW = size.width; fermeImgH = size.height;
-                                } catch(e) {}
-                            }
+                            const fermeImgW = imgW;
+                            const fermeImgH = imgH;
                             pdf.rect(105, y, fermeImgW, fermeImgH);
                             if (task.ferme) {
                                 try { pdf.addImage(task.ferme, 'JPEG', 105, y, fermeImgW, fermeImgH); }
                                 catch(e) {}
                             }
-                            y += Math.max(ouvertImgH, fermeImgH) + 4;
+                            y += imgH + 4;
                         }
 
                         // Séparateur entre tâches
