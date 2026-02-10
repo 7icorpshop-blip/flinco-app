@@ -973,7 +973,97 @@
         const db = firebase.firestore();
         const storage = firebase.storage();
         
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // === FONCTION PARTAGÉE PARSING PDF ===
+        async function parsePDFDevis(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const typedArray = new Uint8Array(evt.target.result);
+                    pdfjsLib.getDocument(typedArray).promise.then(function(pdf) {
+                        let fullText = '';
+                        const numPages = pdf.numPages;
+                        let pagesProcessed = 0;
+                        
+                        for (let i = 1; i <= numPages; i++) {
+                            pdf.getPage(i).then(function(page) {
+                                page.getTextContent().then(function(textContent) {
+                                    const pageText = textContent.items.map(item => item.str).join(' ');
+                                    fullText += pageText + '\n';
+                                    pagesProcessed++;
+                                    
+                                    if (pagesProcessed === numPages) {
+                                        const result = parseDevisText(fullText);
+                                        resolve(result);
+                                    }
+                                });
+                            });
+                        }
+                    }).catch(function(err) {
+                        reject(err);
+                    });
+                };
+                reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function parseDevisText(text) {
+            const result = { 
+                quote: null, 
+                address: null, 
+                date: null,
+                agent: null,
+                agency: null,
+                rooms: {}
+            };
+            
+            // Extraction numéro de devis
+            const devisMatch = text.match(/Devis\s*N°?\s*(\d+)/i);
+            if (devisMatch) result.quote = devisMatch[1];
+            
+            // Extraction adresse
+            const addressMatch = text.match(/(\d+[^a-z]*(?:RUE|AVENUE|BOULEVARD|PLACE|IMPASSE|CHEMIN|ALLÉE)[^a-z]+[^\n]+)/i);
+            if (addressMatch) result.address = addressMatch[1].trim();
+            
+            // Extraction des tâches
+            const taskPattern = /(\d+\.?\d*)\s+([A-ZÀ-Ü][^€\d]+?)(?:\s+U\s+\d|\s+€)/gi;
+            const allTasks = [];
+            let match;
+            while ((match = taskPattern.exec(text)) !== null) {
+                const taskNum = match[1];
+                let taskName = match[2].trim().replace(/\s+/g, ' ').replace(/\s*\+\s*/g, ' + ');
+                if (taskName.match(/SOUS\s*TOTAL|SERVICES|Récupération|Photos avant|Fournitures/i)) continue;
+                if (taskName.length > 10 && taskName.length < 150) {
+                    allTasks.push({ num: parseFloat(taskNum), name: taskName });
+                }
+            }
+            
+            // Groupement par pièce
+            const roomGroups = {
+                'ENTRÉE / PIÈCE DE VIE': [],
+                'CUISINE': [],
+                'SALLE DE BAIN / WC': []
+            };
+            
+            allTasks.forEach(task => {
+                if (task.num >= 1 && task.num < 1.5) roomGroups['ENTRÉE / PIÈCE DE VIE'].push(task.name);
+                else if (task.num >= 1.5 && task.num < 1.10) roomGroups['CUISINE'].push(task.name);
+                else if (task.num >= 1.10 && task.num < 1.14) roomGroups['SALLE DE BAIN / WC'].push(task.name);
+            });
+            
+            // Convertir en format rooms
+            Object.entries(roomGroups).forEach(([roomName, tasks]) => {
+                if (tasks.length > 0) {
+                    result.rooms[roomName] = { tasks: tasks };
+                }
+            });
+            
+            return result;
+        }
+
+
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         let rooms = {};
         let logoFile = null;
@@ -1735,80 +1825,28 @@
             resultDiv.className = 'import-result loading';
             resultText.innerHTML = '⏳ Analyse du devis en cours...';
             
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const typedArray = new Uint8Array(evt.target.result);
-                pdfjsLib.getDocument(typedArray).promise.then(function(pdf) {
-                    let fullText = '';
-                    const numPages = pdf.numPages;
-                    let pagesProcessed = 0;
+            parsePDFDevis(file).then(result => {
+                if (result.rooms && Object.keys(result.rooms).length > 0) {
+                    if (result.quote) document.getElementById('quote').value = result.quote;
+                    if (result.address) document.getElementById('address').value = result.address;
                     
-                    for (let i = 1; i <= numPages; i++) {
-                        pdf.getPage(i).then(function(page) {
-                            page.getTextContent().then(function(textContent) {
-                                const pageText = textContent.items.map(item => item.str).join(' ');
-                                fullText += pageText + '\n';
-                                pagesProcessed++;
-                                
-                                if (pagesProcessed === numPages) {
-                                    const result = parseDevisFlinco(fullText);
-                                    if (result.rooms.length > 0) {
-                                        if (result.devisNum) document.getElementById('quote').value = result.devisNum;
-                                        if (result.address) document.getElementById('address').value = result.address;
-                                        result.rooms.forEach(room => createRoomWithTasks(room.name, room.tasks));
-                                        const totalTasks = result.rooms.reduce((sum, r) => sum + r.tasks.length, 0);
-                                        resultDiv.className = 'import-result success';
-                                        resultText.innerHTML = `✅ ${result.rooms.length} pièce(s) et ${totalTasks} tâche(s) importées !`;
-                                    } else {
-                                        resultDiv.className = 'import-result error';
-                                        resultText.innerHTML = '⚠️ Aucune pièce détectée. Ajoutez-les manuellement.';
-                                    }
-                                }
-                            });
-                        });
-                    }
-                }).catch(function(err) {
+                    Object.entries(result.rooms).forEach(([roomName, roomData]) => {
+                        createRoomWithTasks(roomName, roomData.tasks);
+                    });
+                    
+                    const totalTasks = Object.values(result.rooms).reduce((sum, room) => sum + room.tasks.length, 0);
+                    resultDiv.className = 'import-result success';
+                    resultText.innerHTML = `✅ ${Object.keys(result.rooms).length} pièce(s) et ${totalTasks} tâche(s) importées !`;
+                } else {
                     resultDiv.className = 'import-result error';
-                    resultText.innerHTML = '❌ Erreur lecture PDF: ' + err.message;
-                });
-            };
-            reader.readAsArrayBuffer(file);
+                    resultText.innerHTML = '⚠️ Aucune pièce détectée. Ajoutez-les manuellement.';
+                }
+            }).catch(err => {
+                resultDiv.className = 'import-result error';
+                resultText.innerHTML = '❌ Erreur lecture PDF: ' + err.message;
+            });
         });
         
-        function parseDevisFlinco(text) {
-            const result = { devisNum: null, address: null, rooms: [] };
-            const devisMatch = text.match(/Devis\s*N°?\s*(\d+)/i);
-            if (devisMatch) result.devisNum = devisMatch[1];
-            const addressMatch = text.match(/(\d+[^a-z]*(?:RUE|AVENUE|BOULEVARD|PLACE|IMPASSE|CHEMIN|ALLÉE)[^a-z]+)/i);
-            if (addressMatch) result.address = addressMatch[1].trim();
-            
-            const taskPattern = /(\d+\.?\d*)\s+([A-ZÀ-Ü][^€\d]+?)(?:\s+U\s+\d|\s+€)/gi;
-            const allTasks = [];
-            let match;
-            while ((match = taskPattern.exec(text)) !== null) {
-                const taskNum = match[1];
-                let taskName = match[2].trim().replace(/\s+/g, ' ').replace(/\s*\+\s*/g, ' + ');
-                if (taskName.match(/SOUS\s*TOTAL|SERVICES|Récupération|Photos avant|Fournitures/i)) continue;
-                if (taskName.length > 10 && taskName.length < 150) {
-                    allTasks.push({ num: parseFloat(taskNum), name: taskName });
-                }
-            }
-            
-            const entree = { name: 'ENTRÉE / PIÈCE DE VIE', tasks: [] };
-            const cuisine = { name: 'CUISINE', tasks: [] };
-            const sdb = { name: 'SALLE DE BAIN / WC', tasks: [] };
-            
-            allTasks.forEach(task => {
-                if (task.num >= 1 && task.num < 1.5) entree.tasks.push(task.name);
-                else if (task.num >= 1.5 && task.num < 1.10) cuisine.tasks.push(task.name);
-                else if (task.num >= 1.10 && task.num < 1.14) sdb.tasks.push(task.name);
-            });
-            
-            if (entree.tasks.length > 0) result.rooms.push(entree);
-            if (cuisine.tasks.length > 0) result.rooms.push(cuisine);
-            if (sdb.tasks.length > 0) result.rooms.push(sdb);
-            return result;
-        }
         
         function createRoomWithTasks(roomName, tasks) {
             if (rooms[roomName]) {
@@ -3410,7 +3448,7 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
                     <div class="empty-state">
                         <div class="empty-state-icon">📋</div>
                         <p>Aucun état des lieux créé</p>
-                        <button onclick="createNewEDL()" class="btn" style="background: var(--accent); color: var(--primary); padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; margin-top: 16px;">
+                        <button onclick="openEDLImportModal()" class="btn" style="background: var(--accent); color: var(--primary); padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; margin-top: 16px;">
                             Créer le premier état des lieux
                         </button>
                     </div>
@@ -3466,6 +3504,126 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
                 alert('Erreur de création: ' + error.message);
             }
         }
+
+        // === IMPORT PDF POUR ÉTATS DES LIEUX ===
+        function openEDLImportModal() {
+            document.getElementById('edlImportModal').style.display = 'flex';
+            setupEDLImportZone();
+        }
+
+        function closeEDLImportModal() {
+            document.getElementById('edlImportModal').style.display = 'none';
+            document.getElementById('edlImportResult').style.display = 'none';
+            document.getElementById('edlImportProgress').style.display = 'none';
+            document.getElementById('edlDevisInput').value = '';
+        }
+
+        function setupEDLImportZone() {
+            const zone = document.getElementById('edlImportZone');
+            const input = document.getElementById('edlDevisInput');
+
+            zone.onclick = () => input.click();
+
+            zone.ondragover = (e) => {
+                e.preventDefault();
+                zone.style.borderColor = 'var(--accent)';
+                zone.style.background = 'rgba(130, 172, 255, 0.05)';
+            };
+
+            zone.ondragleave = () => {
+                zone.style.borderColor = 'var(--border)';
+                zone.style.background = 'var(--bg)';
+            };
+
+            zone.ondrop = (e) => {
+                e.preventDefault();
+                zone.style.borderColor = 'var(--border)';
+                zone.style.background = 'var(--bg)';
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'application/pdf') {
+                    handleEDLPDFImport(file);
+                }
+            };
+
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    handleEDLPDFImport(file);
+                }
+            };
+        }
+
+        async function handleEDLPDFImport(file) {
+            const resultDiv = document.getElementById('edlImportResult');
+            const resultText = document.getElementById('edlImportResultText');
+            const progressDiv = document.getElementById('edlImportProgress');
+            const progressBar = document.getElementById('edlImportProgressBar');
+            const progressPercent = document.getElementById('edlImportProgressPercent');
+
+            resultDiv.style.display = 'none';
+            progressDiv.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressPercent.textContent = '0%';
+
+            try {
+                // Simuler progression
+                progressBar.style.width = '30%';
+                progressPercent.textContent = '30%';
+
+                // Réutiliser la fonction existante parsePDFDevis
+                const data = await parsePDFDevis(file);
+
+                progressBar.style.width = '70%';
+                progressPercent.textContent = '70%';
+
+                if (!data || !data.address) {
+                    throw new Error('Impossible d\'extraire l\'adresse du PDF');
+                }
+
+                // Créer l'état des lieux avec les données extraites
+                progressBar.style.width = '90%';
+                progressPercent.textContent = '90%';
+
+                const edlName = data.quote ? `EDL - ${data.quote}` : `EDL - ${data.address.substring(0, 30)}`;
+
+                const docRef = await db.collection('edl').add({
+                    name: edlName,
+                    address: data.address,
+                    quote: data.quote || '',
+                    date: data.date || '',
+                    agent: data.agent || '',
+                    agency: data.agency || '',
+                    rooms: data.rooms || {},
+                    elements: [],
+                    importedFrom: file.name,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                progressBar.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = 'rgba(16, 185, 129, 0.1)';
+                resultDiv.style.border = '1px solid #10b981';
+                resultText.style.color = '#10b981';
+                resultText.innerHTML = `✅ État des lieux créé avec succès !<br><strong>${edlName}</strong>`;
+
+                setTimeout(() => {
+                    closeEDLImportModal();
+                    openStandaloneEDL(docRef.id);
+                }, 1500);
+
+            } catch (error) {
+                progressDiv.style.display = 'none';
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+                resultDiv.style.border = '1px solid #ef4444';
+                resultText.style.color = '#ef4444';
+                resultText.textContent = '❌ Erreur : ' + error.message;
+            }
+        }
+
+
 
         async function openStandaloneEDL(edlId) {
             currentEDLReportId = edlId;
@@ -3752,8 +3910,8 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
             <div class="section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <div class="section-title">📊 États des Lieux</div>
-                    <button onclick="createNewEDL()" class="btn" style="background: var(--success); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
-                        ➕ Nouvel État des Lieux
+                    <button onclick="openEDLImportModal()" class="btn" style="background: var(--success); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                        ➕ Nouvel État des Lieux (Import PDF)
                     </button>
                 </div>
 
@@ -3769,6 +3927,40 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
                 </div>
             </div>
         </div>
+
+    <!-- Modal Import PDF État des Lieux -->
+    <div id="edlImportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10001; overflow-y: auto; padding: 20px;">
+        <div style="background: var(--card); border-radius: 16px; max-width: 600px; width: 100%; margin: 20px auto; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid var(--border);">
+                <h2 style="font-size: 20px;">📄 Importer un devis pour l'état des lieux</h2>
+                <button onclick="closeEDLImportModal()" style="background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">✕ Fermer</button>
+            </div>
+
+            <div class="import-zone" id="edlImportZone" style="border: 2px dashed var(--border); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg);">
+                <input type="file" accept=".pdf" id="edlDevisInput" style="display: none;">
+                <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
+                <h4 style="font-size: 16px; margin-bottom: 8px;">Importer un devis FLINCO</h4>
+                <p style="font-size: 13px; color: var(--text-muted);">Glissez votre PDF ou cliquez pour parcourir</p>
+            </div>
+
+            <div id="edlImportResult" style="margin-top: 16px; padding: 16px; border-radius: 8px; display: none;">
+                <p id="edlImportResultText" style="margin: 0; font-size: 13px;"></p>
+            </div>
+
+            <div id="edlImportProgress" style="display: none; margin-top: 16px;">
+                <div style="background: var(--bg); border-radius: 8px; padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+                        <span>Extraction des données...</span>
+                        <span id="edlImportProgressPercent">0%</span>
+                    </div>
+                    <div style="height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;">
+                        <div id="edlImportProgressBar" style="height: 100%; background: var(--accent); width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Modal Sélection Interventions -->
     <div id="interventionsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10001; overflow-y: auto; padding: 20px;">
