@@ -61,6 +61,23 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ==================== ÉTATS DES LIEUX ====================
+    // États des lieux (EDL) - Collection séparée des rapports
+    match /edl/{edlId} {
+      // Lecture publique
+      allow read: if true;
+
+      // Création publique avec validation
+      allow create: if
+        request.resource.data.keys().hasAll(['name', 'address', 'elements', 'createdAt']);
+
+      // Mise à jour publique
+      allow update: if true;
+
+      // Suppression publique
+      allow delete: if true;
+    }
+
     // ==================== SETTINGS / CONFIG ====================
     // Configuration de l'application (admin uniquement)
     match /settings/{document} {
