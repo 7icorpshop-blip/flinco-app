@@ -13,6 +13,9 @@
     <!-- PDF.js pour lire les devis -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     
+    <!-- SheetJS pour export Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
@@ -556,6 +559,81 @@
             .report-actions { width: 100%; }
             .report-actions button { flex: 1; }
         }
+    
+        /* === Modal État des Lieux === */
+        #edlModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        #edlModal.active { display: flex; align-items: flex-start; justify-content: center; }
+        .edl-content {
+            background: var(--card);
+            border-radius: 16px;
+            max-width: 1200px;
+            width: 100%;
+            margin: 20px auto;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .edl-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+        .edl-close {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .edl-form {
+            background: var(--bg);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .edl-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            background: var(--bg);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .edl-table th, .edl-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .edl-table th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        .edl-table tr:hover { background: var(--card-hover); }
+        .etat-bon { background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; }
+        .etat-usage { background: #f59e0b; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; }
+        .etat-mauvais { background: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; }
+        .etat-absent { background: #6b7280; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; }
+        .intervention-oui { color: #10b981; font-weight: 600; }
+        .intervention-non { color: #6b7280; }
+        
     </style>
 </head>
 <body>
@@ -2633,6 +2711,7 @@
                                 <button class="btn" onclick="copyReportLink('${report.id}')">🔗 Lien</button>
                                 <button class="btn" onclick="duplicateReport('${report.id}')" style="background: #6366f1; color: white;">📋 Dupliquer</button>
                                 <button class="btn" onclick="editReport('${report.id}')" style="background: var(--accent); color: var(--primary);">✏️ Modifier</button>
+                                <button class="btn" onclick="openEDL('${report.id}', '${report.address}')" style="background: #8b5cf6; color: white;">📋 État des lieux</button>
                                 ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${report.pdfUrl}', '_blank')">📥 PDF</button>` : ''}
                                 <button class="btn btn-danger" onclick="deleteReport('${report.id}')">🗑️</button>
                             </div>
@@ -3032,6 +3111,353 @@
         loadCustomTasks(); // Charger les tâches personnalisées depuis localStorage
         renderRooms();
         initQuickRoomButtons();
+
+        // === ÉTAT DES LIEUX FUNCTIONS ===
+        let currentEDLReportId = null;
+        let edlData = [];
+
+        async function openEDL(reportId, reportAddress) {
+            currentEDLReportId = reportId;
+            document.getElementById('edlReportName').textContent = reportAddress || reportId;
+            document.getElementById('edlModal').classList.add('active');
+            
+            // Charger les données EDL existantes depuis Firestore
+            try {
+                const doc = await db.collection('reports').doc(reportId).get();
+                if (doc.exists && doc.data().edl) {
+                    edlData = doc.data().edl || [];
+                } else {
+                    edlData = [];
+                }
+                renderEDLTable();
+            } catch (error) {
+                alert('Erreur de chargement: ' + error.message);
+            }
+        }
+
+        function closeEDL() {
+            document.getElementById('edlModal').classList.remove('active');
+            currentEDLReportId = null;
+            edlData = [];
+            document.getElementById('quoteDescriptions').style.display = 'none';
+        }
+
+        function addEDLElement() {
+            const piece = document.getElementById('edlPiece').value.trim();
+            const element = document.getElementById('edlElement').value.trim();
+            const etat = document.getElementById('edlEtat').value;
+            const observations = document.getElementById('edlObservations').value.trim();
+            const interventions = document.getElementById('edlInterventions').value.trim();
+            const interventionPossible = document.getElementById('edlInterventionPossible').value === 'true';
+            const page = parseInt(document.getElementById('edlPage').value) || 1;
+
+            if (!piece || !element) {
+                alert('Veuillez remplir au minimum la pièce et \'élément');
+                return;
+            }
+
+            edlData.push({
+                piece,
+                element,
+                etat,
+                observations,
+                interventions,
+                interventionPossible,
+                page
+            });
+
+            // Réinitialiser le formulaire
+            document.getElementById('edlElement').value = '';
+            document.getElementById('edlObservations').value = '';
+            document.getElementById('edlInterventions').value = '';
+            document.getElementById('edlEtat').value = 'usage';
+            document.getElementById('edlInterventionPossible').value = 'true';
+            document.getElementById('edlPage').value = parseInt(document.getElementById('edlPage').value) + 1;
+
+            renderEDLTable();
+        }
+
+        function renderEDLTable() {
+            const tbody = document.getElementById('edlTableBody');
+            document.getElementById('edlCount').textContent = edlData.length;
+
+            if (edlData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 40px;">Aucun élément ajouté</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = edlData.map((item, index) => {
+                const etatLabel = {
+                    'bon': '✅ Bon',
+                    'usage': '⚠️ État d\'usage',
+                    'mauvais': '❌ Mauvais',
+                    'absent': '⭕ Absent'
+                }[item.etat];
+
+                const etatClass = `etat-${item.etat}`;
+                const interventionClass = item.interventionPossible ? 'intervention-oui' : 'intervention-non';
+                const interventionText = item.interventionPossible ? '✅ Oui' : '❌ Non';
+
+                return `
+                    <tr>
+                        <td><strong>${item.piece}</strong></td>
+                        <td>${item.element}</td>
+                        <td><span class="${etatClass}">${etatLabel}</span></td>
+                        <td style="max-width: 300px;">${item.observations || '-'}</td>
+                        <td style="max-width: 250px;">${item.interventions || '-'}</td>
+                        <td><span class="${interventionClass}">${interventionText}</span></td>
+                        <td>${item.page}</td>
+                        <td>
+                            <button onclick="deleteEDLElement(${index})" style="background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function deleteEDLElement(index) {
+            if (confirm('Supprimer cet élément ?')) {
+                edlData.splice(index, 1);
+                renderEDLTable();
+            }
+        }
+
+        async function saveEDL() {
+            if (!currentEDLReportId) return;
+
+            try {
+                await db.collection('reports').doc(currentEDLReportId).update({
+                    edl: edlData,
+                    edlUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert('✅ État des lieux sauvegardé avec succès !');
+            } catch (error) {
+                alert('❌ Erreur de sauvegarde: ' + error.message);
+            }
+        }
+
+        function exportEDLExcel() {
+            if (edlData.length === 0) {
+                alert('Aucun élément à exporter');
+                return;
+            }
+
+            // Préparer les données pour Excel
+            const excelData = edlData.map(item => ({
+                'Pièce / Section': item.piece,
+                'Élément': item.element,
+                'État': {
+                    'bon': 'Bon',
+                    'usage': 'État d\'usage',
+                    'mauvais': 'Mauvais',
+                    'absent': 'Absent'
+                }[item.etat],
+                'Observations': item.observations || '',
+                'Interventions possibles': item.interventions || '',
+                'Intervention possible': item.interventionPossible ? 'Oui' : 'Non',
+                'Page': item.page
+            }));
+
+            // Créer un workbook et worksheet
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(excelData);
+
+            // Ajuster la largeur des colonnes
+            ws['!cols'] = [
+                { wch: 25 }, // Pièce
+                { wch: 30 }, // Élément
+                { wch: 15 }, // État
+                { wch: 50 }, // Observations
+                { wch: 40 }, // Interventions
+                { wch: 12 }, // Intervention possible
+                { wch: 8 }   // Page
+            ];
+
+            // Ajouter le worksheet au workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'État des lieux');
+
+            // Générer le fichier et télécharger
+            const fileName = `Etat_des_lieux_${currentEDLReportId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+
+            alert('✅ Fichier Excel généré avec succès !');
+        }
+
+        function generateQuoteDescriptions() {
+            if (edlData.length === 0) {
+                alert('Aucun élément pour générer les descriptions');
+                return;
+            }
+
+            // Regrouper par pièce
+            const groupedByPiece = {};
+            edlData.forEach(item => {
+                if (item.interventionPossible && item.interventions) {
+                    if (!groupedByPiece[item.piece]) {
+                        groupedByPiece[item.piece] = [];
+                    }
+                    groupedByPiece[item.piece].push(item);
+                }
+            });
+
+            // Générer les descriptions
+            let descriptions = '';
+            descriptions += '═══════════════════════════════════════════\n';
+            descriptions += '  DESCRIPTIONS DE DEVIS - INTERVENTIONS\n';
+            descriptions += '═══════════════════════════════════════════\n\n';
+
+            for (const [piece, items] of Object.entries(groupedByPiece)) {
+                descriptions += `📍 ${piece.toUpperCase()}\n`;
+                descriptions += '─'.repeat(50) + '\n\n';
+
+                items.forEach((item, index) => {
+                    descriptions += `${index + 1}. ${item.element}\n`;
+                    descriptions += `   État: ${{'bon': 'Bon', 'usage': 'État d\'usage', 'mauvais': 'Mauvais', 'absent': 'Absent'}[item.etat]}\n`;
+                    if (item.observations) {
+                        descriptions += `   Constat: ${item.observations}\n`;
+                    }
+                    descriptions += `   ➜ Intervention: ${item.interventions}\n`;
+                    descriptions += '\n';
+                });
+
+                descriptions += '\n';
+            }
+
+            descriptions += '═══════════════════════════════════════════\n';
+            descriptions += `Total interventions: ${Object.values(groupedByPiece).flat().length}\n`;
+            descriptions += `Généré le: ${new Date().toLocaleString('fr-FR')}\n`;
+            descriptions += '═══════════════════════════════════════════\n';
+
+            // Afficher dans la zone de texte
+            document.getElementById('quoteDescriptionsText').value = descriptions;
+            document.getElementById('quoteDescriptions').style.display = 'block';
+
+            // Scroll vers la zone de texte
+            document.getElementById('quoteDescriptions').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function copyQuoteDescriptions() {
+            const textarea = document.getElementById('quoteDescriptionsText');
+            textarea.select();
+            document.execCommand('copy');
+            alert('✅ Descriptions copiées dans le presse-papier !');
+        }
+
     </script>
+
+    <!-- Modal État des Lieux -->
+    <div id="edlModal">
+        <div class="edl-content">
+            <div class="edl-header">
+                <h2>📋 État des Lieux - <span id="edlReportName"></span></h2>
+                <button class="edl-close" onclick="closeEDL()">✕ Fermer</button>
+            </div>
+
+            <!-- Formulaire d'ajout d'élément -->
+            <div class="edl-form">
+                <h3 style="margin-bottom: 16px; font-size: 16px;">Ajouter un élément</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Pièce / Section</label>
+                        <select id="edlPiece" style="width: 100%; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                            <option value="">-- Sélectionner --</option>
+                            <option value="EQUIPEMENTS GÉNÉRAUX">ÉQUIPEMENTS GÉNÉRAUX</option>
+                            <option value="Entrée">Entrée</option>
+                            <option value="Cuisine">Cuisine</option>
+                            <option value="Salon">Salon</option>
+                            <option value="Chambre">Chambre</option>
+                            <option value="Salle de bain">Salle de bain</option>
+                            <option value="WC">WC</option>
+                            <option value="Autre">Autre (à préciser)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Élément</label>
+                        <input type="text" id="edlElement" placeholder="Ex: Boîte aux lettres" style="width: 100%; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">État</label>
+                        <select id="edlEtat" style="width: 100%; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                            <option value="bon">✅ Bon</option>
+                            <option value="usage" selected>⚠️ État d'usage</option>
+                            <option value="mauvais">❌ Mauvais</option>
+                            <option value="absent">⭕ Absent</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Page</label>
+                        <input type="number" id="edlPage" value="1" min="1" style="width: 100%; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Observations</label>
+                    <textarea id="edlObservations" placeholder="Ex: Essai concluant, difficile à manipuler..." style="width: 100%; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); min-height: 50px; resize: vertical;"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Interventions possibles</label>
+                        <input type="text" id="edlInterventions" placeholder="Ex: Remplacer la boîte aux lettres, Nettoyer..." style="width: 100%; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Peut-on intervenir ?</label>
+                        <select id="edlInterventionPossible" style="width: 100%; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                            <option value="true">✅ Oui</option>
+                            <option value="false">❌ Non</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="addEDLElement()" class="btn" style="width: 100%; background: var(--success); color: white; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                    ➕ Ajouter cet élément
+                </button>
+            </div>
+
+            <!-- Tableau des éléments -->
+            <div style="margin-bottom: 16px;">
+                <h3 style="margin-bottom: 12px; font-size: 16px;">Éléments saisis (<span id="edlCount">0</span>)</h3>
+                <div style="overflow-x: auto;">
+                    <table class="edl-table">
+                        <thead>
+                            <tr>
+                                <th>Pièce / Section</th>
+                                <th>Élément</th>
+                                <th>État</th>
+                                <th>Observations</th>
+                                <th>Interventions</th>
+                                <th>Possible</th>
+                                <th>Page</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="edlTableBody">
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 40px;">Aucun élément ajouté</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button onclick="exportEDLExcel()" class="btn" style="background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                    📊 Exporter Excel
+                </button>
+                <button onclick="generateQuoteDescriptions()" class="btn" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                    📝 Générer descriptions de devis
+                </button>
+                <button onclick="saveEDL()" class="btn" style="background: var(--accent); color: var(--primary); padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                    💾 Sauvegarder
+                </button>
+            </div>
+
+            <!-- Zone de génération de devis -->
+            <div id="quoteDescriptions" style="display: none; margin-top: 24px; padding: 20px; background: var(--bg); border-radius: 12px; border: 2px solid var(--accent);">
+                <h3 style="margin-bottom: 12px; font-size: 16px;">📝 Descriptions de devis générées</h3>
+                <textarea id="quoteDescriptionsText" readonly style="width: 100%; min-height: 200px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px; resize: vertical;"></textarea>
+                <button onclick="copyQuoteDescriptions()" class="btn" style="margin-top: 12px; background: var(--accent); color: var(--primary); padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none;">
+                    📋 Copier dans le presse-papier
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
