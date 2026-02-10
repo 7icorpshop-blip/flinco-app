@@ -3116,6 +3116,144 @@
         let currentEDLReportId = null;
         let edlData = [];
 
+        // === BIBLIOTHÈQUE D'INTERVENTIONS FLINCO ===
+        const INTERVENTIONS_FLINCO = {
+            'Nettoyage': [
+                'Nettoyage approfondi',
+                'Nettoyage de fin de chantier',
+                'Dépoussiérage complet',
+                'Lavage des vitres',
+                'Décapage et nettoyage des sols',
+                'Nettoyage des murs et plafonds',
+                'Dégraissage cuisine',
+                'Détartrage salle de bain',
+                'Nettoyage moquette/tapis'
+            ],
+            'Débarras': [
+                'Débarras complet',
+                'Évacuation encombrants',
+                'Évacuation déchets',
+                'Vidage cave/grenier',
+                'Tri et évacuation',
+                'Enlèvement mobilier'
+            ],
+            'Remise en état': [
+                'Rebouchage trous et fissures',
+                'Peinture murs',
+                'Peinture plafond',
+                'Réparation revêtement sol',
+                'Remplacement joints silicone',
+                'Réparation petits dégâts',
+                'Ponçage et finitions'
+            ],
+            'Réparation': [
+                'Réparation plomberie',
+                'Réparation électricité',
+                'Réparation serrurerie',
+                'Réparation menuiserie',
+                'Réparation sanitaires',
+                'Réparation équipements'
+            ],
+            'Remplacement': [
+                'Remplacement poignées',
+                'Remplacement prises/interrupteurs',
+                'Remplacement robinetterie',
+                'Remplacement joints',
+                'Remplacement équipements défectueux'
+            ],
+            'Traitement spécialisé': [
+                'Traitement anti-humidité',
+                'Traitement anti-moisissures',
+                'Désinfection',
+                'Désodorisation',
+                'Traitement anti-nuisibles',
+                'Traitement anti-acariens'
+            ]
+        };
+
+
+        let selectedInterventions = [];
+
+        function openInterventionsSelector() {
+            document.getElementById('interventionsModal').style.display = 'flex';
+            renderInterventionsCategories();
+        }
+
+        function closeInterventionsSelector() {
+            document.getElementById('interventionsModal').style.display = 'none';
+        }
+
+        function renderInterventionsCategories() {
+            const container = document.getElementById('interventionsCategoriesContainer');
+            container.innerHTML = '';
+
+            for (const [category, interventions] of Object.entries(INTERVENTIONS_FLINCO)) {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.style.cssText = 'background: var(--bg); padding: 16px; border-radius: 8px; border: 1px solid var(--border);';
+
+                let html = '<h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--accent);">' + category + '</h4>';
+                interventions.forEach(intervention => {
+                    const checked = selectedInterventions.includes(intervention) ? 'checked' : '';
+                    const escaped = intervention.replace(/'/g, "\\\\'");
+                    html += '<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer; font-size: 13px;">';
+                    html += '<input type="checkbox" value="' + intervention + '" ' + checked + ' onchange="toggleIntervention(\\\'' + escaped + '\\\')">';
+                    html += '<span>' + intervention + '</span>';
+                    html += '</label>';
+                });
+
+                categoryDiv.innerHTML = html;
+                container.appendChild(categoryDiv);
+            }
+        }
+
+        function toggleIntervention(intervention) {
+            const index = selectedInterventions.indexOf(intervention);
+            if (index > -1) {
+                selectedInterventions.splice(index, 1);
+            } else {
+                selectedInterventions.push(intervention);
+            }
+        }
+
+        function validateInterventionsSelection() {
+            updateInterventionsDisplay();
+            closeInterventionsSelector();
+        }
+
+        function clearInterventionsSelection() {
+            selectedInterventions = [];
+            renderInterventionsCategories();
+            updateInterventionsDisplay();
+        }
+
+        function updateInterventionsDisplay() {
+            const display = document.getElementById('selectedInterventionsDisplay');
+
+            if (selectedInterventions.length === 0) {
+                display.innerHTML = '<span style="color: var(--text-muted); font-size: 12px;">Aucune intervention sélectionnée</span>';
+                return;
+            }
+
+            let html = '';
+            selectedInterventions.forEach(intervention => {
+                const escaped = intervention.replace(/'/g, "\\\\'");
+                html += '<span style="background: #6366f1; color: white; padding: 4px 10px; border-radius: 6px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">';
+                html += intervention;
+                html += ' <button onclick="removeIntervention(\\\'' + escaped + '\\\')" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 3px; padding: 0 4px; cursor: pointer; font-size: 10px;">✕</button>';
+                html += '</span>';
+            });
+            display.innerHTML = html;
+        }
+
+        function removeIntervention(intervention) {
+            const index = selectedInterventions.indexOf(intervention);
+            if (index > -1) {
+                selectedInterventions.splice(index, 1);
+                updateInterventionsDisplay();
+            }
+        }
+
+
         async function openEDL(reportId, reportAddress) {
             currentEDLReportId = reportId;
             document.getElementById('edlReportName').textContent = reportAddress || reportId;
@@ -3147,7 +3285,7 @@
             const element = document.getElementById('edlElement').value.trim();
             const etat = document.getElementById('edlEtat').value;
             const observations = document.getElementById('edlObservations').value.trim();
-            const interventions = document.getElementById('edlInterventions').value.trim();
+            const interventions = selectedInterventions.slice(); // Copie du tableau
             const interventionPossible = document.getElementById('edlInterventionPossible').value === 'true';
             const page = parseInt(document.getElementById('edlPage').value) || 1;
 
@@ -3169,7 +3307,8 @@
             // Réinitialiser le formulaire
             document.getElementById('edlElement').value = '';
             document.getElementById('edlObservations').value = '';
-            document.getElementById('edlInterventions').value = '';
+            selectedInterventions = [];
+            updateInterventionsDisplay();
             document.getElementById('edlEtat').value = 'usage';
             document.getElementById('edlInterventionPossible').value = 'true';
             document.getElementById('edlPage').value = parseInt(document.getElementById('edlPage').value) + 1;
@@ -3204,7 +3343,7 @@
                         <td>${item.element}</td>
                         <td><span class="${etatClass}">${etatLabel}</span></td>
                         <td style="max-width: 300px;">${item.observations || '-'}</td>
-                        <td style="max-width: 250px;">${item.interventions || '-'}</td>
+                        <td style="max-width: 250px;">${Array.isArray(item.interventions) ? item.interventions.join(', ') : (item.interventions || '-')}</td>
                         <td><span class="${interventionClass}">${interventionText}</span></td>
                         <td>${item.page}</td>
                         <td>
@@ -3253,7 +3392,7 @@
                     'absent': 'Absent'
                 }[item.etat],
                 'Observations': item.observations || '',
-                'Interventions possibles': item.interventions || '',
+                'Interventions possibles': Array.isArray(item.interventions) ? item.interventions.join(', ') : (item.interventions || ''),
                 'Intervention possible': item.interventionPossible ? 'Oui' : 'Non',
                 'Page': item.page
             }));
@@ -3292,7 +3431,8 @@
             // Regrouper par pièce
             const groupedByPiece = {};
             edlData.forEach(item => {
-                if (item.interventionPossible && item.interventions) {
+                const hasInterventions = Array.isArray(item.interventions) ? item.interventions.length > 0 : item.interventions;
+                if (item.interventionPossible && hasInterventions) {
                     if (!groupedByPiece[item.piece]) {
                         groupedByPiece[item.piece] = [];
                     }
@@ -3316,7 +3456,8 @@
                     if (item.observations) {
                         descriptions += `   Constat: ${item.observations}\n`;
                     }
-                    descriptions += `   ➜ Intervention: ${item.interventions}\n`;
+                    const interventionsList = Array.isArray(item.interventions) ? item.interventions.join(', ') : item.interventions;
+                    descriptions += `   ➜ Interventions: ${interventionsList}\n`;
                     descriptions += '\n';
                 });
 
@@ -3344,6 +3485,28 @@
         }
 
     </script>
+
+    <!-- Modal Sélection Interventions -->
+    <div id="interventionsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10001; overflow-y: auto; padding: 20px;">
+        <div style="background: var(--card); border-radius: 16px; max-width: 800px; width: 100%; margin: 20px auto; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid var(--border);">
+                <h2 style="font-size: 20px;">🛠️ Sélectionner les interventions FLINCO</h2>
+                <button onclick="closeInterventionsSelector()" style="background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">✕ Fermer</button>
+            </div>
+            
+            <div id="interventionsCategoriesContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;"></div>
+            
+            <div style="margin-top: 24px; display: flex; gap: 12px;">
+                <button onclick="validateInterventionsSelection()" class="btn" style="flex: 1; background: var(--success); color: white; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                    ✅ Valider la sélection
+                </button>
+                <button onclick="clearInterventionsSelection()" class="btn" style="background: var(--danger); color: white; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                    🗑️ Tout effacer
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Modal État des Lieux -->
     <div id="edlModal">
@@ -3393,17 +3556,19 @@
                     <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Observations</label>
                     <textarea id="edlObservations" placeholder="Ex: Essai concluant, difficile à manipuler..." style="width: 100%; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); min-height: 50px; resize: vertical;"></textarea>
                 </div>
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px;">
-                    <div>
-                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Interventions possibles</label>
-                        <input type="text" id="edlInterventions" placeholder="Ex: Remplacer la boîte aux lettres, Nettoyer..." style="width: 100%; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
-                    </div>
-                    <div>
-                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Peut-on intervenir ?</label>
-                        <select id="edlInterventionPossible" style="width: 100%; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Interventions FLINCO</label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <button type="button" onclick="openInterventionsSelector()" class="btn" style="flex: 1; background: #6366f1; color: white; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-size: 13px;">
+                            ➕ Sélectionner des interventions
+                        </button>
+                        <select id="edlInterventionPossible" style="flex: 0 0 150px; padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px;">
                             <option value="true">✅ Oui</option>
                             <option value="false">❌ Non</option>
                         </select>
+                    </div>
+                    <div id="selectedInterventionsDisplay" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;">
+                        <span style="color: var(--text-muted); font-size: 12px;">Aucune intervention sélectionnée</span>
                     </div>
                 </div>
                 <button onclick="addEDLElement()" class="btn" style="width: 100%; background: var(--success); color: white; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
