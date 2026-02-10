@@ -634,6 +634,43 @@
         .intervention-oui { color: #10b981; font-weight: 600; }
         .intervention-non { color: #6b7280; }
         
+
+        /* === Navigation Tabs === */
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0;
+        }
+        .nav-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+            bottom: -2px;
+        }
+        .nav-tab:hover {
+            color: var(--text);
+            background: var(--card-hover);
+        }
+        .nav-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
     </style>
 </head>
 <body>
@@ -647,6 +684,13 @@
             <span class="badge">Admin</span>
         </header>
         
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('rapports')">📋 Rapports</button>
+            <button class="nav-tab" onclick="switchTab('etats-lieux')">📊 États des Lieux</button>
+        </div>
+        
+        <div id="rapportsTab" class="tab-content active">
         <div class="tabs">
             <button class="tab active" onclick="showTab('create')">➕ Créer un pré-rapport</button>
             <button class="tab" onclick="showTab('list')">📋 Mes rapports</button>
@@ -2711,8 +2755,7 @@
                                 <button class="btn" onclick="copyReportLink('${report.id}')">🔗 Lien</button>
                                 <button class="btn" onclick="duplicateReport('${report.id}')" style="background: #6366f1; color: white;">📋 Dupliquer</button>
                                 <button class="btn" onclick="editReport('${report.id}')" style="background: var(--accent); color: var(--primary);">✏️ Modifier</button>
-                                <button class="btn" onclick="openEDL('${report.id}', '${report.address}')" style="background: #8b5cf6; color: white;">📋 État des lieux</button>
-                                ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${report.pdfUrl}', '_blank')">📥 PDF</button>` : ''}
+${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${report.pdfUrl}', '_blank')">📥 PDF</button>` : ''}
                                 <button class="btn btn-danger" onclick="deleteReport('${report.id}')">🗑️</button>
                             </div>
                         </div>
@@ -3332,7 +3375,134 @@
         }
 
 
-        async function openEDL(reportId, reportAddress) {
+        function switchTab(tabName) {
+            // Gérer les onglets principaux
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('rapportsTab').classList.remove('active');
+            document.getElementById('etatsLieuxTab').classList.remove('active');
+
+            if (tabName === 'rapports') {
+                document.getElementById('rapportsTab').classList.add('active');
+            } else if (tabName === 'etats-lieux') {
+                document.getElementById('etatsLieuxTab').classList.add('active');
+                loadEDLList();
+            }
+        }
+
+        // === GESTION DES ÉTATS DES LIEUX INDÉPENDANTS ===
+        async function loadEDLList() {
+            try {
+                const snapshot = await db.collection('edl').orderBy('createdAt', 'desc').get();
+                const edlList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderEDLList(edlList);
+            } catch (error) {
+                document.getElementById('edlListContainer').innerHTML = '<div class="empty-state"><p>Erreur de chargement</p></div>';
+            }
+        }
+
+        function renderEDLList(edlList) {
+            const container = document.getElementById('edlListContainer');
+            
+            if (edlList.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>Aucun état des lieux créé</p>
+                        <button onclick="createNewEDL()" class="btn" style="background: var(--accent); color: var(--primary); padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; margin-top: 16px;">
+                            Créer le premier état des lieux
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = edlList.map(edl => {
+                const date = edl.createdAt ? new Date(edl.createdAt.toDate()).toLocaleDateString('fr-FR') : 'N/A';
+                const elementCount = (edl.elements || []).length;
+                
+                return `
+                    <div style="background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">${edl.name || 'État des lieux sans nom'}</h3>
+                                <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted);">
+                                    <span>📅 ${date}</span>
+                                    <span>📍 ${edl.address || 'Pas d\'adresse'}</span>
+                                    <span>📋 ${elementCount} élément(s)</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="openStandaloneEDL('${edl.id}')" class="btn" style="background: var(--accent); color: var(--primary); padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none;">
+                                    ✏️ Modifier
+                                </button>
+                                <button onclick="deleteStandaloneEDL('${edl.id}')" class="btn" style="background: var(--danger); color: white; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none;">
+                                    🗑️ Supprimer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function createNewEDL() {
+            const name = prompt('Nom de l\'état des lieux (ex: Appartement 33 rue du Château)');
+            if (!name) return;
+
+            const address = prompt('Adresse du bien');
+
+            try {
+                const docRef = await db.collection('edl').add({
+                    name: name,
+                    address: address || '',
+                    elements: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                openStandaloneEDL(docRef.id);
+            } catch (error) {
+                alert('Erreur de création: ' + error.message);
+            }
+        }
+
+        async function openStandaloneEDL(edlId) {
+            currentEDLReportId = edlId;
+            currentEDLIsStandalone = true;
+
+            try {
+                const doc = await db.collection('edl').doc(edlId).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('edlReportName').textContent = data.name || 'État des lieux';
+                    edlData = data.elements || [];
+                } else {
+                    edlData = [];
+                }
+                renderEDLTable();
+                document.getElementById('edlModal').classList.add('active');
+            } catch (error) {
+                alert('Erreur de chargement: ' + error.message);
+            }
+        }
+
+        async function deleteStandaloneEDL(edlId) {
+            if (!confirm('Supprimer définitivement cet état des lieux ?')) return;
+
+            try {
+                await db.collection('edl').doc(edlId).delete();
+                loadEDLList();
+                alert('✅ État des lieux supprimé');
+            } catch (error) {
+                alert('❌ Erreur de suppression: ' + error.message);
+            }
+        }
+
+
+        let currentEDLIsStandalone = false;
+
+                async function openEDL(reportId, reportAddress) {
             currentEDLReportId = reportId;
             document.getElementById('edlReportName').textContent = reportAddress || reportId;
             document.getElementById('edlModal').classList.add('active');
@@ -3354,6 +3524,7 @@
         function closeEDL() {
             document.getElementById('edlModal').classList.remove('active');
             currentEDLReportId = null;
+            currentEDLIsStandalone = false;
             edlData = [];
             document.getElementById('quoteDescriptions').style.display = 'none';
         }
@@ -3443,11 +3614,21 @@
             if (!currentEDLReportId) return;
 
             try {
-                await db.collection('reports').doc(currentEDLReportId).update({
-                    edl: edlData,
-                    edlUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                if (currentEDLIsStandalone) {
+                    // Sauvegarder dans la collection edl
+                    await db.collection('edl').doc(currentEDLReportId).update({
+                        elements: edlData,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    // Sauvegarder dans le rapport
+                    await db.collection('reports').doc(currentEDLReportId).update({
+                        edl: edlData,
+                        edlUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
                 alert('✅ État des lieux sauvegardé avec succès !');
+                if (currentEDLIsStandalone) loadEDLList();
             } catch (error) {
                 alert('❌ Erreur de sauvegarde: ' + error.message);
             }
@@ -3563,6 +3744,31 @@
         }
 
     </script>
+
+        </div>
+
+        <!-- Section États des Lieux -->
+        <div id="etatsLieuxTab" class="tab-content">
+            <div class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div class="section-title">📊 États des Lieux</div>
+                    <button onclick="createNewEDL()" class="btn" style="background: var(--success); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                        ➕ Nouvel État des Lieux
+                    </button>
+                </div>
+
+                <!-- Liste des états des lieux -->
+                <div id="edlListContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>Aucun état des lieux créé</p>
+                        <button onclick="createNewEDL()" class="btn" style="background: var(--accent); color: var(--primary); padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; margin-top: 16px;">
+                            Créer le premier état des lieux
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     <!-- Modal Sélection Interventions -->
     <div id="interventionsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10001; overflow-y: auto; padding: 20px;">
