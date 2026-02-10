@@ -3116,60 +3116,138 @@
         let currentEDLReportId = null;
         let edlData = [];
 
-        // === BIBLIOTHÈQUE D'INTERVENTIONS FLINCO ===
+        // === BIBLIOTHÈQUE OFFICIELLE DES INTERVENTIONS FLINCO ===
+        // Dernière mise à jour : Février 2026
         const INTERVENTIONS_FLINCO = {
-            'Nettoyage': [
-                'Nettoyage approfondi',
-                'Nettoyage de fin de chantier',
-                'Dépoussiérage complet',
-                'Lavage des vitres',
-                'Décapage et nettoyage des sols',
-                'Nettoyage des murs et plafonds',
-                'Dégraissage cuisine',
-                'Détartrage salle de bain',
-                'Nettoyage moquette/tapis'
+            'Nettoyage Complet (≥70%)': [
+                'Nettoyage Complet T1 (Studio) - 280€ HT',
+                'Nettoyage Complet T2 (2 pièces) - 450€ HT',
+                'Nettoyage Complet T3 (3 pièces) - 600€ HT',
+                'Nettoyage Complet T4 (4 pièces) - 750€ HT',
+                'Nettoyage Complet T5+ (5 pièces et plus) - À partir de 900€ HT'
+            ],
+            'Nettoyage Cuisine': [
+                'Nettoyage complet cuisine - 80-120€',
+                'Nettoyage plan de travail + plan bar - 30-50€',
+                'Nettoyage évier + bonde - 30-40€',
+                'Dégraissage hotte + filtres - 40-60€',
+                'Nettoyage four - 40-60€',
+                'Nettoyage plaques de cuisson - 20-30€',
+                'Nettoyage réfrigérateur / congélateur - 40-60€',
+                'Nettoyage électroménager (micro-ondes, lave-vaisselle...) - 20-40€',
+                'Nettoyage meubles et rangements cuisine - 30-50€',
+                'Nettoyage sol cuisine - 20-30€'
+            ],
+            'Nettoyage Salle de bain': [
+                'Nettoyage complet salle de bain - 60-100€',
+                'Détartrage robinetterie (lavabo, douche, baignoire) - 30-40€',
+                'Détartrage bac douche / baignoire - 30-80€',
+                'Nettoyage pare-douche (non coulissant) - 80€',
+                'Nettoyage pare-douche (coulissant) - 100€',
+                'Nettoyage faïence / carrelage mural - 30-50€',
+                'Nettoyage lavabo + miroir - 20-30€'
+            ],
+            'Nettoyage WC': [
+                'Nettoyage WC complet - 30-50€',
+                'Nettoyage cuvette noircie (détartrage intensif) - 40-60€'
+            ],
+            'Nettoyage Pièces de vie': [
+                'Nettoyage séjour / chambre (sol, murs, fenêtres) - 40-70€/pièce',
+                'Nettoyage entrée / couloir - 20-40€'
+            ],
+            'Nettoyage Sols': [
+                'Nettoyage sol (aspiration + lavage) - 20-40€/pièce',
+                'Dépoussiérage sol - 10-20€/pièce',
+                'Nettoyage taches sol - 10-20€'
+            ],
+            'Nettoyage Murs': [
+                'Lessivage mur (par mur) - 20-40€/mur',
+                'Dépoussiérage mur - 10-15€/mur',
+                'Nettoyage traces mur - 10-20€/mur'
+            ],
+            'Nettoyage Plinthes & Plafond': [
+                'Nettoyage plinthes - 10-20€/pièce',
+                'Dépoussiérage plinthes - 5-10€/pièce',
+                'Nettoyage plafond - 15-30€/pièce',
+                'Dépoussiérage plafond (toiles d\'araignée) - 10-15€/pièce'
+            ],
+            'Nettoyage Ouvrants': [
+                'Nettoyage fenêtre intérieur + extérieur - 15-25€/fenêtre',
+                'Nettoyage encadrement fenêtre - 5-10€',
+                'Nettoyage volets / stores - 10-20€'
+            ],
+            'Nettoyage Électricité / Ventilation': [
+                'Nettoyage interrupteurs et prises - 5-10€/pièce',
+                'Nettoyage bouche VMC - 10-20€',
+                'Nettoyage radiateur - 10-20€'
+            ],
+            'Nettoyage Menuiseries': [
+                'Nettoyage porte (deux faces + encadrement) - 10-15€/porte',
+                'Nettoyage placards (ouvert + fermé) - 15-25€',
+                'Dépoussiérage meubles / étagères - 10-20€'
+            ],
+            'Pack Détartrage': [
+                'Robinet simple - 30€ HT',
+                'Robinetterie baignoire/douche + pommeau - 40€ HT',
+                'Bac douche / baignoire - 30-80€ HT',
+                'Pare-douche non coulissant - 80€ HT',
+                'Pare-douche coulissant - 100€ HT',
+                'Pack Détartrage complet (3 zones) - 250€ HT'
+            ],
+            'Pack Réfection Joints': [
+                '1er joint (2 mètres linéaires inclus) - 130€ HT',
+                'Joints suivants (chacun) - 100€ HT',
+                'Joint douche - 130€ HT',
+                'Joint cuisine - 120€ HT',
+                'Joint baignoire - 130€ HT',
+                'Pack 2 joints - 220€ HT',
+                'Pack 3 joints - 350€ HT'
+            ],
+            'Packs Spéciaux': [
+                'Pack Cuisine (complet + VMC + 3 électroménagers) - 150-200€ HT',
+                'Pack SDB + WC (complet + détartrage) - 130-200€ HT'
+            ],
+            'Petit Bricolage - Plomberie': [
+                'Changement robinet WC - Sur devis',
+                'Changement flexible de douche - Sur devis',
+                'Changement pommeau de douche - Sur devis',
+                'Refixation barre de douche - Sur devis',
+                'Changement siphon - Sur devis',
+                'Débouchage - Sur devis',
+                'Changement joint de robinet - Sur devis',
+                'Remplacement bonde (lavabo, douche) - Sur devis'
+            ],
+            'Petit Bricolage - Électricité': [
+                'Remplacement ampoule / spot / néon - Sur devis',
+                'Refixation prise / interrupteur - Sur devis',
+                'Changement porte tableau électrique - Sur devis'
+            ],
+            'Petit Bricolage - Menuiserie': [
+                'Refixation poignée - Sur devis',
+                'Changement abattant WC - Sur devis',
+                'Refixation porte-serviette / patère - Sur devis',
+                'Refixation store / tringle - Sur devis',
+                'Montage petit mobilier - Sur devis',
+                'Réglage tiroirs - Sur devis',
+                'Refixation sèche-serviettes - Sur devis',
+                'Purge radiateur - Sur devis'
+            ],
+            'Nettoyage Spécialisé': [
+                'Nettoyage matelas 1 place - 45€',
+                'Nettoyage matelas 2 places - 60€',
+                'Nettoyage canapé 2 places - 70€',
+                'Nettoyage canapé 3 places+ - 90€',
+                'Nettoyage tapis - Sur devis',
+                'Nettoyage balcon / terrasse - Sur devis',
+                'Remplacement rideau de douche - Sur devis'
             ],
             'Débarras': [
-                'Débarras complet',
-                'Évacuation encombrants',
-                'Évacuation déchets',
-                'Vidage cave/grenier',
-                'Tri et évacuation',
-                'Enlèvement mobilier'
-            ],
-            'Remise en état': [
-                'Rebouchage trous et fissures',
-                'Peinture murs',
-                'Peinture plafond',
-                'Réparation revêtement sol',
-                'Remplacement joints silicone',
-                'Réparation petits dégâts',
-                'Ponçage et finitions'
-            ],
-            'Réparation': [
-                'Réparation plomberie',
-                'Réparation électricité',
-                'Réparation serrurerie',
-                'Réparation menuiserie',
-                'Réparation sanitaires',
-                'Réparation équipements'
-            ],
-            'Remplacement': [
-                'Remplacement poignées',
-                'Remplacement prises/interrupteurs',
-                'Remplacement robinetterie',
-                'Remplacement joints',
-                'Remplacement équipements défectueux'
-            ],
-            'Traitement spécialisé': [
-                'Traitement anti-humidité',
-                'Traitement anti-moisissures',
-                'Désinfection',
-                'Désodorisation',
-                'Traitement anti-nuisibles',
-                'Traitement anti-acariens'
+                'Débarras mobilier / encombrants - Sur devis',
+                'Débarras complet logement - Sur devis',
+                'Évacuation déchets - Sur devis'
             ]
         };
+
 
 
         let selectedInterventions = [];
