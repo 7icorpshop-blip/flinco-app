@@ -3792,51 +3792,252 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
             }
         }
 
+        // ========== DÉTECTION AUTOMATIQUE ==========
+
+        function detecterIntervention(observations, etat) {
+            if (!observations) return '';
+
+            const obs = observations.toLowerCase();
+            const interventions = [];
+
+            // Détection des mots-clés
+            if (obs.match(/non nettoy|traces?|taches?|sale|poussi[èe]re|encrass/)) {
+                interventions.push('Nettoyage');
+            }
+            if (obs.match(/fissure|[ée]clat|cass[ée]|hs|hors.?service|mal fix[ée]|d[ée]tach[ée]/)) {
+                interventions.push('Réparation');
+            }
+            if (obs.match(/mauvais [ée]tat|v[ée]tuste|us[ée]|[àa] remplacer/)) {
+                interventions.push('Remplacement');
+            }
+            if (obs.match(/[ée]caill[ée]|trace.?diffuse|peinture|repeindre/)) {
+                interventions.push('Peinture');
+            }
+            if (obs.match(/entartr[ée]|calcaire|tartre/)) {
+                interventions.push('Détartrage');
+            }
+            if (obs.match(/joint noirci|mois|joint.?refaire|joint.?d[ée]grad[ée]/)) {
+                interventions.push('Joints à refaire');
+            }
+            if (obs.match(/d[ée]bouchage|bouch[ée]|[ée]vacu/)) {
+                interventions.push('Débouchage');
+            }
+
+            return interventions.length > 0 ? interventions.join(', ') : '';
+        }
+
+        function calculerPriorite(etat) {
+            const urgents = ['mauvais', 'absent'];
+            const moyens = ['usage'];
+
+            if (urgents.includes(etat)) return 'Urgent';
+            if (moyens.includes(etat)) return 'Moyen';
+            return 'Faible';
+        }
+
+        function estimerCout(interventionType, piece) {
+            // Estimation basée sur le catalogue FLINCO
+            const estimations = {
+                'Nettoyage': { min: 20, max: 120, defaut: 50 },
+                'Réparation': { min: 30, max: 200, defaut: 80 },
+                'Remplacement': { min: 50, max: 500, defaut: 150 },
+                'Peinture': { min: 30, max: 150, defaut: 80 },
+                'Détartrage': { min: 30, max: 100, defaut: 50 },
+                'Joints à refaire': { min: 100, max: 350, defaut: 130 },
+                'Débouchage': { min: 50, max: 150, defaut: 80 }
+            };
+
+            if (!interventionType) return 0;
+
+            // Chercher le premier type d'intervention
+            for (const [type, cout] of Object.entries(estimations)) {
+                if (interventionType.includes(type)) {
+                    return cout.defaut;
+                }
+            }
+
+            return 50; // Coût par défaut
+        }
+
+        function determinerCharge(etat, priorite) {
+            // Logique : urgent/mauvais état = souvent à charge locataire
+            // Usage normal = à déterminer
+            if (etat === 'mauvais' || priorite === 'Urgent') {
+                return 'Locataire';
+            } else if (etat === 'usage') {
+                return 'À déterminer';
+            }
+            return 'Propriétaire';
+        }
+
+        // ========== EXPORT EXCEL AVANCÉ ==========
+
         function exportEDLExcel() {
             if (edlData.length === 0) {
-                alert('Aucun élément à exporter');
+                alert('❌ Aucun élément à exporter');
                 return;
             }
 
-            // Préparer les données pour Excel
-            const excelData = edlData.map(item => ({
-                'Pièce / Section': item.piece,
-                'Élément': item.element,
-                'État': {
+            // Créer le workbook
+            const wb = XLSX.utils.book_new();
+
+            // ===== FEUILLE 1 : ÉTAT DES LIEUX DÉTAILLÉ =====
+            const detailedData = edlData.map(item => {
+                const etatLabel = {
                     'bon': 'Bon',
                     'usage': 'État d\'usage',
                     'mauvais': 'Mauvais',
                     'absent': 'Absent'
-                }[item.etat],
-                'Observations': item.observations || '',
-                'Interventions possibles': Array.isArray(item.interventions) ? item.interventions.join(', ') : (item.interventions || ''),
-                'Intervention possible': item.interventionPossible ? 'Oui' : 'Non',
-                'Page': item.page
-            }));
+                }[item.etat] || item.etat;
 
-            // Créer un workbook et worksheet
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(excelData);
+                // Détection automatique de l'intervention si pas déjà sélectionnée
+                let interventionNecessaire = '';
+                if (Array.isArray(item.interventions) && item.interventions.length > 0) {
+                    interventionNecessaire = item.interventions.join(', ');
+                } else {
+                    interventionNecessaire = detecterIntervention(item.observations, item.etat);
+                }
 
-            // Ajuster la largeur des colonnes
-            ws['!cols'] = [
-                { wch: 25 }, // Pièce
-                { wch: 30 }, // Élément
-                { wch: 15 }, // État
-                { wch: 50 }, // Observations
-                { wch: 40 }, // Interventions
-                { wch: 12 }, // Intervention possible
-                { wch: 8 }   // Page
+                const priorite = calculerPriorite(item.etat);
+                const cout = estimerCout(interventionNecessaire, item.piece);
+                const charge = determinerCharge(item.etat, priorite);
+
+                return {
+                    'Pièce': item.piece || '',
+                    'Élément': item.element || '',
+                    'État': etatLabel,
+                    'Observations': item.observations || '',
+                    'Intervention nécessaire': interventionNecessaire,
+                    'Priorité': priorite,
+                    'Coût estimé €': cout,
+                    'À charge de': charge,
+                    'Notes': '',
+                    'Page PDF': item.page || ''
+                };
+            });
+
+            const ws1 = XLSX.utils.json_to_sheet(detailedData);
+
+            // Largeurs de colonnes
+            ws1['!cols'] = [
+                { wch: 20 },  // Pièce
+                { wch: 25 },  // Élément
+                { wch: 15 },  // État
+                { wch: 50 },  // Observations
+                { wch: 30 },  // Intervention nécessaire
+                { wch: 12 },  // Priorité
+                { wch: 12 },  // Coût estimé
+                { wch: 15 },  // À charge de
+                { wch: 40 },  // Notes
+                { wch: 8 }    // Page PDF
             ];
 
-            // Ajouter le worksheet au workbook
-            XLSX.utils.book_append_sheet(wb, ws, 'État des lieux');
+            // Activer les filtres automatiques
+            ws1['!autofilter'] = { ref: `A1:J${detailedData.length + 1}` };
 
-            // Générer le fichier et télécharger
-            const fileName = `Etat_des_lieux_${currentEDLReportId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.utils.book_append_sheet(wb, ws1, 'État des lieux détaillé');
+
+            // ===== FEUILLE 2 : RÉCAPITULATIF PAR INTERVENTION =====
+            const interventionsStats = {};
+            let totalGeneral = 0;
+            let totalLocataire = 0;
+            let totalProprietaire = 0;
+
+            detailedData.forEach(item => {
+                if (item['Intervention nécessaire']) {
+                    const interventions = item['Intervention nécessaire'].split(',').map(i => i.trim());
+                    interventions.forEach(intervention => {
+                        if (!interventionsStats[intervention]) {
+                            interventionsStats[intervention] = {
+                                nombre: 0,
+                                coutTotal: 0,
+                                chargeLocataire: 0,
+                                chargeProprietaire: 0
+                            };
+                        }
+                        interventionsStats[intervention].nombre++;
+                        interventionsStats[intervention].coutTotal += item['Coût estimé €'];
+                        totalGeneral += item['Coût estimé €'];
+
+                        if (item['À charge de'] === 'Locataire') {
+                            interventionsStats[intervention].chargeLocataire += item['Coût estimé €'];
+                            totalLocataire += item['Coût estimé €'];
+                        } else if (item['À charge de'] === 'Propriétaire') {
+                            interventionsStats[intervention].chargeProprietaire += item['Coût estimé €'];
+                            totalProprietaire += item['Coût estimé €'];
+                        }
+                    });
+                }
+            });
+
+            const recapInterventions = Object.entries(interventionsStats).map(([type, stats]) => ({
+                'Type d\'intervention': type,
+                'Nombre d\'éléments': stats.nombre,
+                'Coût total estimé €': stats.coutTotal,
+                'Charge locataire €': stats.chargeLocataire,
+                'Charge propriétaire €': stats.chargeProprietaire
+            }));
+
+            // Ajouter la ligne TOTAL
+            recapInterventions.push({
+                'Type d\'intervention': '🔵 TOTAL',
+                'Nombre d\'éléments': detailedData.length,
+                'Coût total estimé €': totalGeneral,
+                'Charge locataire €': totalLocataire,
+                'Charge propriétaire €': totalProprietaire
+            });
+
+            const ws2 = XLSX.utils.json_to_sheet(recapInterventions);
+            ws2['!cols'] = [
+                { wch: 25 },  // Type
+                { wch: 18 },  // Nombre
+                { wch: 18 },  // Coût total
+                { wch: 18 },  // Charge locataire
+                { wch: 20 }   // Charge propriétaire
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws2, 'Récap par intervention');
+
+            // ===== FEUILLE 3 : RÉCAPITULATIF PAR PIÈCE =====
+            const piecesStats = {};
+
+            detailedData.forEach(item => {
+                const piece = item['Pièce'];
+                if (!piecesStats[piece]) {
+                    piecesStats[piece] = {
+                        nombre: 0,
+                        coutTotal: 0
+                    };
+                }
+                piecesStats[piece].nombre++;
+                if (item['Intervention nécessaire']) {
+                    piecesStats[piece].coutTotal += item['Coût estimé €'];
+                }
+            });
+
+            const recapPieces = Object.entries(piecesStats).map(([piece, stats]) => ({
+                'Pièce': piece,
+                'Nombre d\'interventions': stats.nombre,
+                'Coût total pièce €': stats.coutTotal
+            }));
+
+            // Trier par coût décroissant
+            recapPieces.sort((a, b) => b['Coût total pièce €'] - a['Coût total pièce €']);
+
+            const ws3 = XLSX.utils.json_to_sheet(recapPieces);
+            ws3['!cols'] = [
+                { wch: 25 },  // Pièce
+                { wch: 22 },  // Nombre
+                { wch: 18 }   // Coût total
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws3, 'Récap par pièce');
+
+            // ===== GÉNÉRATION DU FICHIER =====
+            const fileName = `EDL_Chiffrage_${currentEDLReportId}_${new Date().toISOString().split('T')[0]}.xlsx`;
             XLSX.writeFile(wb, fileName);
 
-            alert('✅ Fichier Excel généré avec succès !');
+            alert(`✅ Fichier Excel généré avec succès !\n\n📊 ${detailedData.length} éléments\n💰 ${totalGeneral.toFixed(2)}€ estimé\n\n3 feuilles : Détail, Récap interventions, Récap pièces`);
         }
 
         function generateQuoteDescriptions() {
