@@ -401,3 +401,197 @@ exports.redirectShortUrl = functions.https.onRequest(async (req, res) => {
         return res.status(500).send('Erreur serveur');
     }
 });
+
+/**
+ * EXTRACTION PDF AVEC CLAUDE VISION
+ *
+ * Extrait automatiquement les éléments d'un PDF d'état des lieux
+ * en utilisant l'API Claude Vision d'Anthropic
+ *
+ * POST /extractPDFElements
+ * Content-Type: application/json
+ *
+ * Body: {
+ *   "pdfBase64": "base64 encoded PDF data",
+ *   "fileName": "nom-du-fichier.pdf"
+ * }
+ *
+ * Response: {
+ *   "success": true,
+ *   "elements": [
+ *     {
+ *       "piece": "Cuisine",
+ *       "element": "Four",
+ *       "etat": "usage",
+ *       "observations": "Non nettoyé, traces de graisse",
+ *       "interventions": [],
+ *       "interventionPossible": true,
+ *       "page": 1
+ *     },
+ *     ...
+ *   ],
+ *   "metadata": {
+ *     "address": "123 Rue Example",
+ *     "quote": "12345",
+ *     "totalElements": 15
+ *   }
+ * }
+ */
+
+const Anthropic = require('@anthropic-ai/sdk');
+const pdfParse = require('pdf-parse');
+
+exports.extractPDFElements = functions
+    .runWith({
+        timeoutSeconds: 540, // 9 minutes max
+        memory: '2GB'
+    })
+    .https.onRequest(async (req, res) => {
+        return cors(req, res, async () => {
+            try {
+                // Vérifier la méthode
+                if (req.method !== 'POST') {
+                    return res.status(405).json({ error: 'Method not allowed. Use POST.' });
+                }
+
+                const { pdfBase64, fileName } = req.body;
+
+                if (!pdfBase64) {
+                    return res.status(400).json({ error: 'pdfBase64 is required' });
+                }
+
+                console.log(`📄 Début extraction PDF: ${fileName || 'sans nom'}`);
+
+                // Récupérer la clé API depuis la config Firebase
+                const anthropicApiKey = functions.config().anthropic?.apikey;
+
+                if (!anthropicApiKey) {
+                    console.error('❌ Clé API Anthropic non configurée');
+                    return res.status(500).json({
+                        error: 'API key not configured. Run: firebase functions:config:set anthropic.apikey="YOUR_KEY"'
+                    });
+                }
+
+                // Initialiser le client Anthropic
+                const anthropic = new Anthropic({
+                    apiKey: anthropicApiKey
+                });
+
+                // Convertir base64 en buffer
+                const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+
+                // Parser le PDF pour extraire le texte brut
+                console.log('📖 Extraction du texte du PDF...');
+                const pdfData = await pdfParse(pdfBuffer);
+                const pdfText = pdfData.text;
+
+                console.log(`📝 Texte extrait: ${pdfText.length} caractères`);
+
+                // Créer le prompt pour Claude
+                const prompt = `Tu es un expert en analyse de documents d'états des lieux et de devis de nettoyage.
+
+Voici le texte extrait d'un PDF de devis/état des lieux FLINCO :
+
+${pdfText}
+
+MISSION:
+Extraire TOUS les éléments de l'état des lieux et les structurer en JSON.
+
+Pour chaque élément trouvé dans le document, tu dois déterminer :
+1. La pièce (Cuisine, Salle de bain, Entrée, WC, etc.)
+2. L'élément concerné (Four, Robinet, Carrelage, Sol, etc.)
+3. L'état de l'élément :
+   - "bon" : si propre, bon état, rien à signaler
+   - "usage" : si traces, taches, non nettoyé, sale, entartré
+   - "mauvais" : si cassé, fissuré, dégradé, HS, vétuste
+   - "absent" : si manquant, disparu
+4. Les observations : description détaillée du problème
+5. Si une intervention est possible (true/false)
+
+IMPORTANT:
+- Extraire aussi l'adresse et le numéro de devis si présents
+- Grouper les éléments par pièce de manière logique
+- Si une ligne mentionne un nettoyage/détartrage/réparation, c'est un élément en état d'usage ou mauvais
+
+RETOURNE UN JSON VALIDE dans ce format EXACT:
+{
+  "metadata": {
+    "address": "adresse extraite ou null",
+    "quote": "numéro de devis ou null"
+  },
+  "elements": [
+    {
+      "piece": "Cuisine",
+      "element": "Four",
+      "etat": "usage",
+      "observations": "Non nettoyé, traces de graisse",
+      "interventionPossible": true,
+      "page": 1
+    }
+  ]
+}
+
+IMPORTANT: Retourne UNIQUEMENT le JSON, sans texte avant ou après, sans balises markdown.`;
+
+                console.log('🤖 Appel à Claude Vision API...');
+
+                // Appeler Claude Vision
+                const message = await anthropic.messages.create({
+                    model: 'claude-3-5-sonnet-20241022',
+                    max_tokens: 4096,
+                    messages: [{
+                        role: 'user',
+                        content: prompt
+                    }]
+                });
+
+                console.log('✅ Réponse reçue de Claude');
+
+                // Extraire le contenu de la réponse
+                const responseText = message.content[0].text;
+
+                console.log('📦 Parsing JSON...');
+
+                // Parser le JSON
+                let result;
+                try {
+                    // Nettoyer la réponse au cas où il y aurait des balises markdown
+                    const cleanedResponse = responseText
+                        .replace(/```json\n?/g, '')
+                        .replace(/```\n?/g, '')
+                        .trim();
+
+                    result = JSON.parse(cleanedResponse);
+                } catch (parseError) {
+                    console.error('❌ Erreur parsing JSON:', parseError);
+                    console.log('Réponse brute:', responseText);
+                    return res.status(500).json({
+                        error: 'Failed to parse Claude response',
+                        rawResponse: responseText
+                    });
+                }
+
+                console.log(`✅ Extraction terminée: ${result.elements?.length || 0} éléments`);
+
+                // Retourner le résultat
+                return res.status(200).json({
+                    success: true,
+                    elements: result.elements || [],
+                    metadata: result.metadata || {},
+                    totalElements: result.elements?.length || 0,
+                    usage: {
+                        inputTokens: message.usage.input_tokens,
+                        outputTokens: message.usage.output_tokens
+                    }
+                });
+
+            } catch (error) {
+                console.error('❌ Erreur extraction PDF:', error);
+                return res.status(500).json({
+                    error: 'Internal server error',
+                    message: error.message,
+                    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+                });
+            }
+        });
+    });

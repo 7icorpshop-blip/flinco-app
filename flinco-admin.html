@@ -3647,6 +3647,19 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
             };
         }
 
+        // Fonction utilitaire : Convertir un fichier en base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
+                reader.readAsDataURL(file);
+            });
+        }
+
         async function handleEDLPDFImport(file) {
             const resultDiv = document.getElementById('edlImportResult');
             const resultText = document.getElementById('edlImportResultText');
@@ -3660,39 +3673,75 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
             progressPercent.textContent = '0%';
 
             try {
-                // Simuler progression
-                progressBar.style.width = '30%';
-                progressPercent.textContent = '30%';
+                // Étape 1 : Conversion du PDF en base64
+                progressBar.style.width = '10%';
+                progressPercent.textContent = '10%';
 
-                // Réutiliser la fonction existante parsePDFDevis
-                const data = await parsePDFDevis(file);
+                const pdfBase64 = await fileToBase64(file);
+
+                progressBar.style.width = '20%';
+                progressPercent.textContent = '20%';
+
+                // Étape 2 : Appel à la Firebase Function avec Claude Vision
+                const functionUrl = 'https://us-central1-flinco-v2.cloudfunctions.net/extractPDFElements';
+
+                const response = await fetch(functionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        pdfBase64: pdfBase64,
+                        fileName: file.name
+                    })
+                });
 
                 progressBar.style.width = '70%';
                 progressPercent.textContent = '70%';
 
-                if (!data || !data.address) {
-                    throw new Error('Impossible d\'extraire l\'adresse du PDF');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erreur lors de l\'extraction');
                 }
 
-                // Créer l'état des lieux avec les données extraites
+                const extractionResult = await response.json();
+
+                progressBar.style.width = '80%';
+                progressPercent.textContent = '80%';
+
+                // Étape 3 : Créer l'EDL avec les éléments extraits
+                const metadata = extractionResult.metadata || {};
+                const elements = extractionResult.elements || [];
+
+                if (elements.length === 0) {
+                    throw new Error('Aucun élément n\'a pu être extrait du PDF');
+                }
+
+                const edlName = metadata.quote
+                    ? `EDL - ${metadata.quote}`
+                    : metadata.address
+                        ? `EDL - ${metadata.address.substring(0, 30)}`
+                        : `EDL - ${file.name}`;
+
                 progressBar.style.width = '90%';
                 progressPercent.textContent = '90%';
 
-                const edlName = data.quote ? `EDL - ${data.quote}` : `EDL - ${data.address.substring(0, 30)}`;
-
-                // Utiliser les éléments extraits automatiquement
-                const elementsToImport = data.elements || [];
-
                 const docRef = await db.collection('edl').add({
                     name: edlName,
-                    address: data.address,
-                    quote: data.quote || '',
-                    date: data.date || '',
-                    agent: data.agent || '',
-                    agency: data.agency || '',
-                    rooms: data.rooms || {},
-                    elements: elementsToImport, // ✅ Éléments extraits automatiquement
+                    address: metadata.address || '',
+                    quote: metadata.quote || '',
+                    date: new Date().toISOString().split('T')[0],
+                    agent: '',
+                    agency: '',
+                    rooms: {},
+                    elements: elements,
                     importedFrom: file.name,
+                    extractionMethod: 'claude-vision-ai',
+                    extractionStats: {
+                        totalElements: elements.length,
+                        inputTokens: extractionResult.usage?.inputTokens || 0,
+                        outputTokens: extractionResult.usage?.outputTokens || 0
+                    },
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
@@ -3703,7 +3752,7 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
                 resultDiv.style.background = 'rgba(16, 185, 129, 0.1)';
                 resultDiv.style.border = '1px solid #10b981';
                 resultText.style.color = '#10b981';
-                resultText.innerHTML = `✅ État des lieux créé avec succès !<br><strong>${edlName}</strong><br>📋 ${elementsToImport.length} éléments importés automatiquement`;
+                resultText.innerHTML = `✅ État des lieux créé avec succès !<br><strong>${edlName}</strong><br>🤖 ${elements.length} éléments extraits par IA Claude Vision`;
 
                 setTimeout(() => {
                     closeEDLImportModal();
@@ -3716,7 +3765,13 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
                 resultDiv.style.background = 'rgba(239, 68, 68, 0.1)';
                 resultDiv.style.border = '1px solid #ef4444';
                 resultText.style.color = '#ef4444';
-                resultText.textContent = '❌ Erreur : ' + error.message;
+
+                let errorMessage = error.message;
+                if (errorMessage.includes('API key not configured')) {
+                    errorMessage = '⚠️ La clé API Claude n\'est pas encore configurée.\n\nConfigurer avec :\nfirebase functions:config:set anthropic.apikey="VOTRE_CLE"';
+                }
+
+                resultText.textContent = '❌ Erreur : ' + errorMessage;
             }
         }
 
