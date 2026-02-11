@@ -1009,23 +1009,24 @@
         }
 
         function parseDevisText(text) {
-            const result = { 
-                quote: null, 
-                address: null, 
+            const result = {
+                quote: null,
+                address: null,
                 date: null,
                 agent: null,
                 agency: null,
-                rooms: {}
+                rooms: {},
+                elements: [] // Nouveau : éléments EDL prêts à l'emploi
             };
-            
+
             // Extraction numéro de devis
             const devisMatch = text.match(/Devis\s*N°?\s*(\d+)/i);
             if (devisMatch) result.quote = devisMatch[1];
-            
+
             // Extraction adresse
             const addressMatch = text.match(/(\d+[^a-z]*(?:RUE|AVENUE|BOULEVARD|PLACE|IMPASSE|CHEMIN|ALLÉE)[^a-z]+[^\n]+)/i);
             if (addressMatch) result.address = addressMatch[1].trim();
-            
+
             // Extraction des tâches
             const taskPattern = /(\d+\.?\d*)\s+([A-ZÀ-Ü][^€\d]+?)(?:\s+U\s+\d|\s+€)/gi;
             const allTasks = [];
@@ -1038,28 +1039,121 @@
                     allTasks.push({ num: parseFloat(taskNum), name: taskName });
                 }
             }
-            
+
             // Groupement par pièce
             const roomGroups = {
                 'ENTRÉE / PIÈCE DE VIE': [],
                 'CUISINE': [],
                 'SALLE DE BAIN / WC': []
             };
-            
+
             allTasks.forEach(task => {
                 if (task.num >= 1 && task.num < 1.5) roomGroups['ENTRÉE / PIÈCE DE VIE'].push(task.name);
                 else if (task.num >= 1.5 && task.num < 1.10) roomGroups['CUISINE'].push(task.name);
                 else if (task.num >= 1.10 && task.num < 1.14) roomGroups['SALLE DE BAIN / WC'].push(task.name);
             });
-            
-            // Convertir en format rooms
+
+            // Convertir en format rooms ET créer les éléments EDL automatiquement
             Object.entries(roomGroups).forEach(([roomName, tasks]) => {
                 if (tasks.length > 0) {
                     result.rooms[roomName] = { tasks: tasks };
+
+                    // Créer les éléments EDL pour chaque tâche
+                    tasks.forEach((taskName, index) => {
+                        const element = convertTaskToEDLElement(roomName, taskName, index + 1);
+                        result.elements.push(element);
+                    });
                 }
             });
-            
+
             return result;
+        }
+
+        // Nouvelle fonction : convertir une tâche en élément EDL
+        function convertTaskToEDLElement(piece, taskName, pageNum) {
+            // Extraire le nom de l'élément à partir de la tâche
+            let elementName = taskName;
+
+            // Dictionnaire des éléments communs
+            const elementMapping = {
+                'four': 'Four',
+                'hotte': 'Hotte',
+                'plaque': 'Plaques de cuisson',
+                'robinet': 'Robinet',
+                'évier': 'Évier',
+                'lavabo': 'Lavabo',
+                'douche': 'Douche',
+                'baignoire': 'Baignoire',
+                'wc': 'WC',
+                'cuvette': 'Cuvette WC',
+                'carrelage': 'Carrelage',
+                'faïence': 'Faïence',
+                'sol': 'Sol',
+                'mur': 'Murs',
+                'plafond': 'Plafond',
+                'plinthe': 'Plinthes',
+                'fenêtre': 'Fenêtres',
+                'porte': 'Porte',
+                'placard': 'Placard',
+                'radiateur': 'Radiateur',
+                'interrupteur': 'Interrupteurs',
+                'prise': 'Prises',
+                'vmc': 'VMC',
+                'joint': 'Joints'
+            };
+
+            // Chercher un élément connu dans la description
+            const taskLower = taskName.toLowerCase();
+            let foundElement = null;
+            for (const [key, value] of Object.entries(elementMapping)) {
+                if (taskLower.includes(key)) {
+                    foundElement = value;
+                    break;
+                }
+            }
+
+            if (foundElement) {
+                elementName = foundElement;
+            } else {
+                // Nettoyer le nom (enlever "Nettoyage", "Détartrage", etc. au début)
+                elementName = elementName
+                    .replace(/^(Nettoyage|Détartrage|Lessivage|Dépoussiérage|Dégraissage|Refixation|Changement)\s+(de\s+|du\s+|des\s+|d')?/i, '')
+                    .replace(/\s*\([^)]*\)/g, '') // Enlever les parenthèses
+                    .replace(/\s*-\s*\d+.*$/g, '') // Enlever les prix
+                    .trim();
+
+                // Si trop long, prendre les 3 premiers mots
+                const words = elementName.split(/\s+/);
+                if (words.length > 3) {
+                    elementName = words.slice(0, 3).join(' ');
+                }
+
+                // Première lettre en majuscule
+                elementName = elementName.charAt(0).toUpperCase() + elementName.slice(1).toLowerCase();
+            }
+
+            // Détecter l'état à partir de la description
+            let etat = 'usage'; // Par défaut "État d'usage"
+
+            if (taskLower.match(/mauvais|d[ée]grad[ée]|cass[ée]|hs|hors.?service|v[ée]tuste|fissure|[ée]clat/)) {
+                etat = 'mauvais';
+            } else if (taskLower.match(/bon [ée]tat|propre|nickel|rien à signaler/)) {
+                etat = 'bon';
+            } else if (taskLower.match(/absent|manquant|disparu/)) {
+                etat = 'absent';
+            } else if (taskLower.match(/sale|non nettoy|entartr|trace|tache|poussi|moisi|noirci|encras/)) {
+                etat = 'usage'; // État d'usage si besoin de nettoyage
+            }
+
+            return {
+                piece: piece,
+                element: elementName,
+                etat: etat,
+                observations: taskName, // La tâche complète devient l'observation
+                interventions: [], // Sera détecté automatiquement lors de l'export
+                interventionPossible: true, // Par défaut Oui
+                page: pageNum
+            };
         }
 
 
@@ -3586,6 +3680,9 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
 
                 const edlName = data.quote ? `EDL - ${data.quote}` : `EDL - ${data.address.substring(0, 30)}`;
 
+                // Utiliser les éléments extraits automatiquement
+                const elementsToImport = data.elements || [];
+
                 const docRef = await db.collection('edl').add({
                     name: edlName,
                     address: data.address,
@@ -3594,7 +3691,7 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
                     agent: data.agent || '',
                     agency: data.agency || '',
                     rooms: data.rooms || {},
-                    elements: [],
+                    elements: elementsToImport, // ✅ Éléments extraits automatiquement
                     importedFrom: file.name,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
@@ -3606,7 +3703,7 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
                 resultDiv.style.background = 'rgba(16, 185, 129, 0.1)';
                 resultDiv.style.border = '1px solid #10b981';
                 resultText.style.color = '#10b981';
-                resultText.innerHTML = `✅ État des lieux créé avec succès !<br><strong>${edlName}</strong>`;
+                resultText.innerHTML = `✅ État des lieux créé avec succès !<br><strong>${edlName}</strong><br>📋 ${elementsToImport.length} éléments importés automatiquement`;
 
                 setTimeout(() => {
                     closeEDLImportModal();
