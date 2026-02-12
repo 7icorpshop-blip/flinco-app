@@ -462,13 +462,14 @@ exports.extractPDFElements = functions
 
                 console.log(`📄 Début extraction PDF: ${fileName || 'sans nom'}`);
 
-                // Récupérer la clé API depuis la config Firebase
-                const anthropicApiKey = functions.config().anthropic?.apikey;
+                // Récupérer la clé API depuis les variables d'environnement
+                // Priorité : process.env (GitHub Actions) puis functions.config() (fallback)
+                const anthropicApiKey = process.env.ANTHROPIC_API_KEY || functions.config().anthropic?.apikey;
 
                 if (!anthropicApiKey) {
                     console.error('❌ Clé API Anthropic non configurée');
                     return res.status(500).json({
-                        error: 'API key not configured. Run: firebase functions:config:set anthropic.apikey="YOUR_KEY"'
+                        error: 'API key not configured. Add ANTHROPIC_API_KEY to GitHub Secrets or run: firebase functions:config:set anthropic.apikey="YOUR_KEY"'
                     });
                 }
 
@@ -488,7 +489,7 @@ exports.extractPDFElements = functions
                 console.log(`📝 Texte extrait: ${pdfText.length} caractères`);
 
                 // Créer le prompt pour Claude
-                const prompt = `Tu es un expert en analyse de documents d'états des lieux et de devis de nettoyage.
+                const prompt = `Tu es un expert en analyse de documents d'états des lieux et de devis de nettoyage FLINCO.
 
 Voici le texte extrait d'un PDF de devis/état des lieux FLINCO :
 
@@ -498,40 +499,61 @@ MISSION:
 Extraire TOUS les éléments de l'état des lieux et les structurer en JSON.
 
 Pour chaque élément trouvé dans le document, tu dois déterminer :
-1. La pièce (Cuisine, Salle de bain, Entrée, WC, etc.)
-2. L'élément concerné (Four, Robinet, Carrelage, Sol, etc.)
+1. La pièce (Cuisine, Salle de bain, Salon, Chambre, Entrée, WC, etc.)
+2. L'élément concerné (Four, Robinet, Carrelage, Sol, Mur, Plafond, etc.)
 3. L'état de l'élément :
-   - "bon" : si propre, bon état, rien à signaler
-   - "usage" : si traces, taches, non nettoyé, sale, entartré
-   - "mauvais" : si cassé, fissuré, dégradé, HS, vétuste
-   - "absent" : si manquant, disparu
-4. Les observations : description détaillée du problème
-5. Si une intervention est possible (true/false)
+   - "bon" : si propre, bon état, rien à signaler, nickel
+   - "usage" : si traces, taches, non nettoyé, sale, entartré, poussiéreux, à nettoyer
+   - "mauvais" : si cassé, fissuré, dégradé, HS, vétuste, très sale, moisi
+   - "absent" : si manquant, disparu, n'existe pas
+4. Les observations : description complète (état + action à faire si mentionnée)
+5. Les interventions prévues (liste des actions : nettoyage, détartrage, réparation, etc.)
+6. Si une intervention est possible (true/false)
 
-IMPORTANT:
-- Extraire aussi l'adresse et le numéro de devis si présents
-- Grouper les éléments par pièce de manière logique
-- Si une ligne mentionne un nettoyage/détartrage/réparation, c'est un élément en état d'usage ou mauvais
+EXTRACTION DE L'ADRESSE - TRÈS IMPORTANT:
+- Cherche l'adresse du CHANTIER/SITE/BIEN, PAS l'adresse du client ou de l'agence
+- Patterns à chercher :
+  * "ADRESSE DU CHANTIER", "ADRESSE", "LOCALISATION", "SITE", "BIEN"
+  * Près d'un emoji 📍 ou d'un symbole de localisation
+  * Format : numéro + rue + code postal + ville
+- Si plusieurs adresses, privilégie celle du chantier/bien
+- Retourne l'adresse complète et formatée
+
+EXTRACTION DU NUMÉRO DE DEVIS:
+- Patterns : "DEVIS N°", "N° DEVIS", "DEVIS", "REF", "RÉFÉRENCE"
+- Format typique : FLI-2024-XXXX ou similaire
+
+EXTRACTION DES TÂCHES/INTERVENTIONS:
+- Pour chaque élément, si une action est mentionnée (nettoyage, détartrage, réparation), l'ajouter dans "interventions"
+- Format typique : "Élément : État - Action à faire"
+- Exemples d'actions : "Nettoyage", "Détartrage", "Réparation", "Remplacement", "Traitement anti-moisissure"
 
 RETOURNE UN JSON VALIDE dans ce format EXACT:
 {
   "metadata": {
-    "address": "adresse extraite ou null",
-    "quote": "numéro de devis ou null"
+    "address": "123 Rue Example, 75001 Paris",
+    "quote": "FLI-2024-001234",
+    "client": "Nom du client si présent",
+    "date": "Date du devis si présente"
   },
   "elements": [
     {
       "piece": "Cuisine",
       "element": "Four",
       "etat": "usage",
-      "observations": "Non nettoyé, traces de graisse",
+      "observations": "Non nettoyé, traces de graisse - Nettoyage dégraissage prévu",
+      "interventions": ["Nettoyage", "Dégraissage"],
       "interventionPossible": true,
       "page": 1
     }
   ]
 }
 
-IMPORTANT: Retourne UNIQUEMENT le JSON, sans texte avant ou après, sans balises markdown.`;
+IMPORTANT:
+- Retourne UNIQUEMENT le JSON, sans texte avant ou après, sans balises markdown
+- Si aucune adresse de chantier n'est trouvée, mets null
+- Extrais TOUS les éléments mentionnés, même s'ils sont en bon état
+- Regroupe les interventions par type (nettoyage, détartrage, etc.)`;
 
                 console.log('🤖 Appel à Claude Vision API...');
 
