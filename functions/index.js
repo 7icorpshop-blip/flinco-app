@@ -462,13 +462,14 @@ exports.extractPDFElements = functions
 
                 console.log(`📄 Début extraction PDF: ${fileName || 'sans nom'}`);
 
-                // Récupérer la clé API depuis la config Firebase
-                const anthropicApiKey = functions.config().anthropic?.apikey;
+                // Récupérer la clé API depuis les variables d'environnement
+                // Priorité : process.env (GitHub Actions) puis functions.config() (fallback)
+                const anthropicApiKey = process.env.ANTHROPIC_API_KEY || functions.config().anthropic?.apikey;
 
                 if (!anthropicApiKey) {
                     console.error('❌ Clé API Anthropic non configurée');
                     return res.status(500).json({
-                        error: 'API key not configured. Run: firebase functions:config:set anthropic.apikey="YOUR_KEY"'
+                        error: 'API key not configured. Add ANTHROPIC_API_KEY to GitHub Secrets or run: firebase functions:config:set anthropic.apikey="YOUR_KEY"'
                     });
                 }
 

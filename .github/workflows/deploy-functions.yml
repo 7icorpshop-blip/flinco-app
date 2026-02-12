@@ -34,3 +34,4 @@ jobs:
           args: deploy --only functions --project flinco-v2
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
