@@ -32,7 +32,10 @@ jobs:
       - name: Create .env for Firebase Functions
         run: echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" > functions/.env
 
+      - name: Verify Firebase auth
+        run: |
+          firebase projects:list --token "${{ secrets.FIREBASE_TOKEN }}" 2>&1 | head -5 || echo "Auth check failed"
+
       - name: Deploy to Firebase
         run: |
-          set -o pipefail
-          firebase deploy --only functions --project flinco-v2 --token "${{ secrets.FIREBASE_TOKEN }}" --non-interactive 2>&1
+          firebase deploy --only functions --project flinco-v2 --token "${{ secrets.FIREBASE_TOKEN }}" --non-interactive --debug 2>&1
