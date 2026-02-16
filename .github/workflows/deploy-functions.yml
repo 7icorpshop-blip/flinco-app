@@ -33,4 +33,8 @@ jobs:
         run: echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" > functions/.env
 
       - name: Deploy to Firebase
-        run: firebase deploy --only functions --project flinco-v2 --token "${{ secrets.FIREBASE_TOKEN }}" --non-interactive --debug 2>&1 | tail -100
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          CLEAN_TOKEN=$(printf '%s' "$FIREBASE_TOKEN" | tr -d '\n\r\t ')
+          firebase deploy --only functions --project flinco-v2 --token "$CLEAN_TOKEN" --non-interactive 2>&1

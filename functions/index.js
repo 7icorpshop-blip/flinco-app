@@ -443,8 +443,8 @@ const pdfParse = require('pdf-parse');
 
 exports.extractPDFElements = functions
     .runWith({
-        timeoutSeconds: 540, // 9 minutes max
-        memory: '2GB'
+        timeoutSeconds: 300,
+        memory: '512MB'
     })
     .https.onRequest(async (req, res) => {
         return cors(req, res, async () => {
