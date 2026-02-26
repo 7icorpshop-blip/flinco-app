@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLINCO - Espace Client</title>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #0f3460;
+            --accent: #82acff;
+            --accent-light: #b8d4ff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #0a0f1c;
+            --card: #111827;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #1e293b;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 32px;
+            color: white;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(130, 172, 255, 0.4);
+        }
+
+        .logo-section h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .logo-section p {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .login-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(130, 172, 255, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 16px rgba(130, 172, 255, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(130, 172, 255, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: var(--danger);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 32px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo">F</div>
+            <h1>FLINCO</h1>
+            <p>Espace Client Agences</p>
+        </div>
+
+        <div class="login-card">
+            <div id="errorMessage" class="error-message"></div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required placeholder="votre@email.com" autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
+                </div>
+
+                <button type="submit" class="btn" id="loginBtn">
+                    🔐 Se connecter
+                </button>
+            </form>
+
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Connexion en cours...</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Besoin d'aide ? Contactez-nous à <a href="mailto:support@flinco.fr">support@flinco.fr</a></p>
+            <p style="margin-top: 8px; font-size: 12px; opacity: 0.7;">© 2024 FLINCO - Tous droits réservés</p>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBxR3mDxxyUqn4wdQmnb9gIIAKkPK1sojc",
+            authDomain: "flinco-v2.firebaseapp.com",
+            projectId: "flinco-v2",
+            storageBucket: "flinco-v2.firebasestorage.app",
+            messagingSenderId: "819069424966",
+            appId: "1:819069424966:web:51dcbc1dbcb4e1e28d25dd"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Check if already logged in
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                // Verify user is an agency
+                try {
+                    const agencyDoc = await db.collection('agences').doc(user.uid).get();
+                    if (agencyDoc.exists) {
+                        // Redirect to dashboard
+                        window.location.href = '/dashboard.html';
+                    } else {
+                        // Not an agency, sign out
+                        await auth.signOut();
+                        showError('Ce compte n\'est pas autorisé à accéder à l\'espace client.');
+                    }
+                } catch (error) {
+                    console.error('Error checking agency:', error);
+                }
+            }
+        });
+
+        // Handle login
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
+
+            showLoading(true);
+            hideError();
+
+            try {
+                // Sign in with email and password
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // Verify user is an agency
+                const agencyDoc = await db.collection('agences').doc(user.uid).get();
+
+                if (!agencyDoc.exists) {
+                    // Not an agency
+                    await auth.signOut();
+                    showError('Ce compte n\'est pas autorisé à accéder à l\'espace client.');
+                    showLoading(false);
+                    return;
+                }
+
+                // Success - redirect to dashboard
+                console.log('✅ Connexion réussie');
+                window.location.href = '/dashboard.html';
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showLoading(false);
+
+                // Display user-friendly error messages
+                let errorMessage = 'Erreur de connexion';
+
+                switch (error.code) {
+                    case 'auth/invalid-email':
+                        errorMessage = 'Adresse email invalide';
+                        break;
+                    case 'auth/user-disabled':
+                        errorMessage = 'Ce compte a été désactivé';
+                        break;
+                    case 'auth/user-not-found':
+                        errorMessage = 'Aucun compte trouvé avec cet email';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = 'Mot de passe incorrect';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = 'Trop de tentatives. Veuillez réessayer plus tard';
+                        break;
+                    default:
+                        errorMessage = 'Erreur de connexion: ' + error.message;
+                }
+
+                showError(errorMessage);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function showLoading(show) {
+            document.getElementById('loginForm').style.display = show ? 'none' : 'block';
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

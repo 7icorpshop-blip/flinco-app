@@ -10,7 +10,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    
+
+    <!-- FullCalendar pour le calendrier -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -309,6 +313,11 @@
         <span class="dot"></span>
         <span id="statusText">En ligne</span>
     </div>
+
+    <!-- Bouton flottant pour le calendrier -->
+    <button onclick="openCalendarView()" style="position: fixed; top: 70px; right: 20px; z-index: 199; background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%); color: white; border: none; width: 56px; height: 56px; border-radius: 50%; font-size: 24px; cursor: pointer; box-shadow: 0 4px 20px rgba(130, 172, 255, 0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+        📅
+    </button>
 
     <div class="container">
         <header class="header">
@@ -2227,8 +2236,124 @@
                 alert('Erreur: ' + error.message);
             }
         }
-        
+
+        // === GESTION DU CALENDRIER AGENT ===
+        let agentCalendar = null;
+
+        function openCalendarView() {
+            document.getElementById('calendarModal').style.display = 'flex';
+            if (!agentCalendar) {
+                initAgentCalendar();
+            } else {
+                agentCalendar.refetchEvents();
+            }
+        }
+
+        function closeCalendarView() {
+            document.getElementById('calendarModal').style.display = 'none';
+        }
+
+        function initAgentCalendar() {
+            const calendarEl = document.getElementById('agentCalendar');
+            agentCalendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                locale: 'fr',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                buttonText: {
+                    today: "Aujourd'hui",
+                    month: 'Mois',
+                    week: 'Semaine',
+                    day: 'Jour'
+                },
+                slotMinTime: '06:00:00',
+                slotMaxTime: '22:00:00',
+                allDaySlot: false,
+                height: 'auto',
+                nowIndicator: true,
+                editable: false,
+                selectable: false,
+                dayMaxEvents: true,
+                weekends: true,
+
+                // Chargement des événements depuis Firestore
+                events: async function(info, successCallback, failureCallback) {
+                    try {
+                        const snapshot = await db.collection('events').get();
+                        const events = snapshot.docs.map(doc => {
+                            const data = doc.data();
+                            return {
+                                id: doc.id,
+                                title: data.title,
+                                start: data.start.toDate(),
+                                end: data.end.toDate(),
+                                backgroundColor: data.backgroundColor || '#82acff',
+                                borderColor: data.borderColor || '#0f3460',
+                                extendedProps: {
+                                    description: data.description,
+                                    clientName: data.clientName,
+                                    address: data.address,
+                                    missionType: data.missionType,
+                                    agent: data.agent
+                                }
+                            };
+                        });
+                        successCallback(events);
+                    } catch (error) {
+                        console.error('Erreur lors du chargement des événements:', error);
+                        failureCallback(error);
+                    }
+                },
+
+                // Clic sur un événement pour voir les détails
+                eventClick: function(info) {
+                    const event = info.event;
+                    const props = event.extendedProps;
+
+                    let details = `📅 ${event.title}\n\n`;
+                    details += `🕐 ${event.start.toLocaleString('fr-FR')}\n`;
+                    details += `   → ${event.end.toLocaleString('fr-FR')}\n\n`;
+
+                    if (props.missionType) {
+                        const types = {
+                            'nettoyage-remise-etat': '🧹 Nettoyage & Remise en état',
+                            'debarras': '📦 Débarras',
+                            'etat-lieux': '📋 État des lieux',
+                            'desinfection': '🦠 Désinfection',
+                            'autre': '🔧 Autre'
+                        };
+                        details += `Type: ${types[props.missionType] || props.missionType}\n`;
+                    }
+                    if (props.clientName) details += `Client: ${props.clientName}\n`;
+                    if (props.address) details += `📍 ${props.address}\n`;
+                    if (props.agent) details += `👤 Agent: ${props.agent}\n`;
+                    if (props.description) details += `\n📝 ${props.description}`;
+
+                    alert(details);
+                }
+            });
+
+            agentCalendar.render();
+        }
+
         init();
     </script>
+
+    <!-- Modal Calendrier Agent -->
+    <div id="calendarModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; padding: 20px; overflow-y: auto; align-items: center; justify-content: center;">
+        <div style="background: var(--card); border-radius: 16px; max-width: 1200px; width: 100%; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--border);">
+                <h2 style="font-size: 20px; font-weight: 700; color: var(--primary);">📅 Planning des Missions</h2>
+                <button onclick="closeCalendarView()" style="background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                    ✕ Fermer
+                </button>
+            </div>
+            <div id="agentCalendar"></div>
+        </div>
+    </div>
+
 </body>
 </html>
