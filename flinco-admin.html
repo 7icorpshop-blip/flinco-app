@@ -15,7 +15,11 @@
     
     <!-- SheetJS pour export Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    
+
+    <!-- FullCalendar pour le calendrier -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
@@ -688,6 +692,7 @@
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="switchTab('rapports')">📋 Rapports</button>
             <button class="nav-tab" onclick="switchTab('etats-lieux')">📊 États des Lieux</button>
+            <button class="nav-tab" onclick="switchTab('calendrier')">📅 Calendrier</button>
         </div>
         
         <div id="rapportsTab" class="tab-content active">
@@ -3514,12 +3519,16 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
 
             document.getElementById('rapportsTab').classList.remove('active');
             document.getElementById('etatsLieuxTab').classList.remove('active');
+            document.getElementById('calendrierTab').classList.remove('active');
 
             if (tabName === 'rapports') {
                 document.getElementById('rapportsTab').classList.add('active');
             } else if (tabName === 'etats-lieux') {
                 document.getElementById('etatsLieuxTab').classList.add('active');
                 loadEDLList();
+            } else if (tabName === 'calendrier') {
+                document.getElementById('calendrierTab').classList.add('active');
+                initCalendar();
             }
         }
 
@@ -4254,6 +4263,177 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
             alert('✅ Descriptions copiées dans le presse-papier !');
         }
 
+        // === GESTION DU CALENDRIER ===
+        let calendar = null;
+
+        function initCalendar() {
+            if (calendar) {
+                calendar.render();
+                return;
+            }
+
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                locale: 'fr',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,multiMonthYear'
+                },
+                buttonText: {
+                    today: "Aujourd'hui",
+                    month: 'Mois',
+                    week: 'Semaine',
+                    day: 'Jour',
+                    year: 'Année'
+                },
+                slotMinTime: '06:00:00',
+                slotMaxTime: '22:00:00',
+                allDaySlot: false,
+                height: 'auto',
+                nowIndicator: true,
+                editable: true,
+                selectable: true,
+                selectMirror: true,
+                dayMaxEvents: true,
+                weekends: true,
+
+                // Chargement des événements depuis Firestore
+                events: async function(info, successCallback, failureCallback) {
+                    try {
+                        const snapshot = await db.collection('events').get();
+                        const events = snapshot.docs.map(doc => {
+                            const data = doc.data();
+                            return {
+                                id: doc.id,
+                                title: data.title,
+                                start: data.start.toDate(),
+                                end: data.end.toDate(),
+                                backgroundColor: data.backgroundColor || '#82acff',
+                                borderColor: data.borderColor || '#0f3460',
+                                extendedProps: {
+                                    description: data.description,
+                                    clientName: data.clientName,
+                                    address: data.address,
+                                    missionType: data.missionType,
+                                    agent: data.agent
+                                }
+                            };
+                        });
+                        successCallback(events);
+                    } catch (error) {
+                        console.error('Erreur lors du chargement des événements:', error);
+                        failureCallback(error);
+                    }
+                },
+
+                // Sélection d'une plage pour créer un événement
+                select: function(info) {
+                    openEventModal(info.start, info.end);
+                },
+
+                // Clic sur un événement pour l'éditer
+                eventClick: function(info) {
+                    editEvent(info.event);
+                },
+
+                // Déplacer un événement (drag & drop)
+                eventDrop: async function(info) {
+                    try {
+                        await db.collection('events').doc(info.event.id).update({
+                            start: firebase.firestore.Timestamp.fromDate(info.event.start),
+                            end: firebase.firestore.Timestamp.fromDate(info.event.end)
+                        });
+                    } catch (error) {
+                        console.error('Erreur lors du déplacement:', error);
+                        info.revert();
+                    }
+                },
+
+                // Redimensionner un événement
+                eventResize: async function(info) {
+                    try {
+                        await db.collection('events').doc(info.event.id).update({
+                            end: firebase.firestore.Timestamp.fromDate(info.event.end)
+                        });
+                    } catch (error) {
+                        console.error('Erreur lors du redimensionnement:', error);
+                        info.revert();
+                    }
+                }
+            });
+
+            calendar.render();
+        }
+
+        function openEventModal(startDate = null, endDate = null) {
+            const modal = document.getElementById('eventModal');
+            const form = document.getElementById('eventForm');
+            form.reset();
+
+            // Pré-remplir les dates si fournies
+            if (startDate) {
+                document.getElementById('eventStart').value = startDate.toISOString().slice(0, 16);
+            }
+            if (endDate) {
+                document.getElementById('eventEnd').value = endDate.toISOString().slice(0, 16);
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closeEventModal() {
+            document.getElementById('eventModal').style.display = 'none';
+        }
+
+        async function saveEvent(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const eventData = {
+                title: form.eventTitle.value,
+                start: firebase.firestore.Timestamp.fromDate(new Date(form.eventStart.value)),
+                end: firebase.firestore.Timestamp.fromDate(new Date(form.eventEnd.value)),
+                description: form.eventDescription.value,
+                clientName: form.eventClient.value,
+                address: form.eventAddress.value,
+                missionType: form.eventMissionType.value,
+                agent: form.eventAgent.value,
+                backgroundColor: form.eventColor.value,
+                borderColor: form.eventColor.value,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection('events').add(eventData);
+                closeEventModal();
+                calendar.refetchEvents();
+                alert('✅ Événement créé avec succès !');
+            } catch (error) {
+                console.error('Erreur lors de la création:', error);
+                alert('❌ Erreur lors de la création de l\'événement');
+            }
+        }
+
+        async function editEvent(event) {
+            const confirmation = confirm(`Modifier "${event.title}" ?\n\nOu cliquez sur "Annuler" puis "OK" dans la prochaine fenêtre pour supprimer.`);
+
+            if (!confirmation) {
+                const deleteConfirm = confirm('Voulez-vous supprimer cet événement ?');
+                if (deleteConfirm) {
+                    try {
+                        await db.collection('events').doc(event.id).delete();
+                        calendar.refetchEvents();
+                        alert('✅ Événement supprimé');
+                    } catch (error) {
+                        console.error('Erreur lors de la suppression:', error);
+                        alert('❌ Erreur lors de la suppression');
+                    }
+                }
+            }
+        }
+
     </script>
 
         </div>
@@ -4278,6 +4458,21 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Section Calendrier -->
+        <div id="calendrierTab" class="tab-content">
+            <div class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div class="section-title">📅 Planning des Missions</div>
+                    <button onclick="openEventModal()" class="btn" style="background: var(--success); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                        ➕ Nouvel Événement
+                    </button>
+                </div>
+
+                <!-- Conteneur du calendrier -->
+                <div id="calendar" style="background: white; padding: 20px; border-radius: 12px;"></div>
             </div>
         </div>
 
@@ -4450,6 +4645,111 @@ ${report.pdfUrl ? `<button class="btn btn-success" onclick="window.open('${repor
                     📋 Copier dans le presse-papier
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Événement Calendrier -->
+    <div id="eventModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10001; overflow-y: auto; padding: 20px;">
+        <div style="background: var(--card); border-radius: 16px; max-width: 600px; width: 100%; margin: 20px auto; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid var(--border);">
+                <h2 style="font-size: 20px;">📅 Nouvel Événement</h2>
+                <button onclick="closeEventModal()" style="background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">✕ Fermer</button>
+            </div>
+
+            <form id="eventForm" onsubmit="saveEvent(event)">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <!-- Titre -->
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Titre de la mission *</label>
+                        <input type="text" id="eventTitle" name="eventTitle" required
+                            style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;"
+                            placeholder="Ex: Nettoyage appartement 3 pièces">
+                    </div>
+
+                    <!-- Type de mission -->
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Type de mission *</label>
+                        <select id="eventMissionType" name="eventMissionType" required
+                            style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                            <option value="nettoyage-remise-etat">🧹 Nettoyage & Remise en état</option>
+                            <option value="debarras">📦 Débarras</option>
+                            <option value="etat-lieux">📋 État des lieux</option>
+                            <option value="desinfection">🦠 Désinfection</option>
+                            <option value="autre">🔧 Autre</option>
+                        </select>
+                    </div>
+
+                    <!-- Dates -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Début *</label>
+                            <input type="datetime-local" id="eventStart" name="eventStart" required
+                                style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Fin *</label>
+                            <input type="datetime-local" id="eventEnd" name="eventEnd" required
+                                style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                        </div>
+                    </div>
+
+                    <!-- Client -->
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Nom du client</label>
+                        <input type="text" id="eventClient" name="eventClient"
+                            style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;"
+                            placeholder="Nom du client ou agence">
+                    </div>
+
+                    <!-- Adresse -->
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Adresse</label>
+                        <input type="text" id="eventAddress" name="eventAddress"
+                            style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;"
+                            placeholder="Adresse de l'intervention">
+                    </div>
+
+                    <!-- Agent -->
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Agent assigné</label>
+                        <input type="text" id="eventAgent" name="eventAgent"
+                            style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;"
+                            placeholder="Nom de l'agent">
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Description</label>
+                        <textarea id="eventDescription" name="eventDescription" rows="3"
+                            style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; resize: vertical;"
+                            placeholder="Détails supplémentaires..."></textarea>
+                    </div>
+
+                    <!-- Couleur -->
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Couleur</label>
+                        <select id="eventColor" name="eventColor"
+                            style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                            <option value="#82acff">🔵 Bleu (défaut)</option>
+                            <option value="#10b981">🟢 Vert</option>
+                            <option value="#f59e0b">🟡 Orange</option>
+                            <option value="#ef4444">🔴 Rouge</option>
+                            <option value="#8b5cf6">🟣 Violet</option>
+                            <option value="#ec4899">🩷 Rose</option>
+                        </select>
+                    </div>
+
+                    <!-- Boutons -->
+                    <div style="display: flex; gap: 12px; margin-top: 8px;">
+                        <button type="submit" class="btn" style="flex: 1; background: var(--success); color: white; padding: 14px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                            ✅ Créer l'événement
+                        </button>
+                        <button type="button" onclick="closeEventModal()" class="btn" style="background: var(--danger); color: white; padding: 14px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;">
+                            Annuler
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
