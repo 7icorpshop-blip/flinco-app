@@ -617,3 +617,134 @@ IMPORTANT:
             }
         });
     });
+
+/**
+ * WEBHOOK KROOPI : Réception Automatique des Rapports de Ménage
+ *
+ * Kroopi est une application mobile externe utilisée par les équipes de ménage.
+ * Elle envoie automatiquement des rapports après chaque intervention.
+ *
+ * POST /kroopiWebhook
+ * Content-Type: application/json
+ *
+ * Body: {
+ *   "agencyId": "abc123",
+ *   "title": "Rapport d'intervention - Appartement Paris 15e",
+ *   "address": "123 Rue de la Paix, 75015 Paris",
+ *   "photosCount": 15,
+ *   "description": "Nettoyage complet...",
+ *   "photos": ["url1", "url2", ...],
+ *   "kroopiId": "KROOPI-2024-001"
+ * }
+ *
+ * Response: {
+ *   "success": true,
+ *   "reportId": "xyz789",
+ *   "message": "Rapport créé et notification envoyée"
+ * }
+ */
+exports.kroopiWebhook = functions.https.onRequest(async (req, res) => {
+    return cors(req, res, async () => {
+        try {
+            // Vérifier la méthode
+            if (req.method !== 'POST') {
+                return res.status(405).json({ error: 'Method not allowed. Use POST.' });
+            }
+
+            const {
+                agencyId,
+                title,
+                address,
+                photosCount,
+                description,
+                photos,
+                kroopiId
+            } = req.body;
+
+            // Validation des données obligatoires
+            if (!agencyId || !title || !address) {
+                return res.status(400).json({
+                    error: 'Missing required fields',
+                    required: ['agencyId', 'title', 'address']
+                });
+            }
+
+            console.log('📥 Webhook Kroopi reçu:', {
+                agencyId,
+                title,
+                kroopiId,
+                photosCount: photos?.length || photosCount || 0
+            });
+
+            // Vérifier que l'agence existe
+            const agencyDoc = await db.collection('agences').doc(agencyId).get();
+
+            if (!agencyDoc.exists) {
+                console.error('❌ Agence introuvable:', agencyId);
+                return res.status(404).json({
+                    error: 'Agency not found',
+                    agencyId: agencyId
+                });
+            }
+
+            const agencyData = agencyDoc.data();
+            const agencyName = agencyData.name || agencyData.agencyName || 'l\'agence';
+
+            // Créer le rapport dans Firestore collection "rapports"
+            const reportData = {
+                agencyId: agencyId,
+                title: title,
+                address: address,
+                photosCount: photos?.length || photosCount || 0,
+                description: description || '',
+                photos: photos || [],
+                kroopiId: kroopiId || null,
+                source: 'kroopi',
+                status: 'available',
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                viewedAt: null
+            };
+
+            const reportRef = await db.collection('rapports').add(reportData);
+            const reportId = reportRef.id;
+
+            console.log('✅ Rapport Kroopi créé:', reportId);
+
+            // Créer la notification automatique pour l'agence
+            const messageData = {
+                agencyId: agencyId,
+                subject: 'Nouveau rapport de ménage disponible',
+                content: `Bonjour ${agencyName},\n\nVotre rapport de ménage est maintenant disponible avec ${reportData.photosCount} photo(s).\n\nTitre: ${title}\nAdresse: ${address}\n${description ? `\nDescription: ${description}` : ''}\n\nVous pouvez le consulter dans votre espace client.`,
+                read: false,
+                fromAgency: false,
+                sender: 'FLINCO',
+                type: 'rapport',
+                reportId: reportId,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+
+            await db.collection('messages').add(messageData);
+
+            console.log('✅ Notification envoyée à l\'agence:', agencyId);
+
+            // Réponse à Kroopi
+            return res.status(200).json({
+                success: true,
+                message: 'Rapport créé et notification envoyée',
+                data: {
+                    reportId: reportId,
+                    agencyId: agencyId,
+                    agencyName: agencyName,
+                    kroopiId: kroopiId
+                }
+            });
+
+        } catch (error) {
+            console.error('❌ Erreur webhook Kroopi:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                message: error.message
+            });
+        }
+    });
+});

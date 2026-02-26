@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLINCO - Tableau de Bord</title>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #0f3460;
+            --accent: #82acff;
+            --accent-light: #b8d4ff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #0a0f1c;
+            --card: #111827;
+            --card-hover: #1a2332;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #1e293b;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--card);
+            border-right: 1px solid var(--border);
+            padding: 30px 20px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 40px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+            color: white;
+        }
+
+        .logo-text h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: var(--text);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            background: var(--card-hover);
+        }
+
+        .nav-link.active {
+            background: var(--accent);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .badge {
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-left: auto;
+        }
+
+        .user-section {
+            margin-top: auto;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+        }
+
+        .user-details p:first-child {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-details p:last-child {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: var(--card-hover);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 40px;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-card .icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .label {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Section */
+        .section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filters input,
+        .filters select {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .filters input {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        /* Rapport Card */
+        .rapport-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+
+        .rapport-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 16px rgba(130, 172, 255, 0.2);
+        }
+
+        .rapport-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .rapport-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .rapport-meta {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .rapport-description {
+            background: var(--card);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .rapport-footer {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .tag-source {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .tag-photos {
+            background: var(--success);
+            color: white;
+        }
+
+        .tag-new {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(130, 172, 255, 0.3);
+        }
+
+        /* Message Card */
+        .message-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .message-card.unread {
+            border-color: var(--accent);
+            background: rgba(130, 172, 255, 0.05);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .message-subject {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .message-date {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .message-content {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border-radius: 16px;
+            max-width: 800px;
+            width: 100%;
+            margin: 20px auto;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .modal-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .photo-item {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .photo-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-item a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: var(--bg);
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            text-align: center;
+            padding: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo">F</div>
+                <div class="logo-text">
+                    <h1>FLINCO</h1>
+                    <p>Espace Client</p>
+                </div>
+            </div>
+
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link active" onclick="showSection('dashboard')">
+                            <span>📊</span>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showSection('rapports')">
+                            <span>📸</span>
+                            <span>Rapports</span>
+                            <span class="badge" id="rapportsBadge" style="display: none;">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showSection('messages')">
+                            <span>✉️</span>
+                            <span>Messages</span>
+                            <span class="badge" id="messagesBadge" style="display: none;">0</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="user-section">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <p id="userName">Chargement...</p>
+                        <p id="userEmail">-</p>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()">🚪 Déconnexion</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <div id="dashboardSection" class="content-section">
+                <div class="header">
+                    <h2>Tableau de bord</h2>
+                    <p>Bienvenue dans votre espace client FLINCO</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="icon">📸</div>
+                        <div class="value" id="statsRapports">0</div>
+                        <div class="label">Rapports disponibles</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon">✉️</div>
+                        <div class="value" id="statsMessages">0</div>
+                        <div class="label">Messages non lus</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon">📅</div>
+                        <div class="value" id="statsRecent">0</div>
+                        <div class="label">Cette semaine</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-title">📸 Rapports récents</div>
+                        <button class="btn btn-primary" onclick="showSection('rapports')">Voir tout</button>
+                    </div>
+                    <div id="recentRapports"></div>
+                </div>
+            </div>
+
+            <!-- Rapports Section -->
+            <div id="rapportsSection" class="content-section" style="display: none;">
+                <div class="header">
+                    <h2>Vos rapports de ménage</h2>
+                    <p>Consultez tous les rapports d'intervention avec photos</p>
+                </div>
+
+                <div class="section">
+                    <div class="filters">
+                        <input type="text" id="searchRapport" placeholder="🔍 Rechercher par titre, adresse..." oninput="filterRapports()">
+                        <select id="filterSource" onchange="filterRapports()">
+                            <option value="">Toutes sources</option>
+                            <option value="kroopi">Kroopi</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <select id="filterStatus" onchange="filterRapports()">
+                            <option value="">Tous les statuts</option>
+                            <option value="new">Non lus</option>
+                            <option value="viewed">Lus</option>
+                        </select>
+                    </div>
+                    <div id="rapportsList"></div>
+                </div>
+            </div>
+
+            <!-- Messages Section -->
+            <div id="messagesSection" class="content-section" style="display: none;">
+                <div class="header">
+                    <h2>Messages et notifications</h2>
+                    <p>Recevez des notifications pour chaque nouveau rapport</p>
+                </div>
+
+                <div class="section">
+                    <div id="messagesList"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Détails Rapport -->
+    <div id="rapportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">📸 Détails du rapport</h2>
+                <button class="close-btn" onclick="closeRapportModal()">✕ Fermer</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBxR3mDxxyUqn4wdQmnb9gIIAKkPK1sojc",
+            authDomain: "flinco-v2.firebaseapp.com",
+            projectId: "flinco-v2",
+            storageBucket: "flinco-v2.firebasestorage.app",
+            messagingSenderId: "819069424966",
+            appId: "1:819069424966:web:51dcbc1dbcb4e1e28d25dd"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let currentAgencyId = null;
+        let allRapports = [];
+        let allMessages = [];
+
+        // Check authentication
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = '/espace-client.html';
+                return;
+            }
+
+            currentUser = user;
+            currentAgencyId = user.uid;
+
+            // Load agency data
+            try {
+                const agencyDoc = await db.collection('agences').doc(currentAgencyId).get();
+                if (!agencyDoc.exists) {
+                    await auth.signOut();
+                    window.location.href = '/espace-client.html';
+                    return;
+                }
+
+                const agencyData = agencyDoc.data();
+                const agencyName = agencyData.name || agencyData.agencyName || 'Agence';
+
+                // Update user info
+                document.getElementById('userName').textContent = agencyName;
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userAvatar').textContent = agencyName.charAt(0).toUpperCase();
+
+                // Load data
+                loadDashboard();
+
+                // Setup real-time listeners
+                setupRealtimeListeners();
+
+            } catch (error) {
+                console.error('Error loading agency:', error);
+                alert('Erreur de chargement');
+            }
+        });
+
+        // Setup real-time listeners
+        function setupRealtimeListeners() {
+            // Listen to new rapports
+            db.collection('rapports')
+                .where('agencyId', '==', currentAgencyId)
+                .orderBy('createdAt', 'desc')
+                .onSnapshot((snapshot) => {
+                    console.log('📥 Rapports mis à jour');
+                    loadRapports();
+                });
+
+            // Listen to new messages
+            db.collection('messages')
+                .where('agencyId', '==', currentAgencyId)
+                .orderBy('createdAt', 'desc')
+                .onSnapshot((snapshot) => {
+                    console.log('📥 Messages mis à jour');
+                    loadMessages();
+                });
+        }
+
+        // Load dashboard data
+        async function loadDashboard() {
+            await Promise.all([
+                loadRapports(),
+                loadMessages()
+            ]);
+            updateStats();
+        }
+
+        // Load rapports
+        async function loadRapports() {
+            try {
+                const snapshot = await db.collection('rapports')
+                    .where('agencyId', '==', currentAgencyId)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                allRapports = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                renderRapports(allRapports);
+                renderRecentRapports(allRapports.slice(0, 5));
+                updateStats();
+            } catch (error) {
+                console.error('Error loading rapports:', error);
+            }
+        }
+
+        // Render rapports
+        function renderRapports(rapports) {
+            const container = document.getElementById('rapportsList');
+
+            if (rapports.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📄</div><p>Aucun rapport disponible</p></div>';
+                return;
+            }
+
+            container.innerHTML = rapports.map(rapport => {
+                const createdAt = rapport.createdAt?.toDate?.() || new Date();
+                const dateStr = createdAt.toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const isNew = !rapport.viewedAt;
+                const sourceIcon = rapport.source === 'kroopi' ? '📱' : '✏️';
+                const sourceLabel = rapport.source === 'kroopi' ? 'Kroopi' : 'Admin';
+
+                return `
+                    <div class="rapport-card">
+                        <div class="rapport-header">
+                            <div style="flex: 1;">
+                                <div class="rapport-title">${rapport.title}</div>
+                                <div class="rapport-meta">📍 ${rapport.address}</div>
+                                <div class="rapport-meta">📅 ${dateStr}</div>
+                            </div>
+                        </div>
+                        <div class="rapport-description">${rapport.description}</div>
+                        <div class="rapport-footer">
+                            <span class="tag tag-source">${sourceIcon} ${sourceLabel}</span>
+                            <span class="tag tag-photos">📸 ${rapport.photosCount || 0} photo(s)</span>
+                            ${isNew ? '<span class="tag tag-new">🆕 Nouveau</span>' : ''}
+                            <button class="btn btn-primary" onclick="viewRapportDetails('${rapport.id}')" style="margin-left: auto;">
+                                👁️ Voir les détails
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render recent rapports
+        function renderRecentRapports(rapports) {
+            const container = document.getElementById('recentRapports');
+
+            if (rapports.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📄</div><p>Aucun rapport récent</p></div>';
+                return;
+            }
+
+            container.innerHTML = rapports.map(rapport => {
+                const createdAt = rapport.createdAt?.toDate?.() || new Date();
+                const dateStr = createdAt.toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="rapport-card">
+                        <div class="rapport-header">
+                            <div style="flex: 1;">
+                                <div class="rapport-title">${rapport.title}</div>
+                                <div class="rapport-meta">📍 ${rapport.address} • 📅 ${dateStr}</div>
+                            </div>
+                        </div>
+                        <div class="rapport-footer">
+                            <span class="tag tag-photos">📸 ${rapport.photosCount || 0} photo(s)</span>
+                            <button class="btn btn-primary" onclick="viewRapportDetails('${rapport.id}')" style="margin-left: auto;">
+                                👁️ Voir
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load messages
+        async function loadMessages() {
+            try {
+                const snapshot = await db.collection('messages')
+                    .where('agencyId', '==', currentAgencyId)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                allMessages = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                renderMessages(allMessages);
+                updateStats();
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+
+        // Render messages
+        function renderMessages(messages) {
+            const container = document.getElementById('messagesList');
+
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✉️</div><p>Aucun message</p></div>';
+                return;
+            }
+
+            container.innerHTML = messages.map(message => {
+                const createdAt = message.createdAt?.toDate?.() || new Date();
+                const dateStr = createdAt.toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="message-card ${!message.read ? 'unread' : ''}" onclick="markMessageAsRead('${message.id}')">
+                        <div class="message-header">
+                            <div class="message-subject">
+                                ${!message.read ? '🔴 ' : ''}${message.subject}
+                            </div>
+                            <div class="message-date">${dateStr}</div>
+                        </div>
+                        <div class="message-content">${message.content}</div>
+                        ${message.reportId ? `<button class="btn btn-primary" onclick="event.stopPropagation(); viewRapportDetails('${message.reportId}')" style="margin-top: 12px;">📸 Voir le rapport</button>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update stats
+        function updateStats() {
+            // Total rapports
+            const totalRapports = allRapports.length;
+            document.getElementById('statsRapports').textContent = totalRapports;
+
+            // Update badge
+            const rapportsBadge = document.getElementById('rapportsBadge');
+            if (totalRapports > 0) {
+                rapportsBadge.textContent = totalRapports;
+                rapportsBadge.style.display = 'block';
+            } else {
+                rapportsBadge.style.display = 'none';
+            }
+
+            // Unread messages
+            const unreadMessages = allMessages.filter(m => !m.read).length;
+            document.getElementById('statsMessages').textContent = unreadMessages;
+
+            // Update badge
+            const messagesBadge = document.getElementById('messagesBadge');
+            if (unreadMessages > 0) {
+                messagesBadge.textContent = unreadMessages;
+                messagesBadge.style.display = 'block';
+            } else {
+                messagesBadge.style.display = 'none';
+            }
+
+            // Recent rapports (last 7 days)
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            const recentCount = allRapports.filter(r => {
+                const createdAt = r.createdAt?.toDate?.() || new Date(0);
+                return createdAt > oneWeekAgo;
+            }).length;
+            document.getElementById('statsRecent').textContent = recentCount;
+        }
+
+        // View rapport details
+        async function viewRapportDetails(rapportId) {
+            const rapport = allRapports.find(r => r.id === rapportId);
+            if (!rapport) {
+                alert('❌ Rapport introuvable');
+                return;
+            }
+
+            // Mark as viewed
+            if (!rapport.viewedAt) {
+                try {
+                    await db.collection('rapports').doc(rapportId).update({
+                        viewedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    rapport.viewedAt = new Date();
+                } catch (error) {
+                    console.error('Error marking as viewed:', error);
+                }
+            }
+
+            const createdAt = rapport.createdAt?.toDate?.() || new Date();
+            const dateStr = createdAt.toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            let photosHtml = '';
+            if (rapport.photos && rapport.photos.length > 0) {
+                photosHtml = `
+                    <h3 style="margin-top: 24px; margin-bottom: 16px; font-size: 18px;">📸 Photos (${rapport.photos.length})</h3>
+                    <div class="photos-grid">
+                        ${rapport.photos.map((url, index) => `
+                            <div class="photo-item">
+                                <a href="${url}" target="_blank">
+                                    📷 Photo ${index + 1}<br>
+                                    <span style="font-size: 11px; opacity: 0.7;">Cliquer pour ouvrir</span>
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                photosHtml = `
+                    <div style="margin-top: 24px; padding: 20px; background: var(--bg); border-radius: 12px; text-align: center; color: var(--text-muted);">
+                        <p>📸 ${rapport.photosCount || 0} photo(s) mentionnée(s)</p>
+                        <p style="font-size: 13px; margin-top: 8px;">Les photos seront ajoutées prochainement</p>
+                    </div>
+                `;
+            }
+
+            document.getElementById('modalBody').innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <span class="tag tag-source">${rapport.source === 'kroopi' ? '📱 Kroopi' : '✏️ Admin'}</span>
+                        <span class="tag tag-photos">📸 ${rapport.photosCount || 0} photo(s)</span>
+                    </div>
+                    <h3 style="font-size: 20px; margin-bottom: 12px;">${rapport.title}</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 6px;">📍 ${rapport.address}</p>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">📅 ${dateStr}</p>
+                    <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                        <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--text-muted);">Description:</h4>
+                        <p style="white-space: pre-wrap; line-height: 1.6;">${rapport.description}</p>
+                    </div>
+                    ${rapport.kroopiId ? `<p style="color: var(--text-muted); font-size: 13px;">ID Kroopi: ${rapport.kroopiId}</p>` : ''}
+                </div>
+                ${photosHtml}
+            `;
+
+            document.getElementById('rapportModal').style.display = 'block';
+        }
+
+        function closeRapportModal() {
+            document.getElementById('rapportModal').style.display = 'none';
+        }
+
+        // Mark message as read
+        async function markMessageAsRead(messageId) {
+            const message = allMessages.find(m => m.id === messageId);
+            if (!message || message.read) return;
+
+            try {
+                await db.collection('messages').doc(messageId).update({
+                    read: true
+                });
+                message.read = true;
+                updateStats();
+            } catch (error) {
+                console.error('Error marking message as read:', error);
+            }
+        }
+
+        // Filter rapports
+        function filterRapports() {
+            const searchTerm = document.getElementById('searchRapport').value.toLowerCase();
+            const sourceFilter = document.getElementById('filterSource').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            const filtered = allRapports.filter(rapport => {
+                const matchSearch =
+                    rapport.title.toLowerCase().includes(searchTerm) ||
+                    rapport.address.toLowerCase().includes(searchTerm) ||
+                    rapport.description.toLowerCase().includes(searchTerm);
+
+                const matchSource = !sourceFilter || rapport.source === sourceFilter;
+
+                let matchStatus = true;
+                if (statusFilter === 'new') {
+                    matchStatus = !rapport.viewedAt;
+                } else if (statusFilter === 'viewed') {
+                    matchStatus = !!rapport.viewedAt;
+                }
+
+                return matchSearch && matchSource && matchStatus;
+            });
+
+            renderRapports(filtered);
+        }
+
+        // Show section
+        function showSection(sectionName) {
+            // Update nav
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.closest('.nav-link').classList.add('active');
+
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.style.display = 'none';
+            });
+
+            // Show selected section
+            if (sectionName === 'dashboard') {
+                document.getElementById('dashboardSection').style.display = 'block';
+            } else if (sectionName === 'rapports') {
+                document.getElementById('rapportsSection').style.display = 'block';
+            } else if (sectionName === 'messages') {
+                document.getElementById('messagesSection').style.display = 'block';
+            }
+        }
+
+        // Logout
+        async function handleLogout() {
+            if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+                try {
+                    await auth.signOut();
+                    window.location.href = '/espace-client.html';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    alert('Erreur lors de la déconnexion');
+                }
+            }
+        }
+
+        // Close modal on click outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('rapportModal');
+            if (event.target === modal) {
+                closeRapportModal();
+            }
+        }
+    </script>
+</body>
+</html>
